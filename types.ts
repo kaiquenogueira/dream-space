@@ -1,3 +1,16 @@
+export enum GenerationMode {
+  REDESIGN = 'Redesign',
+  VIRTUAL_STAGING = 'Virtual Staging (Mobiliar)'
+}
+
+export interface Property {
+  id: string;
+  name: string;
+  images: UploadedImage[];
+  createdAt: number;
+  logo?: string; // Base64 or URL
+}
+
 export interface UploadedImage {
   id: string;
   file: File;
@@ -6,6 +19,7 @@ export interface UploadedImage {
   generatedUrl?: string;
   isGenerating?: boolean;
   error?: string;
+  generationMode?: GenerationMode; // Optional per image override or global
 }
 
 export interface GenerationResult {

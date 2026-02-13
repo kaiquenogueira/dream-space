@@ -1,21 +1,57 @@
 import React, { useState, useRef, useEffect } from 'react';
 import ImageUploader from './components/ImageUploader';
 import StyleSelector from './components/StyleSelector';
-import { ArchitecturalStyle, UploadedImage, STYLE_PROMPTS } from './types';
-import { generateRoomDesign } from './services/geminiService';
+import { ArchitecturalStyle, UploadedImage, STYLE_PROMPTS, GenerationMode, Property } from './types';
+import { generateRoomDesign, fileToBase64 } from './services/geminiService';
 import { RefreshIcon, DownloadIcon, LayoutIcon, ArrowRightIcon, XIcon, MagicWandIcon, ColumnsIcon } from './components/Icons';
 
 const MAX_IMAGES = 5;
 
 const App: React.FC = () => {
-  const [images, setImages] = useState<UploadedImage[]>([]);
+  const [properties, setProperties] = useState<Property[]>([]);
+  const [activePropertyId, setActivePropertyId] = useState<string | null>(null);
+  const [newPropertyName, setNewPropertyName] = useState('');
+
   const [selectedImageId, setSelectedImageId] = useState<string | null>(null);
   const [selectedStyle, setSelectedStyle] = useState<ArchitecturalStyle | null>(null);
+  const [generationMode, setGenerationMode] = useState<GenerationMode>(GenerationMode.REDESIGN);
   const [customPrompt, setCustomPrompt] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   
   // Controls the view mode in the preview area
   const [viewMode, setViewMode] = useState<'original' | 'generated' | 'split'>('split');
+
+  const activeProperty = properties.find(p => p.id === activePropertyId);
+  const images = activeProperty ? activeProperty.images : [];
+
+  const setImages = (action: React.SetStateAction<UploadedImage[]>) => {
+    if (!activePropertyId) return;
+    
+    setProperties(prevProps => prevProps.map(prop => {
+      if (prop.id !== activePropertyId) return prop;
+      
+      const newImages = typeof action === 'function' 
+        ? (action as (prev: UploadedImage[]) => UploadedImage[])(prop.images)
+        : action;
+        
+      return { ...prop, images: newImages };
+    }));
+  };
+
+  const handleCreateProperty = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newPropertyName.trim()) return;
+    
+    const newProp: Property = {
+      id: crypto.randomUUID(),
+      name: newPropertyName,
+      images: [],
+      createdAt: Date.now()
+    };
+    setProperties(prev => [...prev, newProp]);
+    setActivePropertyId(newProp.id);
+    setNewPropertyName('');
+  };
 
   const activeImage = images.find(img => img.id === selectedImageId) || images[0];
 
@@ -61,8 +97,17 @@ const App: React.FC = () => {
 
     // Construct prompt once for all
     let finalPrompt = '';
-    if (selectedStyle) {
-      finalPrompt = `Redesign this interior space in a ${STYLE_PROMPTS[selectedStyle]}. Apply appropriate furniture, lighting, and wall colors. Maintain the original structural layout (windows, doors, floors). Ensure photorealistic quality.`;
+
+    if (generationMode === GenerationMode.VIRTUAL_STAGING) {
+      if (selectedStyle) {
+         finalPrompt = `This is an empty room. Furnish this room with ${STYLE_PROMPTS[selectedStyle]} furniture. Keep the original walls, floor, and ceiling structure exactly as is. Add realistic lighting and shadows. Ensure photorealistic quality.`;
+      } else {
+         finalPrompt = `This is an empty room. Furnish this room with modern furniture appropriate for its size and layout. Keep the original walls, floor, and ceiling structure exactly as is. Add realistic lighting and shadows. Ensure photorealistic quality.`;
+      }
+    } else {
+      if (selectedStyle) {
+        finalPrompt = `Redesign this interior space in a ${STYLE_PROMPTS[selectedStyle]}. Apply appropriate furniture, lighting, and wall colors. Maintain the original structural layout (windows, doors, floors). Ensure photorealistic quality.`;
+      }
     }
     
     if (customPrompt) {
@@ -106,18 +151,198 @@ const App: React.FC = () => {
     document.body.removeChild(link);
   };
 
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0] && activePropertyId) {
+      const file = e.target.files[0];
+      try {
+        const base64 = await fileToBase64(file);
+        const logoUrl = `data:${file.type};base64,${base64}`;
+        
+        setProperties(prev => prev.map(p => 
+          p.id === activePropertyId ? { ...p, logo: logoUrl } : p
+        ));
+      } catch (err) {
+        console.error("Failed to upload logo", err);
+      }
+    }
+  };
+
+  const handleDownloadComparison = async (originalUrl: string, generatedUrl: string) => {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    // Load images
+    const loadImage = (src: string) => new Promise<HTMLImageElement>((resolve, reject) => {
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.onload = () => resolve(img);
+      img.onerror = reject;
+      img.src = src;
+    });
+
+    try {
+      const [img1, img2] = await Promise.all([loadImage(originalUrl), loadImage(generatedUrl)]);
+
+      // Set canvas size (side by side)
+      const width = img1.width + img2.width;
+      const height = Math.max(img1.height, img2.height);
+      const footerHeight = 80;
+      
+      canvas.width = width;
+      canvas.height = height + footerHeight;
+
+      // Draw background
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Draw images
+      ctx.drawImage(img1, 0, 0);
+      ctx.drawImage(img2, img1.width, 0);
+
+      // Draw "Before" / "After" labels
+      ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
+      const labelW = 120;
+      const labelH = 40;
+      
+      // Before Label
+      ctx.fillRect(20, 20, labelW, labelH);
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "bold 20px sans-serif";
+      ctx.fillText("BEFORE", 40, 48);
+
+      // After Label
+      ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
+      ctx.fillRect(img1.width + 20, 20, labelW, labelH);
+      ctx.fillStyle = "#ffffff";
+      ctx.fillText("AFTER", img1.width + 45, 48);
+
+      // Draw Footer
+      ctx.fillStyle = "#0f172a"; // Slate-900
+      ctx.fillRect(0, height, width, footerHeight);
+      
+      // Draw Property Name
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "bold 24px sans-serif";
+      const propName = activeProperty?.name || "DreamSpace Design";
+      ctx.fillText(propName, 30, height + 50);
+
+      // Draw Logo if exists
+      if (activeProperty?.logo) {
+          const logo = await loadImage(activeProperty.logo);
+          // Resize logo to fit in footer height - 20px padding
+          const maxLogoH = footerHeight - 20;
+          const scale = maxLogoH / logo.height;
+          const logoW = logo.width * scale;
+          const logoH = logo.height * scale;
+          
+          ctx.drawImage(logo, width - logoW - 30, height + 10, logoW, logoH);
+      } else {
+          // Draw default text
+          ctx.fillStyle = "#94a3b8"; // Slate-400
+          ctx.font = "16px sans-serif";
+          ctx.textAlign = "right";
+          ctx.fillText("Generated with DreamSpace AI", width - 30, height + 45);
+      }
+
+      // Download
+      const link = document.createElement('a');
+      link.download = `comparison-${Date.now()}.png`;
+      link.href = canvas.toDataURL('image/png');
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (err) {
+      console.error("Failed to generate comparison", err);
+      alert("Failed to generate comparison image. Please try again.");
+    }
+  };
+
+  if (!activePropertyId) {
+    return (
+      <div className="min-h-screen bg-slate-950 text-slate-200 flex flex-col items-center justify-center p-4">
+         <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center text-white mb-6 shadow-2xl shadow-blue-900/50">
+            <LayoutIcon />
+         </div>
+         <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent mb-2">
+           DreamSpace AI
+         </h1>
+         <p className="text-slate-400 mb-8 text-center max-w-md">
+           Architectural redesign and virtual staging for real estate professionals.
+         </p>
+
+         <div className="w-full max-w-md bg-slate-900 p-8 rounded-2xl border border-slate-800 shadow-xl">
+            <h2 className="text-xl font-semibold text-white mb-6">Create New Property Project</h2>
+            <form onSubmit={handleCreateProperty} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-400 mb-1">Property Name / Address</label>
+                <input 
+                  type="text" 
+                  value={newPropertyName}
+                  onChange={(e) => setNewPropertyName(e.target.value)}
+                  placeholder="e.g. 123 Ocean Drive, Apt 4B"
+                  className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  autoFocus
+                />
+              </div>
+              <button 
+                type="submit"
+                disabled={!newPropertyName.trim()}
+                className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3 rounded-lg transition-all"
+              >
+                Start Project
+              </button>
+            </form>
+
+            {properties.length > 0 && (
+              <div className="mt-8 pt-6 border-t border-slate-800">
+                <h3 className="text-sm font-medium text-slate-500 mb-3 uppercase tracking-wider">Recent Projects</h3>
+                <div className="space-y-2 max-h-48 overflow-y-auto">
+                  {properties.map(p => (
+                    <button
+                      key={p.id}
+                      onClick={() => setActivePropertyId(p.id)}
+                      className="w-full text-left px-4 py-3 rounded-lg bg-slate-800/50 hover:bg-slate-800 border border-transparent hover:border-slate-700 transition-all flex justify-between items-center group"
+                    >
+                      <span className="font-medium text-slate-300 group-hover:text-white">{p.name}</span>
+                      <span className="text-xs text-slate-500">{new Date(p.createdAt).toLocaleDateString()}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+         </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-200">
       {/* Header */}
       <header className="sticky top-0 z-50 bg-slate-900/80 backdrop-blur-md border-b border-slate-800">
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white">
-              <LayoutIcon />
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 cursor-pointer" onClick={() => setActivePropertyId(null)}>
+              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white">
+                <LayoutIcon />
+              </div>
+              <h1 className="text-xl font-bold bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent hidden sm:block">
+                DreamSpace
+              </h1>
             </div>
-            <h1 className="text-xl font-bold bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent">
-              DreamSpace AI
-            </h1>
+            
+            <div className="h-6 w-px bg-slate-700 mx-2"></div>
+            
+            <div className="flex items-center gap-2">
+               <span className="text-slate-400 text-sm">Project:</span>
+               <span className="font-semibold text-white">{activeProperty?.name}</span>
+               <button 
+                 onClick={() => setActivePropertyId(null)}
+                 className="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-2 py-1 rounded ml-2 transition-colors"
+               >
+                 Switch
+               </button>
+            </div>
           </div>
           <div className="text-sm text-slate-500 hidden md:block">
             Powered by Gemini 2.5 Flash Image
@@ -178,6 +403,35 @@ const App: React.FC = () => {
                 currentCount={images.length}
                 maxImages={MAX_IMAGES}
               />
+
+              {/* Branding Section */}
+              <div className="mt-8 pt-6 border-t border-slate-800">
+                <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Project Branding</h3>
+                <div className="flex items-center gap-3 bg-slate-900 p-3 rounded-lg border border-slate-800">
+                  {activeProperty?.logo ? (
+                    <div className="relative group w-10 h-10 bg-white rounded overflow-hidden flex items-center justify-center flex-shrink-0">
+                      <img src={activeProperty.logo} alt="Logo" className="max-w-full max-h-full object-contain" />
+                      <button 
+                        onClick={() => setProperties(prev => prev.map(p => p.id === activePropertyId ? { ...p, logo: undefined } : p))}
+                        className="absolute inset-0 bg-black/50 text-white opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity"
+                      >
+                        <XIcon className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="w-10 h-10 bg-slate-800 rounded flex items-center justify-center border border-dashed border-slate-600 text-slate-500 flex-shrink-0">
+                      <span className="text-[10px]">Logo</span>
+                    </div>
+                  )}
+                  <div className="flex-1 overflow-hidden">
+                    <label className="cursor-pointer text-sm text-blue-400 hover:text-blue-300 font-medium truncate block">
+                      {activeProperty?.logo ? 'Change Logo' : 'Upload Agency Logo'}
+                      <input type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} />
+                    </label>
+                    <p className="text-xs text-slate-500 truncate">Added to comparison exports</p>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -198,26 +452,46 @@ const App: React.FC = () => {
                   className={`
                     px-6 py-3 rounded-lg font-semibold flex items-center gap-2 transition-all whitespace-nowrap
                     ${isGenerating || images.length === 0
-                      ? 'bg-slate-700 cursor-not-allowed text-slate-400' 
-                      : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-lg hover:shadow-blue-500/25'
+                      ? 'bg-slate-700 text-slate-500 cursor-not-allowed'
+                      : 'bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-500/20 hover:shadow-blue-500/40 transform hover:-translate-y-0.5 active:translate-y-0'
                     }
                   `}
                 >
                   {isGenerating ? (
                     <>
                       <RefreshIcon className="animate-spin" />
-                      Designing {images.length} Rooms...
+                      Generating...
                     </>
                   ) : (
                     <>
                       <MagicWandIcon />
-                      Generate {images.length > 0 ? `All (${images.length})` : ''}
+                      Generate Designs
                     </>
                   )}
                 </button>
               </div>
 
               <div className="space-y-6">
+                {/* Mode Selection */}
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-3">Mode</label>
+                  <div className="flex bg-slate-800 p-1 rounded-lg w-fit">
+                    {Object.values(GenerationMode).map((mode) => (
+                      <button
+                        key={mode}
+                        onClick={() => setGenerationMode(mode)}
+                        className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                          generationMode === mode
+                            ? 'bg-blue-600 text-white shadow-sm'
+                            : 'text-slate-400 hover:text-slate-200'
+                        }`}
+                      >
+                        {mode}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
                 <div>
                   <label className="block text-sm font-medium text-slate-300 mb-3">Architectural Style</label>
                   <StyleSelector selectedStyle={selectedStyle} onSelectStyle={setSelectedStyle} />
@@ -274,13 +548,24 @@ const App: React.FC = () => {
                   </div>
 
                   {activeImage.generatedUrl && (
-                    <button 
-                      onClick={() => handleDownload(activeImage.generatedUrl!)}
-                      className="flex items-center gap-2 text-sm text-blue-400 hover:text-blue-300 transition-colors"
-                    >
-                      <DownloadIcon />
-                      Download
-                    </button>
+                    <div className="flex gap-2">
+                      <button 
+                        onClick={() => handleDownload(activeImage.generatedUrl!)}
+                        className="flex items-center gap-2 px-3 py-1.5 bg-blue-600/10 hover:bg-blue-600/20 text-blue-400 hover:text-blue-300 rounded-lg transition-colors text-sm font-medium"
+                        title="Download Result"
+                      >
+                        <DownloadIcon />
+                        Result
+                      </button>
+                      <button 
+                        onClick={() => handleDownloadComparison(activeImage.previewUrl, activeImage.generatedUrl!)}
+                        className="flex items-center gap-2 px-3 py-1.5 bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-400 hover:text-indigo-300 rounded-lg transition-colors text-sm font-medium"
+                        title="Download Comparison"
+                      >
+                        <ColumnsIcon />
+                        Compare
+                      </button>
+                    </div>
                   )}
                 </div>
 
