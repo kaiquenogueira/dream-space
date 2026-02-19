@@ -1,41 +1,25 @@
-import { GoogleGenAI } from "@google/genai";
-
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-
 export const generateRoomDesign = async (
   imageBase64: string,
   prompt: string
 ): Promise<string> => {
   try {
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash-image',
-      contents: {
-        parts: [
-          {
-            inlineData: {
-              data: imageBase64,
-              mimeType: 'image/jpeg', // Assuming JPEG for simplicity, or we can detect
-            },
-          },
-          {
-            text: prompt,
-          },
-        ],
+    const token = localStorage.getItem('dreamspace_token');
+    const response = await fetch('/api/generate', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
       },
-      // Note: responseMimeType and responseSchema are NOT supported for nano banana (gemini-2.5-flash-image)
+      body: JSON.stringify({ imageBase64, prompt }),
     });
 
-    // Parse the response to find the image part
-    if (response.candidates && response.candidates.length > 0) {
-      const parts = response.candidates[0].content.parts;
-      for (const part of parts) {
-        if (part.inlineData && part.inlineData.data) {
-          return `data:image/png;base64,${part.inlineData.data}`;
-        }
-      }
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Failed to generate design');
     }
 
-    throw new Error("No image data found in response");
+    const data = await response.json();
+    return data.result;
   } catch (error) {
     console.error("Gemini API Error:", error);
     throw error;

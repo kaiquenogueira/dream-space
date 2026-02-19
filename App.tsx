@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import ImageUploader from './components/ImageUploader';
+import Login from './components/Login';
 import StyleSelector from './components/StyleSelector';
 import { ArchitecturalStyle, UploadedImage, STYLE_PROMPTS, GenerationMode, Property } from './types';
 import { generateRoomDesign, fileToBase64 } from './services/geminiService';
@@ -8,6 +9,41 @@ import { RefreshIcon, DownloadIcon, LayoutIcon, ArrowRightIcon, XIcon, MagicWand
 const MAX_IMAGES = 5;
 
 const App: React.FC = () => {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      const token = localStorage.getItem('dreamspace_token');
+      if (token) {
+        try {
+          const res = await fetch('/api/verify', {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          if (res.ok) {
+            setIsAuthenticated(true);
+          } else {
+            localStorage.removeItem('dreamspace_token');
+          }
+        } catch (e) {
+          localStorage.removeItem('dreamspace_token');
+        }
+      }
+      setIsCheckingAuth(false);
+    };
+    checkAuth();
+  }, []);
+
+  const handleLogin = (token: string) => {
+    localStorage.setItem('dreamspace_token', token);
+    setIsAuthenticated(true);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('dreamspace_token');
+    setIsAuthenticated(false);
+  };
+
   const [properties, setProperties] = useState<Property[]>([]);
   const [activePropertyId, setActivePropertyId] = useState<string | null>(null);
   const [newPropertyName, setNewPropertyName] = useState('');
@@ -258,6 +294,18 @@ const App: React.FC = () => {
     }
   };
 
+  if (isCheckingAuth) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+        <RefreshIcon className="animate-spin text-blue-500 w-8 h-8" />
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <Login onLogin={handleLogin} />;
+  }
+
   if (!activePropertyId) {
     return (
       <div className="min-h-screen bg-slate-950 text-slate-200 flex flex-col items-center justify-center p-4">
@@ -343,6 +391,12 @@ const App: React.FC = () => {
                  Switch
                </button>
             </div>
+            <button 
+               onClick={handleLogout}
+               className="ml-4 text-xs text-red-400 hover:text-red-300 border border-red-900/50 px-2 py-1 rounded"
+            >
+               Logout
+            </button>
           </div>
           <div className="text-sm text-slate-500 hidden md:block">
             Powered by Gemini 2.5 Flash Image
