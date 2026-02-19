@@ -21,12 +21,18 @@ export default async function handler(req: any, res: any) {
     return res.status(500).json({ error: 'Server configuration error' });
   }
 
+  console.log(`Login attempt for user: ${username}`);
+  console.log(`Admin Username configured: ${adminUsername}`);
+  console.log(`Hash configured (start): ${adminPasswordHash.substring(0, 10)}...`);
+
   if (username !== adminUsername) {
+    console.log(`Username mismatch: ${username} !== ${adminUsername}`);
     return res.status(401).json({ error: 'Invalid credentials' });
   }
 
   try {
     const isPasswordValid = await compare(password, adminPasswordHash);
+    console.log(`Password valid? ${isPasswordValid}`);
 
     if (!isPasswordValid) {
       return res.status(401).json({ error: 'Invalid credentials' });
