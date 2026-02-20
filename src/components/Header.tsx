@@ -17,7 +17,7 @@ const Header: React.FC<HeaderProps> = ({ activeProperty, setActivePropertyId, ha
         <div className="flex items-center gap-5">
           <button
             onClick={() => setActivePropertyId(null)}
-            className="flex items-center gap-3 group focus:outline-none"
+            className="flex items-center gap-3 group focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 rounded-xl"
           >
             <div className="w-9 h-9 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-emerald-900/30 group-hover:shadow-emerald-600/40 transition-all group-hover:scale-105">
               <LayoutIcon className="w-5 h-5" />
@@ -31,12 +31,12 @@ const Header: React.FC<HeaderProps> = ({ activeProperty, setActivePropertyId, ha
 
           <div className="flex items-center gap-3">
             <div className="flex flex-col">
-              <span className="text-[10px] uppercase tracking-wider text-zinc-500 font-semibold leading-tight">Project</span>
+              <span className="text-xs uppercase tracking-wider text-zinc-500 font-semibold leading-tight">Project</span>
               <div className="flex items-center gap-2">
                 <span className="font-medium text-zinc-200 text-sm max-w-[180px] truncate">{activeProperty?.name}</span>
                 <button
                   onClick={() => setActivePropertyId(null)}
-                  className="text-[10px] bg-zinc-800/60 hover:bg-zinc-700/80 text-zinc-400 hover:text-white px-2.5 py-0.5 rounded-full transition-all border border-zinc-700/50 hover:border-zinc-600"
+                  className="text-xs bg-zinc-800/60 hover:bg-zinc-700/80 text-zinc-400 hover:text-white px-2.5 py-0.5 rounded-full transition-all border border-zinc-700/50 hover:border-zinc-600 focus-visible:ring-2 focus-visible:ring-emerald-500"
                 >
                   Switch
                 </button>
@@ -49,7 +49,7 @@ const Header: React.FC<HeaderProps> = ({ activeProperty, setActivePropertyId, ha
         <div className="flex items-center gap-4">
           <div className="hidden md:flex items-center gap-1.5 text-xs text-zinc-500 font-medium bg-zinc-800/40 px-3 py-1.5 rounded-full border border-zinc-700/30">
             <SparkleIcon className="w-3.5 h-3.5 text-emerald-400/70" />
-            power by MKG
+            powered by MKG
           </div>
           <button
             onClick={handleLogout}
@@ -64,4 +64,4 @@ const Header: React.FC<HeaderProps> = ({ activeProperty, setActivePropertyId, ha
   );
 };
 
-export default Header;
+export default React.memo(Header);

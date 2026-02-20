@@ -48,7 +48,7 @@ const StyleSelector: React.FC<StyleSelectorProps> = ({ selectedStyle, onSelectSt
               <span className={`block font-bold text-xs leading-tight ${isSelected ? 'text-white' : 'text-zinc-200'}`}>
                 {style}
               </span>
-              <span className="block text-[9px] text-zinc-400 mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity leading-tight truncate">
+              <span className="block text-xs text-zinc-400 mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity leading-tight truncate">
                 {meta.description}
               </span>
             </div>
@@ -68,4 +68,4 @@ const StyleSelector: React.FC<StyleSelectorProps> = ({ selectedStyle, onSelectSt
   );
 };
 
-export default StyleSelector;
+export default React.memo(StyleSelector);

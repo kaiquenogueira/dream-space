@@ -45,7 +45,7 @@ const App: React.FC = () => {
   const [isDownloadingZip, setIsDownloadingZip] = useState(false);
   const [viewMode, setViewMode] = useState<'original' | 'generated' | 'split'>('split');
   const [mobileView, setMobileView] = useState<'gallery' | 'editor'>('gallery');
-  const [showControls, setShowControls] = useState(false);
+  const [showControls, setShowControls] = useState(true);
 
   const activeImage = images.find(img => img.id === selectedImageId) || images[0];
   const activeImageIndex = activeImage ? images.indexOf(activeImage) : 0;
@@ -352,6 +352,7 @@ const App: React.FC = () => {
               toggleSelectAll={toggleSelectAll}
               handleRegenerateSingle={handleRegenerateSingle}
               isGenerating={isGenerating}
+              compact
             />
           </div>
         ) : (
@@ -441,7 +442,7 @@ const App: React.FC = () => {
 
               {/* Custom prompt indicator */}
               {customPrompt && (
-                <span className="text-[10px] text-zinc-500 bg-zinc-800/40 px-2 py-1 rounded-md border border-zinc-700/30 max-w-[200px] truncate">
+                <span className="text-xs text-zinc-500 bg-zinc-800/40 px-2 py-1 rounded-md border border-zinc-700/30 max-w-[200px] truncate">
                   "{customPrompt}"
                 </span>
               )}
@@ -456,7 +457,7 @@ const App: React.FC = () => {
                   px-5 py-2 rounded-xl font-bold text-sm flex items-center gap-2 transition-all relative overflow-hidden group
                   ${isGenerating || selectedCount === 0
                     ? 'bg-zinc-800/60 text-zinc-500 cursor-not-allowed border border-zinc-700/40'
-                    : 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white shadow-lg shadow-emerald-600/20 hover:shadow-emerald-600/35 hover:-tranzinc-y-0.5 active:tranzinc-y-0'
+                    : 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white shadow-lg shadow-emerald-600/20 hover:shadow-emerald-600/35 hover:-translate-y-0.5 active:translate-y-0'
                   }
                 `}
               >
@@ -476,7 +477,7 @@ const App: React.FC = () => {
                   )}
                 </span>
                 {!isGenerating && selectedCount > 0 && (
-                  <div className="absolute inset-0 -tranzinc-x-full group-hover:tranzinc-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+                  <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/10 to-transparent" />
                 )}
               </button>
             </div>

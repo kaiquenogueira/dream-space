@@ -32,7 +32,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ onImagesSelected, current
         console.log(`Original size: ${(file.size / 1024 / 1024).toFixed(2)} MB`);
         const { base64, preview } = await compressImage(file);
         console.log(`Compressed size: ${(base64.length * 0.75 / 1024 / 1024).toFixed(2)} MB`);
-        
+
         const base64Content = base64;
         const result = preview;
 
@@ -81,7 +81,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ onImagesSelected, current
       <div className="border-2 border-dashed border-zinc-800/60 rounded-xl h-full flex flex-col items-center justify-center text-zinc-600 bg-zinc-900/20 cursor-not-allowed">
         <ImageIcon className="w-5 h-5 opacity-50 mb-1.5" />
         <p className="font-medium text-xs">Limit Reached</p>
-        <p className="text-[10px] opacity-60 mt-0.5">Remove to add more</p>
+        <p className="text-xs opacity-60 mt-0.5">Remove to add more</p>
       </div>
     );
   }
@@ -136,7 +136,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ onImagesSelected, current
               <div className="p-2 rounded-full bg-zinc-700/50 text-zinc-400 group-hover:text-emerald-400 group-hover:bg-emerald-500/20 transition-all duration-300 group-focus-visible:ring-2 group-focus-visible:ring-emerald-500">
                 <UploadIcon className="w-4 h-4" />
               </div>
-              <span className="font-medium text-[10px] text-zinc-400 group-hover:text-zinc-300 transition-colors">Upload</span>
+              <span className="font-medium text-xs text-zinc-400 group-hover:text-zinc-300 transition-colors">Upload</span>
             </button>
 
             <div className="w-px h-8 bg-zinc-700/50"></div>
@@ -149,10 +149,10 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ onImagesSelected, current
               <div className="p-2 rounded-full bg-zinc-700/50 text-zinc-400 group-hover:text-emerald-400 group-hover:bg-emerald-500/20 transition-all duration-300 group-focus-visible:ring-2 group-focus-visible:ring-emerald-500">
                 <CameraIcon className="w-4 h-4" />
               </div>
-              <span className="font-medium text-[10px] text-zinc-400 group-hover:text-zinc-300 transition-colors">Camera</span>
+              <span className="font-medium text-xs text-zinc-400 group-hover:text-zinc-300 transition-colors">Camera</span>
             </button>
           </div>
-          <p className="text-[9px] text-zinc-500">{currentCount}/{maxImages}</p>
+          <p className="text-xs text-zinc-500">{currentCount}/{maxImages}</p>
         </div>
       )}
     </div>

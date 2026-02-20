@@ -55,7 +55,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
           }}
         />
         <div
-          className="absolute top-1/2 left-1/2 -tranzinc-x-1/2 -tranzinc-y-1/2 w-[400px] h-[400px] rounded-full opacity-10 blur-[80px]"
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] rounded-full opacity-10 blur-[80px]"
           style={{
             background: 'radial-gradient(circle, #06b6d4, transparent 70%)',
             animation: 'orbFloat3 18s ease-in-out infinite',
@@ -98,7 +98,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
             <div className="opacity-0 animate-fade-slide-in delay-100" style={{ animationFillMode: 'forwards', animationDelay: '100ms' }}>
               <label className="block text-sm font-medium text-zinc-300 mb-2">Username</label>
               <div className="relative group">
-                <div className="absolute left-3.5 top-1/2 -tranzinc-y-1/2 text-zinc-500 group-focus-within:text-emerald-400 transition-colors">
+                <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-500 group-focus-within:text-emerald-400 transition-colors">
                   <UserIcon />
                 </div>
                 <input
@@ -115,7 +115,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
             <div className="opacity-0 animate-fade-slide-in delay-200" style={{ animationFillMode: 'forwards', animationDelay: '200ms' }}>
               <label className="block text-sm font-medium text-zinc-300 mb-2">Password</label>
               <div className="relative group">
-                <div className="absolute left-3.5 top-1/2 -tranzinc-y-1/2 text-zinc-500 group-focus-within:text-emerald-400 transition-colors">
+                <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-500 group-focus-within:text-emerald-400 transition-colors">
                   <LockIcon />
                 </div>
                 <input
@@ -147,7 +147,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                   ) : 'Sign In'}
                 </span>
                 {/* Shimmer overlay */}
-                <div className="absolute inset-0 -tranzinc-x-full group-hover:tranzinc-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+                <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/10 to-transparent" />
               </button>
             </div>
           </form>

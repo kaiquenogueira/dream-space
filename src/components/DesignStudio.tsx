@@ -39,13 +39,13 @@ const DesignStudio: React.FC<DesignStudioProps> = ({
     <div className="space-y-4">
       {/* Style Selector */}
       <div>
-        <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-2.5">Architectural Style</label>
+        <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2.5">Architectural Style</label>
         <StyleSelector selectedStyle={selectedStyle} onSelectStyle={setSelectedStyle} />
       </div>
 
       {/* Custom Prompt */}
       <div>
-        <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-2">Custom Instructions</label>
+        <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2">Custom Instructions</label>
         <div className="relative group">
           <textarea
             value={customPrompt}
@@ -53,7 +53,7 @@ const DesignStudio: React.FC<DesignStudioProps> = ({
             placeholder="Describe specific details (e.g., 'Paint the walls sage green, add a leather armchair...')"
             className="w-full bg-zinc-950/50 border border-zinc-800/50 rounded-xl p-3 text-sm text-zinc-200 placeholder-zinc-600 focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500/20 outline-none transition-all resize-none h-20 group-hover:border-zinc-700/60"
           />
-          <div className="absolute bottom-2 right-3 text-[10px] text-zinc-600 pointer-events-none">
+          <div className="absolute bottom-2 right-3 text-xs text-zinc-600 pointer-events-none">
             {customPrompt.length} chars
           </div>
         </div>
@@ -64,7 +64,7 @@ const DesignStudio: React.FC<DesignStudioProps> = ({
             <button
               key={suggestion}
               onClick={() => handleAddPrompt(suggestion)}
-              className={`px-2.5 py-1 rounded-full text-[10px] font-medium transition-all duration-200
+              className={`px-2.5 py-1 rounded-full text-xs font-medium transition-all duration-200
                 ${customPrompt.includes(suggestion)
                   ? 'bg-emerald-500/15 border border-emerald-500/30 text-emerald-300'
                   : 'bg-zinc-800/50 border border-zinc-700/40 text-zinc-400 hover:text-white hover:border-zinc-600/60 hover:bg-zinc-700/50'
@@ -80,4 +80,4 @@ const DesignStudio: React.FC<DesignStudioProps> = ({
   );
 };
 
-export default DesignStudio;
+export default React.memo(DesignStudio);

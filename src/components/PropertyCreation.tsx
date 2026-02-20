@@ -74,7 +74,7 @@ const PropertyCreation: React.FC<PropertyCreationProps> = ({ properties, setActi
             <div>
               <label className="block text-sm font-medium text-zinc-400 mb-2">Property Name / Address</label>
               <div className="relative group">
-                <div className="absolute left-3.5 top-1/2 -tranzinc-y-1/2 text-zinc-500 group-focus-within:text-emerald-400 transition-colors">
+                <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-500 group-focus-within:text-emerald-400 transition-colors">
                   <MapPinIcon />
                 </div>
                 <input
@@ -93,7 +93,7 @@ const PropertyCreation: React.FC<PropertyCreationProps> = ({ properties, setActi
               className="w-full relative overflow-hidden bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold py-3.5 rounded-xl transition-all shadow-lg shadow-emerald-500/20 active:scale-[0.98] group"
             >
               <span className="relative z-10">Start Project</span>
-              <div className="absolute inset-0 -tranzinc-x-full group-hover:tranzinc-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+              <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/10 to-transparent" />
             </button>
           </form>
 

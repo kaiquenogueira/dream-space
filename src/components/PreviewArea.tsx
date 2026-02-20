@@ -44,7 +44,7 @@ const ComparisonSlider: React.FC<{ originalUrl: string; generatedUrl: string }> 
         style={{ left: `${sliderPosition}%`, transform: 'translateX(-50%)' }}
       >
         {/* Slider Handle Visual */}
-        <div className="absolute top-1/2 left-1/2 -tranzinc-x-1/2 -tranzinc-y-1/2 w-10 h-10 bg-white/90 backdrop-blur-sm rounded-full shadow-xl flex items-center justify-center border-2 border-white/50 transition-transform group-active:scale-110">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-10 h-10 bg-white/90 backdrop-blur-sm rounded-full shadow-xl flex items-center justify-center border-2 border-white/50 transition-transform group-active:scale-110">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1e293b" strokeWidth="2.5" strokeLinecap="round">
             <path d="M8 6l-4 6 4 6" />
             <path d="M16 6l4 6-4 6" />
@@ -131,7 +131,7 @@ const PreviewArea: React.FC<PreviewAreaProps> = ({
           <div>
             <h3 className="text-base md:text-lg font-bold text-white flex items-center gap-2">
               Preview
-              <span className="text-zinc-500 text-[11px] font-medium px-2 py-0.5 bg-zinc-800/50 rounded-md">
+              <span className="text-zinc-500 text-xs font-medium px-2 py-0.5 bg-zinc-800/50 rounded-md">
                 {imageIndex + 1} / {totalImages}
               </span>
             </h3>
@@ -185,7 +185,7 @@ const PreviewArea: React.FC<PreviewAreaProps> = ({
               <button
                 onClick={() => setShowDownloadMenu(!showDownloadMenu)}
                 onBlur={() => setTimeout(() => setShowDownloadMenu(false), 200)}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-teal-600 to-purple-600 hover:from-teal-500 hover:to-purple-500 text-white rounded-xl transition-all shadow-lg shadow-teal-900/20 hover:shadow-teal-900/35 transform hover:-tranzinc-y-0.5 active:tranzinc-y-0 text-xs font-bold relative overflow-hidden group"
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-teal-600 to-purple-600 hover:from-teal-500 hover:to-purple-500 text-white rounded-xl transition-all shadow-lg shadow-teal-900/20 hover:shadow-teal-900/35 transform hover:-translate-y-0.5 active:translate-y-0 text-xs font-bold relative overflow-hidden group"
                 title="Download"
                 aria-label="Download options"
               >
@@ -211,7 +211,7 @@ const PreviewArea: React.FC<PreviewAreaProps> = ({
                         <ImageIcon className="w-4 h-4 text-emerald-400" />
                         <div>
                           <span className="block font-medium text-xs">Result Only</span>
-                          <span className="block text-[11px] text-zinc-500">Download AI design</span>
+                          <span className="block text-xs text-zinc-500">Download AI design</span>
                         </div>
                       </button>
                       <button
@@ -224,7 +224,7 @@ const PreviewArea: React.FC<PreviewAreaProps> = ({
                         <ColumnsIcon className="w-4 h-4 text-teal-400" />
                         <div>
                           <span className="block font-medium text-xs">Before & After</span>
-                          <span className="block text-[11px] text-zinc-500">Side-by-side comparison</span>
+                          <span className="block text-xs text-zinc-500">Side-by-side comparison</span>
                         </div>
                       </button>
                     </>
@@ -250,7 +250,7 @@ const PreviewArea: React.FC<PreviewAreaProps> = ({
                           <span className="block font-medium text-xs">
                             {isDownloadingZip ? 'Creating ZIP...' : 'Download All (ZIP)'}
                           </span>
-                          <span className="block text-[11px] text-zinc-500">
+                          <span className="block text-xs text-zinc-500">
                             {isDownloadingZip ? 'Please wait' : 'All generated designs'}
                           </span>
                         </div>
@@ -273,7 +273,7 @@ const PreviewArea: React.FC<PreviewAreaProps> = ({
       )}
 
       {/* Preview Container */}
-      <div className={`relative flex-1 min-h-0 bg-zinc-950/80 rounded-xl flex items-center justify-center border border-zinc-800/40 shadow-inner transition-all duration-500 ${zoom > 1 ? 'overflow-auto cursor-move' : 'overflow-hidden'}`}>
+      <div className={`relative flex-1 min-h-0 bg-zinc-950/80 rounded-xl flex items-center justify-center border border-zinc-800/40 shadow-inner transition-all duration-500 group ${zoom > 1 ? 'overflow-auto cursor-move' : 'overflow-hidden'}`}>
 
         {activeImage.isGenerating ? (
           <div className="text-center space-y-6 animate-fade-in">
@@ -289,7 +289,7 @@ const PreviewArea: React.FC<PreviewAreaProps> = ({
         ) : (
           <>
             {/* Zoom Controls */}
-            <div className="absolute bottom-4 left-1/2 -tranzinc-x-1/2 flex items-center gap-1 bg-zinc-900/80 backdrop-blur-md p-1.5 rounded-xl border border-white/10 shadow-xl z-30 transition-opacity duration-300 hover:opacity-100 opacity-0 group-hover:opacity-100">
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-1 bg-zinc-900/80 backdrop-blur-md p-1.5 rounded-xl border border-white/10 shadow-xl z-30 transition-opacity duration-300 hover:opacity-100 opacity-0 group-hover:opacity-100">
               <button
                 onClick={handleZoomOut}
                 disabled={zoom <= 1}
@@ -299,7 +299,7 @@ const PreviewArea: React.FC<PreviewAreaProps> = ({
               >
                 <ZoomOutIcon className="w-4 h-4" />
               </button>
-              <span className="text-[10px] font-mono text-zinc-400 min-w-[3ch] text-center select-none">
+              <span className="text-xs font-mono text-zinc-400 min-w-[3ch] text-center select-none">
                 {Math.round(zoom * 100)}%
               </span>
               <button
