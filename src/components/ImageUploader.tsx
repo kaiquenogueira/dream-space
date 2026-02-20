@@ -1,6 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { UploadIcon, ImageIcon, PlusIcon, CameraIcon } from './Icons';
 import { UploadedImage } from '../types';
+import { compressImage } from '../utils/imageUtils';
 
 interface ImageUploaderProps {
   onImagesSelected: (images: UploadedImage[]) => void;
@@ -28,14 +29,12 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ onImagesSelected, current
       if (!file.type.startsWith('image/')) continue;
 
       try {
-        const result = await new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.readAsDataURL(file);
-          reader.onload = () => resolve(reader.result as string);
-          reader.onerror = (error) => reject(error);
-        });
-
-        const base64Content = result.split(',')[1];
+        console.log(`Original size: ${(file.size / 1024 / 1024).toFixed(2)} MB`);
+        const { base64, preview } = await compressImage(file);
+        console.log(`Compressed size: ${(base64.length * 0.75 / 1024 / 1024).toFixed(2)} MB`);
+        
+        const base64Content = base64;
+        const result = preview;
 
         processedImages.push({
           id: Math.random().toString(36).substring(7),
@@ -45,7 +44,8 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ onImagesSelected, current
           selected: true
         });
       } catch (e) {
-        console.error("Error reading file", e);
+        console.error("Error processing file", e);
+        alert(`Failed to process image ${file.name}. Please try another one.`);
       }
     }
     onImagesSelected(processedImages);

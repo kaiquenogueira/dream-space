@@ -2,6 +2,10 @@ import { GoogleGenAI } from "@google/genai";
 import jwt from 'jsonwebtoken';
 
 export default async function handler(req: any, res: any) {
+  // Log request size for debugging
+  const requestSize = req.headers['content-length'] ? parseInt(req.headers['content-length']) : 0;
+  console.log(`Incoming request size: ${(requestSize / 1024 / 1024).toFixed(2)} MB`);
+
   // --- Auth Check ---
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith('Bearer ')) {

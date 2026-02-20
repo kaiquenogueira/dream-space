@@ -8,6 +8,7 @@ import PropertyCreation from './components/PropertyCreation';
 import { RefreshIcon } from './components/Icons';
 import { ArchitecturalStyle, GenerationMode, UploadedImage, STYLE_PROMPTS } from './types';
 import { generateRoomDesign, fileToBase64 } from './services/geminiService';
+import { compressImage } from './utils/imageUtils';
 import { useAuth } from './hooks/useAuth';
 import { useProject } from './hooks/useProject';
 import JSZip from 'jszip';
@@ -147,8 +148,8 @@ const App: React.FC = () => {
     if (e.target.files && e.target.files[0] && activePropertyId) {
       const file = e.target.files[0];
       try {
-        const base64 = await fileToBase64(file);
-        const logoUrl = `data:${file.type};base64,${base64}`;
+        const { preview } = await compressImage(file);
+        const logoUrl = preview;
 
         setProperties(prev => prev.map(p =>
           p.id === activePropertyId ? { ...p, logo: logoUrl } : p
