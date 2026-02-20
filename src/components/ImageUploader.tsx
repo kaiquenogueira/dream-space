@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { UploadIcon, ImageIcon, PlusIcon } from './Icons';
+import { UploadIcon, ImageIcon, PlusIcon, CameraIcon } from './Icons';
 import { UploadedImage } from '../types';
 
 interface ImageUploaderProps {
@@ -10,6 +10,7 @@ interface ImageUploaderProps {
 
 const ImageUploader: React.FC<ImageUploaderProps> = ({ onImagesSelected, currentCount, maxImages }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const isLimitReached = currentCount >= maxImages;
 
@@ -71,7 +72,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ onImagesSelected, current
     e.preventDefault();
     setIsDragging(false);
     if (isLimitReached) return;
-    const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/')) as File[];
+    const files = Array.from(e.dataTransfer.files).filter((f: any) => f.type?.startsWith('image/')) as File[];
     if (files.length > 0) await processFiles(files);
   };
 
@@ -88,13 +89,12 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ onImagesSelected, current
   return (
     <div
       className={`
-        relative border-2 border-dashed rounded-xl h-full min-h-[120px] flex flex-col items-center justify-center cursor-pointer transition-all duration-300
+        relative border-2 border-dashed rounded-xl h-full min-h-[120px] flex flex-col items-center justify-center transition-all duration-300
         ${isDragging
           ? 'border-emerald-400 bg-emerald-500/10 scale-[1.02]'
           : 'border-zinc-700/60 hover:border-emerald-500/50 bg-zinc-800/30 hover:bg-emerald-500/5'
         }
       `}
-      onClick={() => !isLimitReached && fileInputRef.current?.click()}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
@@ -108,14 +108,53 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ onImagesSelected, current
         onChange={handleFileChange}
         disabled={isLimitReached}
       />
+      <input
+        type="file"
+        accept="image/*"
+        capture="environment"
+        className="hidden"
+        ref={cameraInputRef}
+        onChange={handleFileChange}
+        disabled={isLimitReached}
+      />
 
-      <div className={`p-2.5 rounded-full mb-2 transition-all duration-300 ${isDragging ? 'bg-emerald-500/20 text-emerald-400 scale-110' : 'bg-zinc-700/50 text-zinc-400'}`}>
-        {isDragging ? <PlusIcon className="w-5 h-5" /> : <UploadIcon className="w-5 h-5" />}
-      </div>
-      <p className={`font-medium text-xs transition-colors ${isDragging ? 'text-emerald-300' : 'text-zinc-400'}`}>
-        {isDragging ? 'Drop here' : 'Add Photos'}
-      </p>
-      <p className="text-[10px] text-zinc-500 mt-0.5">{currentCount}/{maxImages}</p>
+      {isDragging ? (
+        <div className="flex flex-col items-center">
+          <div className="p-2.5 rounded-full mb-2 bg-emerald-500/20 text-emerald-400 scale-110 transition-all duration-300">
+            <PlusIcon className="w-5 h-5" />
+          </div>
+          <p className="font-medium text-xs text-emerald-300">Drop here</p>
+        </div>
+      ) : (
+        <div className="flex flex-col items-center justify-center w-full h-full py-2">
+          <div className="flex items-center gap-6 mb-2">
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); !isLimitReached && fileInputRef.current?.click(); }}
+              className="flex flex-col items-center gap-2 group outline-none"
+            >
+              <div className="p-3 rounded-full bg-zinc-700/50 text-zinc-400 group-hover:text-emerald-400 group-hover:bg-emerald-500/20 transition-all duration-300 group-focus-visible:ring-2 group-focus-visible:ring-emerald-500">
+                <UploadIcon className="w-5 h-5" />
+              </div>
+              <span className="font-medium text-xs text-zinc-400 group-hover:text-zinc-300 transition-colors">Upload</span>
+            </button>
+
+            <div className="w-px h-10 bg-zinc-700/50"></div>
+
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); !isLimitReached && cameraInputRef.current?.click(); }}
+              className="flex flex-col items-center gap-2 group outline-none"
+            >
+              <div className="p-3 rounded-full bg-zinc-700/50 text-zinc-400 group-hover:text-emerald-400 group-hover:bg-emerald-500/20 transition-all duration-300 group-focus-visible:ring-2 group-focus-visible:ring-emerald-500">
+                <CameraIcon className="w-5 h-5" />
+              </div>
+              <span className="font-medium text-xs text-zinc-400 group-hover:text-zinc-300 transition-colors">Camera</span>
+            </button>
+          </div>
+          <p className="text-[10px] text-zinc-500">{currentCount}/{maxImages}</p>
+        </div>
+      )}
     </div>
   );
 };
