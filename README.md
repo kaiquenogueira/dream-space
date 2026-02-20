@@ -96,3 +96,9 @@ O projeto está otimizado para a Vercel.
 - `/services`: Lógica de integração com o backend.
 - `/scripts`: Utilitários (gerador de hash de senha).
 - `App.tsx`: Componente principal da aplicação.
+
+## 📚 Documentação de Design e UX
+
+Foi realizada uma análise completa de usabilidade e UX da aplicação. O relatório detalhado, incluindo descobertas, recomendações e plano de ação, pode ser encontrado em:
+
+- [📄 Relatório de UX/UI e Acessibilidade](./UX_REPORT.md)
