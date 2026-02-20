@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutIcon } from './Icons';
+import { LayoutIcon, SparkleIcon, LogOutIcon } from './Icons';
 import { Property } from '../types';
 
 interface HeaderProps {
@@ -10,39 +10,54 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = ({ activeProperty, setActivePropertyId, handleLogout }) => {
   return (
-    <header className="sticky top-0 z-50 bg-slate-900/80 backdrop-blur-md border-b border-slate-800">
-      <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2 cursor-pointer" onClick={() => setActivePropertyId(null)}>
-            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white">
-              <LayoutIcon />
+    <header className="sticky top-0 z-50 bg-zinc-950/60 backdrop-blur-2xl border-b border-white/[0.06] shadow-lg shadow-black/20">
+      <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+
+        {/* Left: Brand & Project */}
+        <div className="flex items-center gap-5">
+          <button
+            onClick={() => setActivePropertyId(null)}
+            className="flex items-center gap-3 group focus:outline-none"
+          >
+            <div className="w-9 h-9 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-emerald-900/30 group-hover:shadow-emerald-600/40 transition-all group-hover:scale-105">
+              <LayoutIcon className="w-5 h-5" />
             </div>
-            <h1 className="text-xl font-bold bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent hidden sm:block">
+            <h1 className="text-lg font-bold text-gradient hidden sm:block tracking-tight">
               DreamSpace
             </h1>
-          </div>
-          
-          <div className="h-6 w-px bg-slate-700 mx-2"></div>
-          
-          <div className="flex items-center gap-2">
-             <span className="text-slate-400 text-sm">Project:</span>
-             <span className="font-semibold text-white">{activeProperty?.name}</span>
-             <button 
-               onClick={() => setActivePropertyId(null)}
-               className="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-2 py-1 rounded ml-2 transition-colors"
-             >
-               Switch
-             </button>
-          </div>
-          <button 
-             onClick={handleLogout}
-             className="ml-4 text-xs text-red-400 hover:text-red-300 border border-red-900/50 px-2 py-1 rounded"
-          >
-             Logout
           </button>
+
+          <div className="h-7 w-px bg-zinc-800/60 hidden sm:block" />
+
+          <div className="flex items-center gap-3">
+            <div className="flex flex-col">
+              <span className="text-[10px] uppercase tracking-wider text-zinc-500 font-semibold leading-tight">Project</span>
+              <div className="flex items-center gap-2">
+                <span className="font-medium text-zinc-200 text-sm max-w-[180px] truncate">{activeProperty?.name}</span>
+                <button
+                  onClick={() => setActivePropertyId(null)}
+                  className="text-[10px] bg-zinc-800/60 hover:bg-zinc-700/80 text-zinc-400 hover:text-white px-2.5 py-0.5 rounded-full transition-all border border-zinc-700/50 hover:border-zinc-600"
+                >
+                  Switch
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
-        <div className="text-sm text-slate-500 hidden md:block">
-          Powered by MKG
+
+        {/* Right: Actions */}
+        <div className="flex items-center gap-4">
+          <div className="hidden md:flex items-center gap-1.5 text-xs text-zinc-500 font-medium bg-zinc-800/40 px-3 py-1.5 rounded-full border border-zinc-700/30">
+            <SparkleIcon className="w-3.5 h-3.5 text-emerald-400/70" />
+            power by MKG
+          </div>
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-2 text-xs font-medium text-zinc-400 hover:text-red-400 border border-zinc-800/60 hover:border-red-900/40 bg-zinc-900/50 hover:bg-red-950/20 px-3 py-1.5 rounded-xl transition-all group"
+          >
+            <LogOutIcon className="w-3.5 h-3.5 group-hover:text-red-400 transition-colors" />
+            <span className="hidden sm:inline">Sign Out</span>
+          </button>
         </div>
       </div>
     </header>

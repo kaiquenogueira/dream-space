@@ -19,6 +19,7 @@ export interface UploadedImage {
   generatedUrl?: string;
   isGenerating?: boolean;
   error?: string;
+  selected: boolean;
   generationMode?: GenerationMode; // Optional per image override or global
 }
 

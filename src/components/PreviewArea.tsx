@@ -1,126 +1,318 @@
-import React from 'react';
-import { LayoutIcon, DownloadIcon, ColumnsIcon } from './Icons';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
+import { LayoutIcon, DownloadIcon, ColumnsIcon, ArrowLeftIcon, ArrowRightIcon, ImageIcon, EyeIcon } from './Icons';
 import { UploadedImage } from '../types';
 
 interface PreviewAreaProps {
   activeImage: UploadedImage | undefined;
   imageIndex: number;
+  totalImages: number;
   viewMode: 'original' | 'generated' | 'split';
   setViewMode: (mode: 'original' | 'generated' | 'split') => void;
   handleDownloadComparison: (originalUrl: string, generatedUrl: string) => void;
+  handleDownloadSingle: (url: string, name: string) => void;
+  handleDownloadAll: () => void;
+  hasGeneratedImages: boolean;
+  isDownloadingZip: boolean;
+  onNext: () => void;
+  onPrev: () => void;
 }
+
+const ComparisonSlider: React.FC<{ originalUrl: string; generatedUrl: string }> = ({ originalUrl, generatedUrl }) => {
+  const [sliderPosition, setSliderPosition] = useState(50);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const isDragging = useRef(false);
+
+  const updatePosition = useCallback((clientX: number) => {
+    if (!containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    const x = clientX - rect.left;
+    const percentage = Math.max(0, Math.min(100, (x / rect.width) * 100));
+    setSliderPosition(percentage);
+  }, []);
+
+  const handlePointerDown = (e: React.PointerEvent) => {
+    isDragging.current = true;
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+    updatePosition(e.clientX);
+  };
+
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (isDragging.current) {
+      updatePosition(e.clientX);
+    }
+  };
+
+  const handlePointerUp = () => {
+    isDragging.current = false;
+  };
+
+  return (
+    <div
+      ref={containerRef}
+      className="relative w-full h-full cursor-col-resize select-none overflow-hidden bg-zinc-950"
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+    >
+      {/* Generated (full, behind) */}
+      <img src={generatedUrl} alt="Generated" className="absolute inset-0 w-full h-full object-contain pointer-events-none" />
+
+      {/* Original (clipped via clip-path — no distortion) */}
+      <div className="absolute inset-0 pointer-events-none" style={{ clipPath: `inset(0 ${100 - sliderPosition}% 0 0)` }}>
+        <img
+          src={originalUrl}
+          alt="Original"
+          className="w-full h-full object-contain"
+        />
+      </div>
+
+      {/* Slider Line */}
+      <div
+        className="absolute top-0 bottom-0 w-0.5 bg-white/80 shadow-[0_0_10px_rgba(255,255,255,0.5)] pointer-events-none"
+        style={{ left: `${sliderPosition}%`, transform: 'translateX(-50%)' }}
+      >
+        {/* Slider Handle */}
+        <div className="absolute top-1/2 left-1/2 -tranzinc-x-1/2 -tranzinc-y-1/2 w-10 h-10 bg-white/90 backdrop-blur-sm rounded-full shadow-xl flex items-center justify-center border-2 border-white/50 hover:scale-110 transition-transform pointer-events-auto cursor-grab active:cursor-grabbing">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1e293b" strokeWidth="2.5" strokeLinecap="round">
+            <path d="M8 6l-4 6 4 6" />
+            <path d="M16 6l4 6-4 6" />
+          </svg>
+        </div>
+      </div>
+
+      {/* Labels */}
+      <div className="absolute bottom-4 left-4 bg-black/60 backdrop-blur-md text-white text-[10px] font-bold px-3 py-1.5 rounded-lg border border-white/10 shadow-lg pointer-events-none">
+        Before
+      </div>
+      <div className="absolute bottom-4 right-4 bg-emerald-600/80 backdrop-blur-md text-white text-[10px] font-bold px-3 py-1.5 rounded-lg border border-emerald-400/20 shadow-lg pointer-events-none">
+        After
+      </div>
+    </div>
+  );
+};
 
 const PreviewArea: React.FC<PreviewAreaProps> = ({
   activeImage,
   imageIndex,
+  totalImages,
   viewMode,
   setViewMode,
-  handleDownloadComparison
+  handleDownloadComparison,
+  handleDownloadSingle,
+  handleDownloadAll,
+  hasGeneratedImages,
+  isDownloadingZip,
+  onNext,
+  onPrev
 }) => {
+  const [showDownloadMenu, setShowDownloadMenu] = useState(false);
+
   if (!activeImage) {
     return (
-      <div className="h-[40vh] flex flex-col items-center justify-center text-slate-600 border-2 border-dashed border-slate-800 rounded-2xl bg-slate-900/30">
-        <LayoutIcon />
-        <p className="mt-4 text-lg">Upload photos to start designing</p>
+      <div className="h-[50vh] flex flex-col items-center justify-center text-zinc-500 border-2 border-dashed border-zinc-800/50 rounded-2xl bg-zinc-900/30 animate-fade-in">
+        <div className="w-16 h-16 rounded-2xl bg-zinc-800/50 flex items-center justify-center mb-4 animate-float">
+          <ImageIcon className="w-7 h-7 text-zinc-600" />
+        </div>
+        <p className="text-base font-medium text-zinc-400">Upload photos to start designing</p>
+        <p className="text-sm text-zinc-600 mt-1">Select images from the sidebar</p>
       </div>
     );
   }
 
+  const VIEW_OPTIONS = [
+    { key: 'original' as const, label: 'Original', disabled: false },
+    { key: 'generated' as const, label: 'Result', disabled: !activeImage.generatedUrl && !activeImage.isGenerating },
+    { key: 'split' as const, label: 'Compare', icon: <ColumnsIcon className="w-3.5 h-3.5" />, disabled: !activeImage.generatedUrl && !activeImage.isGenerating },
+  ];
+
   return (
-    <section className="bg-slate-900 rounded-2xl p-6 border border-slate-800 shadow-xl overflow-hidden">
-      <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
-        <h3 className="text-xl font-bold text-white flex items-center gap-2">
-          Preview: <span className="text-blue-400 text-base font-normal">Image {imageIndex + 1}</span>
-        </h3>
-        
-        <div className="flex items-center bg-slate-800 rounded-lg p-1">
-           <button 
-             onClick={() => setViewMode('original')}
-             className={`px-3 py-1.5 text-sm rounded-md transition-all ${viewMode === 'original' ? 'bg-slate-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}
-           >
-             Original
-           </button>
-           <button 
-             onClick={() => setViewMode('generated')}
-             className={`px-3 py-1.5 text-sm rounded-md transition-all ${viewMode === 'generated' ? 'bg-blue-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}
-             disabled={!activeImage.generatedUrl && !activeImage.isGenerating}
-           >
-             Result
-           </button>
-           <button 
-             onClick={() => setViewMode('split')}
-             className={`px-3 py-1.5 text-sm rounded-md transition-all flex items-center gap-1 ${viewMode === 'split' ? 'bg-blue-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}
-             disabled={!activeImage.generatedUrl && !activeImage.isGenerating}
-           >
-             <ColumnsIcon /> Side-by-Side
-           </button>
+    <section className="glass-card p-4 md:p-5 overflow-hidden flex flex-col h-full">
+      <div className="flex flex-col sm:flex-row justify-between items-center mb-4 gap-3 flex-shrink-0">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg bg-teal-500/10 flex items-center justify-center border border-teal-500/10">
+            <EyeIcon className="w-4 h-4 text-teal-400" />
+          </div>
+          <div>
+            <h3 className="text-base md:text-lg font-bold text-white flex items-center gap-2">
+              Preview
+              <span className="text-zinc-500 text-[11px] font-medium px-2 py-0.5 bg-zinc-800/50 rounded-md">
+                {imageIndex + 1} / {totalImages}
+              </span>
+            </h3>
+          </div>
         </div>
 
-        {activeImage.generatedUrl && (
-          <div className="flex gap-2">
-            <button 
-              onClick={() => handleDownloadComparison(activeImage.previewUrl, activeImage.generatedUrl!)}
-              className="flex items-center gap-2 px-3 py-1.5 bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-400 hover:text-indigo-300 rounded-lg transition-colors text-sm font-medium"
-              title="Download Comparison"
-            >
-              <DownloadIcon />
-              Download
-            </button>
+        <div className="flex items-center gap-2.5">
+          {/* Navigation */}
+          {totalImages > 1 && (
+            <div className="flex items-center gap-1 bg-zinc-950/50 p-1 rounded-xl border border-zinc-800/40">
+              <button
+                onClick={onPrev}
+                className="p-1.5 text-zinc-400 hover:text-white hover:bg-zinc-800/60 rounded-lg transition-all"
+                title="Previous Image"
+              >
+                <ArrowLeftIcon className="w-4 h-4" />
+              </button>
+              <button
+                onClick={onNext}
+                className="p-1.5 text-zinc-400 hover:text-white hover:bg-zinc-800/60 rounded-lg transition-all"
+                title="Next Image"
+              >
+                <ArrowRightIcon className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+
+          {/* View Mode */}
+          <div className="flex items-center bg-zinc-950/50 p-1 rounded-xl border border-zinc-800/40">
+            {VIEW_OPTIONS.map(opt => (
+              <button
+                key={opt.key}
+                onClick={() => setViewMode(opt.key)}
+                disabled={opt.disabled}
+                className={`px-3 py-1.5 text-[11px] font-medium rounded-lg transition-all duration-300 flex items-center gap-1.5 disabled:opacity-30 disabled:cursor-not-allowed ${viewMode === opt.key
+                  ? (opt.key === 'original' ? 'bg-zinc-800/80 text-white shadow-sm ring-1 ring-white/10' : 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/20')
+                  : 'text-zinc-400 hover:text-white hover:bg-zinc-800/40'
+                  }`}
+              >
+                {opt.icon}
+                {opt.label}
+              </button>
+            ))}
           </div>
-        )}
+
+          {/* Download Menu */}
+          {(activeImage.generatedUrl || hasGeneratedImages) && (
+            <div className="relative">
+              <button
+                onClick={() => setShowDownloadMenu(!showDownloadMenu)}
+                onBlur={() => setTimeout(() => setShowDownloadMenu(false), 200)}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-teal-600 to-purple-600 hover:from-teal-500 hover:to-purple-500 text-white rounded-xl transition-all shadow-lg shadow-teal-900/20 hover:shadow-teal-900/35 transform hover:-tranzinc-y-0.5 active:tranzinc-y-0 text-[11px] font-bold relative overflow-hidden group"
+                title="Download"
+              >
+                <DownloadIcon className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Download</span>
+                <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                  <path d="M6 9l6 6 6-6" />
+                </svg>
+              </button>
+
+              {/* Dropdown Menu */}
+              {showDownloadMenu && (
+                <div className="absolute right-0 top-full mt-2 w-56 bg-zinc-900/95 backdrop-blur-xl border border-zinc-700/50 rounded-xl shadow-2xl shadow-black/40 z-50 py-1.5 animate-scale-in">
+                  {activeImage.generatedUrl && (
+                    <>
+                      <button
+                        onClick={() => {
+                          handleDownloadSingle(activeImage.generatedUrl!, `design-${imageIndex + 1}`);
+                          setShowDownloadMenu(false);
+                        }}
+                        className="w-full text-left px-4 py-2.5 text-sm text-zinc-200 hover:bg-zinc-800/60 hover:text-white transition-colors flex items-center gap-3"
+                      >
+                        <ImageIcon className="w-4 h-4 text-emerald-400" />
+                        <div>
+                          <span className="block font-medium text-xs">Result Only</span>
+                          <span className="block text-[10px] text-zinc-500">Download AI design</span>
+                        </div>
+                      </button>
+                      <button
+                        onClick={() => {
+                          handleDownloadComparison(activeImage.previewUrl, activeImage.generatedUrl!);
+                          setShowDownloadMenu(false);
+                        }}
+                        className="w-full text-left px-4 py-2.5 text-sm text-zinc-200 hover:bg-zinc-800/60 hover:text-white transition-colors flex items-center gap-3"
+                      >
+                        <ColumnsIcon className="w-4 h-4 text-teal-400" />
+                        <div>
+                          <span className="block font-medium text-xs">Before & After</span>
+                          <span className="block text-[10px] text-zinc-500">Side-by-side comparison</span>
+                        </div>
+                      </button>
+                    </>
+                  )}
+                  {hasGeneratedImages && (
+                    <>
+                      <div className="border-t border-zinc-800/60 my-1.5" />
+                      <button
+                        onClick={() => {
+                          if (!isDownloadingZip) handleDownloadAll();
+                          // Don't close menu immediately to show feedback
+                        }}
+                        disabled={isDownloadingZip}
+                        className={`w-full text-left px-4 py-2.5 text-sm text-zinc-200 transition-colors flex items-center gap-3 ${isDownloadingZip ? 'opacity-70 cursor-not-allowed' : 'hover:bg-zinc-800/60 hover:text-white'
+                          }`}
+                      >
+                        {isDownloadingZip ? (
+                          <div className="w-4 h-4 rounded-full border-2 border-emerald-500/30 border-t-emerald-400 animate-spin" />
+                        ) : (
+                          <DownloadIcon className="w-4 h-4 text-emerald-400" />
+                        )}
+                        <div>
+                          <span className="block font-medium text-xs">
+                            {isDownloadingZip ? 'Creating ZIP...' : 'Download All (ZIP)'}
+                          </span>
+                          <span className="block text-[10px] text-zinc-500">
+                            {isDownloadingZip ? 'Please wait' : 'All generated designs'}
+                          </span>
+                        </div>
+                      </button>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
+      {/* Error */}
       {activeImage.error && (
-        <div className="bg-red-500/10 border border-red-500/50 text-red-200 p-4 rounded-lg mb-4">
-          Generation failed: {activeImage.error}
+        <div className="bg-red-500/10 border border-red-500/15 text-red-300 p-3.5 rounded-xl mb-4 flex items-center gap-3 animate-scale-in flex-shrink-0">
+          <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse flex-shrink-0" />
+          <p className="text-sm font-medium">Generation failed: {activeImage.error}</p>
         </div>
       )}
 
-      {/* Preview Container: Use aspect-video for single, flexible height for split to fit images better */}
-      <div className={`relative w-full ${viewMode === 'split' ? 'h-[60vh] md:h-[600px]' : 'aspect-video'} bg-slate-950 rounded-xl overflow-hidden flex items-center justify-center transition-all duration-300`}>
-        
+      {/* Preview Container */}
+      <div className="relative flex-1 min-h-0 bg-zinc-950/80 rounded-xl overflow-hidden flex items-center justify-center border border-zinc-800/40 shadow-inner transition-all duration-500">
+
         {activeImage.isGenerating ? (
-          <div className="text-center space-y-4">
-            <div className="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-            <p className="text-slate-400 animate-pulse">Designing this room...</p>
+          <div className="text-center space-y-6 animate-fade-in">
+            <div className="relative">
+              <div className="absolute inset-0 bg-emerald-500 blur-2xl opacity-20 animate-pulse rounded-full" />
+              <div className="relative inline-block animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-emerald-500" style={{ boxShadow: '0 0 20px rgba(59,130,246,0.4)' }} />
+            </div>
+            <div>
+              <p className="text-lg font-medium text-white">Designing your space...</p>
+              <p className="text-sm text-zinc-400 mt-1">This usually takes 15-30 seconds</p>
+            </div>
           </div>
         ) : (
-          <div className="relative w-full h-full">
-             
-             {/* Single View: Original */}
-             {viewMode === 'original' && (
-                <div className="w-full h-full relative">
-                  <img src={activeImage.previewUrl} alt="Original" className="w-full h-full object-contain" />
-                  <div className="absolute bottom-4 left-4 bg-black/60 backdrop-blur text-white text-xs px-2 py-1 rounded border border-white/10">Original Photo</div>
-                </div>
-             )}
-             
-             {/* Single View: Generated */}
-             {viewMode === 'generated' && activeImage.generatedUrl && (
-                <div className="w-full h-full relative">
-                   <img src={activeImage.generatedUrl} alt="Generated" className="w-full h-full object-contain" />
-                   <div className="absolute bottom-4 left-4 bg-blue-600/90 backdrop-blur text-white text-xs px-2 py-1 rounded border border-white/10">AI Redesign</div>
-                </div>
-             )}
+          <div className="absolute inset-0">
 
-             {/* Split View */}
-             {viewMode === 'split' && activeImage.generatedUrl && (
-               <div className="flex w-full h-full gap-0.5 md:gap-1">
-                  <div className="relative w-1/2 h-full bg-slate-900/50">
-                      <img src={activeImage.previewUrl} alt="Original" className="w-full h-full object-contain" />
-                      <div className="absolute bottom-4 left-4 bg-black/60 backdrop-blur text-white text-xs px-2 py-1 rounded border border-white/10">Original</div>
-                  </div>
-                  <div className="relative w-1/2 h-full bg-slate-900/50">
-                      <img src={activeImage.generatedUrl} alt="Generated" className="w-full h-full object-contain" />
-                      <div className="absolute bottom-4 left-4 bg-blue-600/90 backdrop-blur text-white text-xs px-2 py-1 rounded border border-white/10">AI Redesign</div>
-                  </div>
-               </div>
-             )}
+            {/* Original View */}
+            {viewMode === 'original' && (
+              <div className="w-full h-full relative animate-fade-in">
+                <img src={activeImage.previewUrl} alt="Original" className="w-full h-full object-contain" />
+                <div className="absolute bottom-4 left-4 bg-black/60 backdrop-blur-md text-white text-[10px] font-bold px-3 py-1.5 rounded-lg border border-white/10 shadow-lg">Original Photo</div>
+              </div>
+            )}
 
-             {/* Fallback if view is generated/split but no result exists (e.g. error or cleared) */}
-             {(viewMode !== 'original' && !activeImage.generatedUrl) && (
-                <img src={activeImage.previewUrl} alt="Original" className="w-full h-full object-contain opacity-50" />
-             )}
+            {/* Generated View */}
+            {viewMode === 'generated' && activeImage.generatedUrl && (
+              <div className="w-full h-full relative animate-fade-in">
+                <img src={activeImage.generatedUrl} alt="Generated" className="w-full h-full object-contain" />
+                <div className="absolute bottom-4 left-4 bg-emerald-600/80 backdrop-blur-md text-white text-[10px] font-bold px-3 py-1.5 rounded-lg shadow-lg border border-emerald-400/20">AI Design</div>
+              </div>
+            )}
+
+            {/* Split View with Interactive Slider */}
+            {viewMode === 'split' && activeImage.generatedUrl && (
+              <ComparisonSlider
+                originalUrl={activeImage.previewUrl}
+                generatedUrl={activeImage.generatedUrl}
+              />
+            )}
           </div>
         )}
       </div>

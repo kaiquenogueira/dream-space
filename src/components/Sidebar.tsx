@@ -14,6 +14,10 @@ interface SidebarProps {
   activePropertyId: string | null;
   setProperties: React.Dispatch<React.SetStateAction<Property[]>>;
   handleLogoUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  toggleImageSelection: (id: string) => void;
+  toggleSelectAll: () => void;
+  handleRegenerateSingle: (imageId: string) => void;
+  isGenerating: boolean;
 }
 
 const Sidebar: React.FC<SidebarProps> = ({
@@ -26,84 +30,190 @@ const Sidebar: React.FC<SidebarProps> = ({
   activeProperty,
   activePropertyId,
   setProperties,
-  handleLogoUpload
+  handleLogoUpload,
+  toggleImageSelection,
+  toggleSelectAll,
+  handleRegenerateSingle,
+  isGenerating
 }) => {
+  const selectedCount = images.filter(img => img.selected).length;
+  const allSelected = images.length > 0 && selectedCount === images.length;
+
   return (
-    <div className="lg:col-span-3 space-y-4">
-      <div className="flex justify-between items-center mb-2">
-         <h2 className="text-sm uppercase tracking-wider text-slate-500 font-semibold">My Spaces ({images.length}/{maxImages})</h2>
-      </div>
-      
-      <div className="space-y-3">
-        {images.map(img => (
-          <div 
-            key={img.id}
-            onClick={() => setSelectedImageId(img.id)}
-            className={`
-              relative group cursor-pointer rounded-lg overflow-hidden border-2 transition-all aspect-video flex-shrink-0
-              ${selectedImageId === img.id ? 'border-blue-500 ring-2 ring-blue-500/20' : 'border-slate-800 hover:border-slate-600'}
-            `}
-          >
-            {/* Always show original previewUrl in the sidebar list */}
-            <img src={img.previewUrl} alt="Room" className="w-full h-full object-cover" />
-            
-            {/* Status Overlays */}
-            {img.isGenerating && (
-              <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
-                <RefreshIcon className="animate-spin text-blue-400 w-6 h-6" />
-              </div>
-            )}
-            {img.error && (
-              <div className="absolute inset-0 bg-red-900/60 flex items-center justify-center">
-                 <span className="text-xs text-red-200 font-bold bg-red-900 px-2 py-1 rounded">Error</span>
-              </div>
-            )}
-            {!img.isGenerating && img.generatedUrl && (
-               <div className="absolute top-2 left-2 w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]"></div>
-            )}
-
-            <button 
-              onClick={(e) => removeImage(img.id, e)}
-              className="absolute top-1 right-1 p-1 bg-black/50 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500"
-            >
-              <XIcon />
-            </button>
-          </div>
-        ))}
-        
-        <ImageUploader 
-          onImagesSelected={handleImagesSelected} 
-          currentCount={images.length}
-          maxImages={maxImages}
-        />
-
-        {/* Branding Section */}
-        <div className="mt-8 pt-6 border-t border-slate-800">
-          <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Project Branding</h3>
-          <div className="flex items-center gap-3 bg-slate-900 p-3 rounded-lg border border-slate-800">
-            {activeProperty?.logo ? (
-              <div className="relative group w-10 h-10 bg-white rounded overflow-hidden flex items-center justify-center flex-shrink-0">
-                <img src={activeProperty.logo} alt="Logo" className="max-w-full max-h-full object-contain" />
-                <button 
-                  onClick={() => setProperties(prev => prev.map(p => p.id === activePropertyId ? { ...p, logo: undefined } : p))}
-                  className="absolute inset-0 bg-black/50 text-white opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity"
-                >
-                  <XIcon className="w-3 h-3" />
-                </button>
-              </div>
-            ) : (
-              <div className="w-10 h-10 bg-slate-800 rounded flex items-center justify-center border border-dashed border-slate-600 text-slate-500 flex-shrink-0">
-                <span className="text-[10px]">Logo</span>
-              </div>
-            )}
-            <div className="flex-1 overflow-hidden">
-              <label className="cursor-pointer text-sm text-blue-400 hover:text-blue-300 font-medium truncate block">
-                {activeProperty?.logo ? 'Change Logo' : 'Upload Agency Logo'}
-                <input type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} />
-              </label>
-              <p className="text-xs text-slate-500 truncate">Added to comparison exports</p>
+    <div className="flex flex-col gap-5">
+      {/* Branding Section */}
+      <div className="glass-card p-4">
+        <h3 className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-3">Project Branding</h3>
+        <div className="flex items-center gap-3 bg-zinc-950/40 p-3 rounded-xl border border-zinc-800/40 hover:border-zinc-700/50 transition-all group">
+          {activeProperty?.logo ? (
+            <div className="relative w-11 h-11 bg-white rounded-xl overflow-hidden flex items-center justify-center flex-shrink-0 border border-zinc-200 shadow-sm group/logo">
+              <img src={activeProperty.logo} alt="Logo" className="max-w-full max-h-full object-contain p-1" />
+              <button
+                onClick={() => setProperties(prev => prev.map(p => p.id === activePropertyId ? { ...p, logo: undefined } : p))}
+                className="absolute inset-0 bg-black/60 text-white opacity-0 group-hover/logo:opacity-100 flex items-center justify-center transition-opacity rounded-xl"
+              >
+                <XIcon className="w-4 h-4" />
+              </button>
             </div>
+          ) : (
+            <div className="w-11 h-11 bg-zinc-800/60 rounded-xl flex items-center justify-center border-2 border-dashed border-zinc-600/50 text-zinc-500 flex-shrink-0 group-hover:border-emerald-500/30 group-hover:text-emerald-400/60 transition-all">
+              <span className="text-[9px] font-bold">LOGO</span>
+            </div>
+          )}
+          <div className="flex-1 overflow-hidden">
+            <label className="cursor-pointer group/label">
+              <span className="block text-sm font-medium text-zinc-300 group-hover/label:text-white transition-colors">Upload Logo</span>
+              <span className="block text-[10px] text-zinc-500 truncate">PNG, JPG (Max 2MB)</span>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleLogoUpload}
+                className="hidden"
+              />
+            </label>
           </div>
+        </div>
+      </div>
+
+      {/* Upload & Gallery Section */}
+      <div className="glass-card p-4">
+        <div className="flex justify-between items-end mb-3">
+          <div>
+            <h2 className="text-base font-bold text-white tracking-tight">Project Spaces</h2>
+            <p className="text-[11px] text-zinc-500 mt-0.5">Manage your uploaded photos</p>
+          </div>
+          <span className="text-[11px] font-mono bg-zinc-800/60 text-zinc-400 px-2 py-0.5 rounded-md border border-zinc-700/40">
+            {images.length}/{maxImages}
+          </span>
+        </div>
+
+        {/* Selection Controls */}
+        {images.length > 0 && (
+          <div className="flex items-center justify-between mb-3 px-1">
+            <button
+              onClick={toggleSelectAll}
+              className="text-[11px] font-medium text-zinc-400 hover:text-emerald-400 transition-colors flex items-center gap-1.5"
+            >
+              <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center transition-all ${allSelected
+                  ? 'bg-emerald-500 border-emerald-500'
+                  : 'border-zinc-600 hover:border-zinc-400'
+                }`}>
+                {allSelected && (
+                  <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                )}
+              </div>
+              {allSelected ? 'Deselect All' : 'Select All'}
+            </button>
+            {selectedCount > 0 && selectedCount < images.length && (
+              <span className="text-[10px] text-emerald-400/80 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                {selectedCount} selected
+              </span>
+            )}
+          </div>
+        )}
+
+        {/* Gallery Grid */}
+        <div className="grid grid-cols-2 gap-2.5">
+          <div className="aspect-video">
+            <ImageUploader
+              onImagesSelected={handleImagesSelected}
+              currentCount={images.length}
+              maxImages={maxImages}
+            />
+          </div>
+
+          {images.map((img, i) => (
+            <div
+              key={img.id}
+              onClick={() => setSelectedImageId(img.id)}
+              className={`
+                relative group cursor-pointer rounded-xl overflow-hidden border-2 transition-all duration-300 aspect-video
+                ${selectedImageId === img.id
+                  ? 'border-emerald-500 ring-glow-emerald scale-[1.02]'
+                  : 'border-zinc-800/40 hover:border-zinc-600/60 hover:scale-[1.02]'
+                }
+              `}
+              style={{ animationDelay: `${i * 50}ms` }}
+            >
+              <img src={img.previewUrl} alt="Room" className="w-full h-full object-cover" />
+
+              {/* Hover gradient overlay */}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+
+              {/* Generating */}
+              {img.isGenerating && (
+                <div className="absolute inset-0 bg-zinc-950/70 backdrop-blur-sm flex flex-col items-center justify-center gap-1.5">
+                  <RefreshIcon className="animate-spin text-emerald-400 w-5 h-5" />
+                  <span className="text-[10px] font-medium text-emerald-300">Designing...</span>
+                </div>
+              )}
+
+              {/* Error */}
+              {img.error && (
+                <div className="absolute inset-0 bg-red-950/80 backdrop-blur-sm flex items-center justify-center">
+                  <span className="text-[10px] text-white font-bold bg-red-500 px-2.5 py-0.5 rounded-full">Error</span>
+                </div>
+              )}
+
+              {/* Done badge */}
+              {!img.isGenerating && img.generatedUrl && (
+                <div className="absolute top-1.5 left-1.5 flex items-center gap-1 bg-emerald-500/90 backdrop-blur text-white text-[9px] font-bold px-2 py-0.5 rounded-full shadow-lg">
+                  <span>✓ Done</span>
+                </div>
+              )}
+
+              {/* Selection Checkbox */}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleImageSelection(img.id);
+                }}
+                className={`absolute bottom-1.5 left-1.5 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all duration-200 shadow-md ${img.selected
+                    ? 'bg-emerald-500 border-emerald-400 scale-100'
+                    : 'bg-black/40 border-white/40 opacity-0 group-hover:opacity-100 hover:border-white/70'
+                  }`}
+                title={img.selected ? "Deselect" : "Select for generation"}
+              >
+                {img.selected && (
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                )}
+              </button>
+
+              {/* Regenerate button (for already generated images) */}
+              {!img.isGenerating && img.generatedUrl && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleRegenerateSingle(img.id);
+                  }}
+                  disabled={isGenerating}
+                  className={`absolute bottom-1.5 right-1.5 p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-md ${isGenerating
+                      ? 'bg-zinc-800/60 text-zinc-500 cursor-not-allowed'
+                      : 'bg-emerald-600/90 hover:bg-emerald-500 text-white hover:scale-110'
+                    }`}
+                  title="Regenerate this image"
+                >
+                  <RefreshIcon className="w-3 h-3" />
+                </button>
+              )}
+
+              {/* Remove */}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  removeImage(img.id, e);
+                }}
+                className="absolute top-1.5 right-1.5 p-1 bg-black/40 hover:bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-all duration-200 hover:scale-110"
+                title="Remove image"
+              >
+                <XIcon className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          ))}
         </div>
       </div>
     </div>

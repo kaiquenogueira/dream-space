@@ -20,14 +20,14 @@ export const useProject = () => {
 
   const setImages = (action: React.SetStateAction<UploadedImage[]>) => {
     if (!activePropertyId) return;
-    
+
     setProperties(prevProps => prevProps.map(prop => {
       if (prop.id !== activePropertyId) return prop;
-      
-      const newImages = typeof action === 'function' 
+
+      const newImages = typeof action === 'function'
         ? (action as (prev: UploadedImage[]) => UploadedImage[])(prop.images)
         : action;
-        
+
       return { ...prop, images: newImages };
     }));
   };
@@ -35,7 +35,7 @@ export const useProject = () => {
   const handleCreateProperty = (e: React.FormEvent, name: string) => {
     e.preventDefault();
     if (!name.trim()) return;
-    
+
     const newProp: Property = {
       id: crypto.randomUUID(),
       name: name,
@@ -47,14 +47,16 @@ export const useProject = () => {
   };
 
   const handleImagesSelected = (newImages: UploadedImage[]) => {
+    // Ensure all new images have selected: true
+    const withSelection = newImages.map(img => ({ ...img, selected: true }));
     setImages(prev => {
-      const combined = [...prev, ...newImages];
+      const combined = [...prev, ...withSelection];
       if (combined.length > MAX_IMAGES) {
         return combined.slice(0, MAX_IMAGES);
       }
       return combined;
     });
-    
+
     if (!selectedImageId && newImages.length > 0) {
       setSelectedImageId(newImages[0].id);
     }
@@ -66,6 +68,17 @@ export const useProject = () => {
     if (selectedImageId === id) {
       setSelectedImageId(null);
     }
+  };
+
+  const toggleImageSelection = (id: string) => {
+    setImages(prev => prev.map(img =>
+      img.id === id ? { ...img, selected: !img.selected } : img
+    ));
+  };
+
+  const toggleSelectAll = () => {
+    const allSelected = images.every(img => img.selected);
+    setImages(prev => prev.map(img => ({ ...img, selected: !allSelected })));
   };
 
   return {
@@ -81,6 +94,8 @@ export const useProject = () => {
     handleCreateProperty,
     handleImagesSelected,
     removeImage,
+    toggleImageSelection,
+    toggleSelectAll,
     MAX_IMAGES
   };
 };
