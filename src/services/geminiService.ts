@@ -60,3 +60,39 @@ export const fileToBase64 = (file: File): Promise<string> => {
     reader.onerror = (error) => reject(error);
   });
 };
+
+export const generateDroneTourScript = async (
+  imageUrl: string,
+  includeVideo: boolean = true
+): Promise<{ script: string; videoOperationName?: string; credits_remaining: number }> => {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      throw new Error('Não autenticado. Por favor, faça login.');
+    }
+
+    const response = await fetch('/api/generate-drone-tour', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({ imageUrl, includeVideo }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || errorData.error || 'Falha ao gerar o script do tour');
+    }
+
+    const data = await response.json();
+    return {
+      script: data.script,
+      videoOperationName: data.videoOperationName,
+      credits_remaining: data.credits_remaining,
+    };
+  } catch (error) {
+    console.error("Drone Tour Script API Error:", error);
+    throw error;
+  }
+};

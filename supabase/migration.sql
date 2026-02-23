@@ -9,7 +9,7 @@ CREATE TABLE profiles (
   email TEXT NOT NULL,
   full_name TEXT,
   avatar_url TEXT,
-  credits_remaining INT NOT NULL DEFAULT 5,
+  credits_remaining INT NOT NULL DEFAULT 8,
   credits_reset_at TIMESTAMPTZ NOT NULL DEFAULT (NOW() + INTERVAL '30 days'),
   plan TEXT NOT NULL DEFAULT 'free',
   is_admin BOOLEAN NOT NULL DEFAULT false,
@@ -112,7 +112,7 @@ BEGIN
   UPDATE profiles
   SET
     credits_remaining = CASE
-      WHEN plan = 'free' THEN 5
+      WHEN plan = 'free' THEN 8
       WHEN plan = 'starter' THEN 50
       WHEN plan = 'pro' THEN 200
       ELSE credits_remaining

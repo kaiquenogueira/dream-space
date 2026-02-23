@@ -6,7 +6,7 @@ Esta aplicação permite transformar fotos de ambientes (vazios ou mobiliados) e
 
 ## 🚀 Funcionalidades Principais
 
-- **🔐 Autenticação Segura**: Acesso restrito via login com senha criptografada (hash) e tokens JWT.
+- **🔐 Autenticação Segura**: Gerenciada via Supabase Auth (Google & Email).
 - **🤖 Redesign de Interiores com IA**: Utilize o poder do Google Gemini 2.5 Flash para redecorar ambientes.
 - **⚡ Visualização Instantânea**: Carregue fotos de imóveis e veja transformações em segundos.
 - **🎨 Múltiplos Estilos**: Escolha entre estilos como Moderno, Escandinavo, Industrial, Minimalista, entre outros.
@@ -40,10 +40,13 @@ Crie um arquivo `.env` na raiz do projeto com as seguintes variáveis:
 # Sua chave da API do Google Gemini (https://aistudio.google.com/)
 GEMINI_API_KEY=sua_chave_aqui
 
-# Configurações de Login
-ADMIN_USERNAME=admin
-ADMIN_PASSWORD_HASH=hash_gerado_pelo_script
-JWT_SECRET=sua_chave_secreta_jwt_aqui
+# Supabase (client-side)
+VITE_SUPABASE_URL=sua_url_supabase
+VITE_SUPABASE_ANON_KEY=sua_chave_anon_supabase
+
+# Opcional: URL de redirecionamento para Auth (padrão: window.location.origin)
+# Útil para deploys de preview ou domínios customizados
+VITE_REDIRECT_URL=https://seu-dominio.com
 ```
 
 ### 3. Gerar Senha de Admin

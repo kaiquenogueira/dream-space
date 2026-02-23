@@ -1,6 +1,8 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { LayoutIcon, DownloadIcon, ColumnsIcon, ArrowLeftIcon, ArrowRightIcon, ImageIcon, EyeIcon, ZoomInIcon, ZoomOutIcon, RefreshIcon } from './Icons';
 import { UploadedImage } from '../types';
+import DroneTourPlayer from './DroneTourPlayer';
+import { generateDroneTourScript } from '../services/geminiService';
 
 interface PreviewAreaProps {
   activeImage: UploadedImage | undefined;
@@ -93,6 +95,27 @@ const PreviewArea: React.FC<PreviewAreaProps> = ({
 }) => {
   const [showDownloadMenu, setShowDownloadMenu] = useState(false);
   const [zoom, setZoom] = useState(1);
+  const [isGeneratingTour, setIsGeneratingTour] = useState(false);
+  const [tourScript, setTourScript] = useState<string | null>(null);
+  const [tourImageUrl, setTourImageUrl] = useState<string | null>(null);
+  const [tourVideoOpName, setTourVideoOpName] = useState<string | undefined>(undefined);
+
+  const handleCreateTour = async () => {
+    const targetUrl = activeImage?.generatedUrl || activeImage?.previewUrl;
+    if (!targetUrl) return;
+
+    setIsGeneratingTour(true);
+    try {
+      const { script, videoOperationName } = await generateDroneTourScript(targetUrl, true);
+      setTourScript(script);
+      setTourImageUrl(targetUrl);
+      setTourVideoOpName(videoOperationName);
+    } catch (err: any) {
+      alert(err.message || 'Erro ao gerar o Drone Tour');
+    } finally {
+      setIsGeneratingTour(false);
+    }
+  };
 
   // Reset zoom when image changes or view mode changes
   useEffect(() => {
@@ -178,6 +201,23 @@ const PreviewArea: React.FC<PreviewAreaProps> = ({
               </button>
             ))}
           </div>
+
+          {/* Drone Tour Button */}
+          {activeImage.generatedUrl && (
+            <button
+              onClick={handleCreateTour}
+              disabled={isGeneratingTour}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all shadow-lg text-xs font-bold ${isGeneratingTour ? 'bg-zinc-800 text-zinc-400 cursor-not-allowed' : 'bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white shadow-orange-900/20 hover:-translate-y-0.5'}`}
+              title="Cinematic Drone Tour (2 Créditos)"
+            >
+              {isGeneratingTour ? (
+                <div className="w-3.5 h-3.5 rounded-full border-2 border-zinc-500/30 border-t-zinc-400 animate-spin" />
+              ) : (
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+              )}
+              <span className="hidden sm:inline">{isGeneratingTour ? 'Criando...' : 'Drone Tour'}</span>
+            </button>
+          )}
 
           {/* Download Menu */}
           {(activeImage.generatedUrl || hasGeneratedImages) && (
@@ -367,6 +407,17 @@ const PreviewArea: React.FC<PreviewAreaProps> = ({
           </>
         )}
       </div>
+      {tourScript && tourImageUrl && (
+        <DroneTourPlayer
+          imageUrl={tourImageUrl}
+          script={tourScript}
+          videoOperationName={tourVideoOpName}
+          onClose={() => {
+            setTourScript(null);
+            setTourVideoOpName(undefined);
+          }}
+        />
+      )}
     </section>
   );
 };
