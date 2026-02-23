@@ -15,12 +15,12 @@ interface DesignStudioProps {
 }
 
 const PROMPT_SUGGESTIONS = [
-  "Bright natural light",
-  "Warm cozy atmosphere",
-  "Luxurious marble floors",
-  "High ceilings",
-  "Plant-filled",
-  "Minimalist decor"
+  "Luz natural brilhante",
+  "Ambiente aconchegante e acolhedor",
+  "Piso de mármore luxuoso",
+  "Tetos altos",
+  "Cheio de plantas",
+  "Decoração minimalista"
 ];
 
 const DesignStudio: React.FC<DesignStudioProps> = ({
@@ -39,22 +39,22 @@ const DesignStudio: React.FC<DesignStudioProps> = ({
     <div className="space-y-4">
       {/* Style Selector */}
       <div>
-        <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2.5">Architectural Style</label>
+        <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2.5">Estilo Arquitetônico</label>
         <StyleSelector selectedStyle={selectedStyle} onSelectStyle={setSelectedStyle} />
       </div>
 
       {/* Custom Prompt */}
       <div>
-        <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2">Custom Instructions</label>
+        <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2">Instruções Personalizadas</label>
         <div className="relative group">
           <textarea
             value={customPrompt}
             onChange={(e) => setCustomPrompt(e.target.value)}
-            placeholder="Describe specific details (e.g., 'Paint the walls sage green, add a leather armchair...')"
+            placeholder="Descreva detalhes específicos (ex: 'Pintar as paredes de verde sálvia, adicionar uma poltrona de couro...')"
             className="w-full bg-zinc-950/50 border border-zinc-800/50 rounded-xl p-3 text-sm text-zinc-200 placeholder-zinc-600 focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500/20 outline-none transition-all resize-none h-20 group-hover:border-zinc-700/60"
           />
           <div className="absolute bottom-2 right-3 text-xs text-zinc-600 pointer-events-none">
-            {customPrompt.length} chars
+            {customPrompt.length} caracs
           </div>
         </div>
 

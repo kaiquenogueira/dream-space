@@ -20,7 +20,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ onImagesSelected, current
     const filesToProcess = files.slice(0, remainingSlots);
 
     if (files.length > remainingSlots) {
-      alert(`You can only upload ${maxImages} images total. Processing first ${remainingSlots}.`);
+      alert(`Você só pode enviar até ${maxImages} imagens no total. Processando as primeiras ${remainingSlots}.`);
     }
 
     const processedImages: UploadedImage[] = [];
@@ -45,7 +45,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ onImagesSelected, current
         });
       } catch (e) {
         console.error("Error processing file", e);
-        alert(`Failed to process image ${file.name}. Please try another one.`);
+        alert(`Falha ao processar a imagem ${file.name}. Por favor, tente outra.`);
       }
     }
     onImagesSelected(processedImages);
@@ -80,8 +80,8 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ onImagesSelected, current
     return (
       <div className="border-2 border-dashed border-zinc-800/60 rounded-xl h-full flex flex-col items-center justify-center text-zinc-600 bg-zinc-900/20 cursor-not-allowed">
         <ImageIcon className="w-5 h-5 opacity-50 mb-1.5" />
-        <p className="font-medium text-xs">Limit Reached</p>
-        <p className="text-xs opacity-60 mt-0.5">Remove to add more</p>
+        <p className="font-medium text-xs">Limite Atingido</p>
+        <p className="text-xs opacity-60 mt-0.5">Remova para adicionar mais</p>
       </div>
     );
   }
@@ -123,7 +123,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ onImagesSelected, current
           <div className="p-2.5 rounded-full mb-2 bg-emerald-500/20 text-emerald-400 scale-110 transition-all duration-300">
             <PlusIcon className="w-5 h-5" />
           </div>
-          <p className="font-medium text-xs text-emerald-300">Drop here</p>
+          <p className="font-medium text-xs text-emerald-300">Solte aqui</p>
         </div>
       ) : (
         <div className="flex flex-col items-center justify-center w-full h-full py-1.5">
@@ -136,7 +136,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ onImagesSelected, current
               <div className="p-2 rounded-full bg-zinc-700/50 text-zinc-400 group-hover:text-emerald-400 group-hover:bg-emerald-500/20 transition-all duration-300 group-focus-visible:ring-2 group-focus-visible:ring-emerald-500">
                 <UploadIcon className="w-4 h-4" />
               </div>
-              <span className="font-medium text-xs text-zinc-400 group-hover:text-zinc-300 transition-colors">Upload</span>
+              <span className="font-medium text-xs text-zinc-400 group-hover:text-zinc-300 transition-colors">Enviar</span>
             </button>
 
             <div className="w-px h-8 bg-zinc-700/50"></div>
@@ -149,7 +149,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ onImagesSelected, current
               <div className="p-2 rounded-full bg-zinc-700/50 text-zinc-400 group-hover:text-emerald-400 group-hover:bg-emerald-500/20 transition-all duration-300 group-focus-visible:ring-2 group-focus-visible:ring-emerald-500">
                 <CameraIcon className="w-4 h-4" />
               </div>
-              <span className="font-medium text-xs text-zinc-400 group-hover:text-zinc-300 transition-colors">Camera</span>
+              <span className="font-medium text-xs text-zinc-400 group-hover:text-zinc-300 transition-colors">Câmera</span>
             </button>
           </div>
           <p className="text-xs text-zinc-500">{currentCount}/{maxImages}</p>

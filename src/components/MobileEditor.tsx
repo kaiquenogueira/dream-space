@@ -56,7 +56,7 @@ const MobileComparisonSlider: React.FC<{ originalUrl: string; generatedUrl: stri
         value={sliderPosition}
         onChange={handleSliderChange}
         className="absolute inset-0 w-full h-full opacity-0 cursor-ew-resize z-20"
-        aria-label="Comparison slider"
+        aria-label="Controle de comparação"
         aria-valuemin={0}
         aria-valuemax={100}
         aria-valuenow={sliderPosition}
@@ -64,10 +64,10 @@ const MobileComparisonSlider: React.FC<{ originalUrl: string; generatedUrl: stri
 
       {/* Labels */}
       <div className="absolute bottom-3 left-3 bg-black/60 backdrop-blur-md text-white text-xs font-bold px-2.5 py-1 rounded-lg border border-white/10 shadow-lg pointer-events-none z-10">
-        Before
+        Antes
       </div>
       <div className="absolute bottom-3 right-3 bg-emerald-600/80 backdrop-blur-md text-white text-xs font-bold px-2.5 py-1 rounded-lg border border-emerald-400/20 shadow-lg pointer-events-none z-10">
-        After
+        Depois
       </div>
     </div>
   );
@@ -141,16 +141,16 @@ const MobileEditor: React.FC<MobileEditorProps> = ({
         <button
           onClick={onBack}
           className="p-2 -ml-2 text-zinc-400 hover:text-white rounded-lg hover:bg-zinc-800/50 transition-all focus-visible:ring-2 focus-visible:ring-emerald-500"
-          aria-label="Go back to gallery"
+          aria-label="Voltar para a galeria"
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <polyline points="15 18 9 12 15 6" />
           </svg>
         </button>
-        <span className="font-semibold text-zinc-200 text-sm">Design Studio</span>
+        <span className="font-semibold text-zinc-200 text-sm">Estúdio de Design</span>
         {/* Swipe hint for when generated */}
         {activeImage.generatedUrl && (
-          <span className="text-xs text-zinc-500 animate-fade-in">← swipe →</span>
+          <span className="text-xs text-zinc-500 animate-fade-in">← deslizar →</span>
         )}
         {!activeImage.generatedUrl && <div className="w-8" />}
       </div>
@@ -182,19 +182,19 @@ const MobileEditor: React.FC<MobileEditorProps> = ({
             <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex bg-zinc-900/80 backdrop-blur-xl rounded-full p-1 border border-white/[0.08] shadow-xl z-30">
               {([
                 { key: 'original' as const, label: 'Original' },
-                { key: 'compare' as const, label: 'Compare' },
-                { key: 'generated' as const, label: 'Result' },
+                { key: 'compare' as const, label: 'Comparar' },
+                { key: 'generated' as const, label: 'Resultado' },
               ]).map(opt => (
                 <button
                   key={opt.key}
                   onClick={() => setViewMode(opt.key)}
                   className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all duration-300 ${viewMode === opt.key
-                      ? opt.key === 'original'
-                        ? 'bg-zinc-700/80 text-white'
-                        : 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/30'
-                      : 'text-zinc-400'
+                    ? opt.key === 'original'
+                      ? 'bg-zinc-700/80 text-white'
+                      : 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/30'
+                    : 'text-zinc-400'
                     }`}
-                  aria-label={`View ${opt.label}`}
+                  aria-label={`Ver ${opt.label}`}
                 >
                   {opt.label}
                 </button>
@@ -205,8 +205,8 @@ const MobileEditor: React.FC<MobileEditorProps> = ({
           {isGenerating && (
             <div className="absolute inset-0 bg-zinc-950/80 backdrop-blur-sm flex flex-col items-center justify-center gap-3 z-40">
               <RefreshIcon className="animate-spin text-emerald-500 w-10 h-10" />
-              <p className="text-emerald-200 font-medium text-sm animate-pulse">Designing your space...</p>
-              <p className="text-zinc-500 text-xs">Usually takes 15-30 seconds</p>
+              <p className="text-emerald-200 font-medium text-sm animate-pulse">Desenhando seu espaço...</p>
+              <p className="text-zinc-500 text-xs">Geralmente leva de 15 a 30 segundos</p>
             </div>
           )}
         </div>
@@ -215,7 +215,7 @@ const MobileEditor: React.FC<MobileEditorProps> = ({
         <div className="px-4 pt-5 space-y-5">
           {/* Mode Selector */}
           <div>
-            <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2 block">Mode</label>
+            <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2 block">Modo</label>
             <div className="flex bg-zinc-900/60 p-1 rounded-xl border border-zinc-800/40">
               {Object.values(GenerationMode).map(mode => (
                 <button
@@ -226,7 +226,7 @@ const MobileEditor: React.FC<MobileEditorProps> = ({
                     : 'text-zinc-500'
                     }`}
                 >
-                  {mode === GenerationMode.REDESIGN ? '🎨 Redesign' : '🪑 Furnish'}
+                  {mode === GenerationMode.REDESIGN ? '🎨 Redesign' : '🪑 Mobiliar'}
                 </button>
               ))}
             </div>
@@ -235,7 +235,7 @@ const MobileEditor: React.FC<MobileEditorProps> = ({
           {/* Style Selector */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider block">Style</label>
+              <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider block">Estilo</label>
               {selectedStyle && (
                 <span className="text-xs text-emerald-400 font-medium bg-emerald-500/10 px-2 py-0.5 rounded-full">{selectedStyle}</span>
               )}
@@ -250,7 +250,7 @@ const MobileEditor: React.FC<MobileEditorProps> = ({
               className="w-full flex items-center justify-between p-4 text-left focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-inset"
               aria-expanded={showPrompt}
             >
-              <span className="text-sm font-medium text-zinc-300">Additional Instructions</span>
+              <span className="text-sm font-medium text-zinc-300">Instruções Adicionais</span>
               <ChevronDownIcon className={`transition-transform duration-300 text-zinc-500 ${showPrompt ? 'rotate-180' : ''}`} />
             </button>
 
@@ -259,7 +259,7 @@ const MobileEditor: React.FC<MobileEditorProps> = ({
                 <textarea
                   value={customPrompt}
                   onChange={(e) => setCustomPrompt(e.target.value)}
-                  placeholder="e.g. Add a leather sofa, make walls blue..."
+                  placeholder="ex. Adicionar sofá de couro, paredes azuis..."
                   className="w-full bg-zinc-950/50 border border-zinc-800/50 rounded-xl p-3 text-sm text-zinc-200 placeholder-zinc-600 focus:ring-2 focus:ring-emerald-500/30 outline-none h-24 resize-none transition-all"
                 />
               </div>
@@ -276,10 +276,10 @@ const MobileEditor: React.FC<MobileEditorProps> = ({
             <button
               onClick={() => onRegenerateSingle(activeImage.id)}
               className="py-3.5 px-5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 shadow-lg transition-all transform active:scale-[0.98] bg-zinc-800/80 text-zinc-300 border border-zinc-700/50 hover:bg-zinc-700/80 hover:text-white focus-visible:ring-2 focus-visible:ring-emerald-500"
-              aria-label="Regenerate design"
+              aria-label="Gerar design novamente"
             >
               <RefreshIcon className="w-4 h-4" />
-              Regenerate
+              Gerar Novamente
             </button>
           )}
           <button
@@ -297,12 +297,12 @@ const MobileEditor: React.FC<MobileEditorProps> = ({
               {isGenerating ? (
                 <>
                   <RefreshIcon className="animate-spin w-4 h-4" />
-                  Generating...
+                  Gerando...
                 </>
               ) : (
                 <>
                   <MagicWandIcon className="w-4 h-4" />
-                  Generate Design
+                  Gerar Design
                 </>
               )}
             </span>

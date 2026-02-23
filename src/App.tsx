@@ -6,18 +6,33 @@ import DesignStudio from './components/DesignStudio';
 import PreviewArea from './components/PreviewArea';
 import PropertyCreation from './components/PropertyCreation';
 import { RefreshIcon } from './components/Icons';
-import { ArchitecturalStyle, GenerationMode, UploadedImage, STYLE_PROMPTS } from './types';
+import { ArchitecturalStyle, GenerationMode, UploadedImage } from './types';
 import { generateRoomDesign, fileToBase64 } from './services/geminiService';
 import { compressImage } from './utils/imageUtils';
+import { buildPrompt } from './utils/promptBuilder';
 import { useAuth } from './hooks/useAuth';
+import { useCredits } from './hooks/useCredits';
 import { useProject } from './hooks/useProject';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 
 import MobileEditor from './components/MobileEditor';
+import AdminDashboard from './components/AdminDashboard';
 
 const App: React.FC = () => {
-  const { isAuthenticated, isCheckingAuth, handleLogin, handleLogout } = useAuth();
+  const {
+    isAuthenticated,
+    isCheckingAuth,
+    signInWithEmail,
+    signUpWithEmail,
+    signInWithGoogle,
+    signOut,
+    profile,
+    refreshProfile,
+  } = useAuth();
+
+  const { credits, hasCredits, plan } = useCredits(profile, refreshProfile);
+
   const {
     properties,
     setProperties,
@@ -44,8 +59,10 @@ const App: React.FC = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isDownloadingZip, setIsDownloadingZip] = useState(false);
   const [viewMode, setViewMode] = useState<'original' | 'generated' | 'split'>('split');
+  const [appView, setAppView] = useState<'app' | 'admin'>('app');
   const [mobileView, setMobileView] = useState<'gallery' | 'editor'>('gallery');
   const [showControls, setShowControls] = useState(true);
+  const [noCreditsError, setNoCreditsError] = useState(false);
 
   const activeImage = images.find(img => img.id === selectedImageId) || images[0];
   const activeImageIndex = activeImage ? images.indexOf(activeImage) : 0;
@@ -72,56 +89,63 @@ const App: React.FC = () => {
     setSelectedImageId(images[prevIndex].id);
   };
 
-  const buildPrompt = () => {
-    let finalPrompt = '';
-
-    if (generationMode === GenerationMode.VIRTUAL_STAGING) {
-      if (selectedStyle) {
-        finalPrompt = `This is an empty room. Furnish this room with ${STYLE_PROMPTS[selectedStyle]} furniture. Keep the original walls, floor, and ceiling structure exactly as is. Add realistic lighting and shadows. Ensure photorealistic quality.`;
-      } else {
-        finalPrompt = `This is an empty room. Furnish this room with modern furniture appropriate for its size and layout. Keep the original walls, floor, and ceiling structure exactly as is. Add realistic lighting and shadows. Ensure photorealistic quality.`;
-      }
-    } else {
-      if (selectedStyle) {
-        finalPrompt = `Redesign this interior space in a ${STYLE_PROMPTS[selectedStyle]}. Apply appropriate furniture, lighting, and wall colors. Maintain the original structural layout (windows, doors, floors). Ensure photorealistic quality.`;
-      }
-    }
-
-    if (customPrompt) {
-      if (finalPrompt) {
-        finalPrompt += ` Also, ${customPrompt}`;
-      } else {
-        finalPrompt = `Edit this image: ${customPrompt}`;
-      }
-    }
-
-    if (!finalPrompt) {
-      finalPrompt = "Enhance this room with modern interior design, keeping the structure intact.";
-    }
-
-    return finalPrompt;
-  };
-
   const generateForImage = async (img: UploadedImage, prompt: string) => {
     try {
-      const result = await generateRoomDesign(img.base64, prompt);
-      setImages(current => current.map(i => i.id === img.id ? { ...i, generatedUrl: result, isGenerating: false, selected: false } : i));
+      const response = await generateRoomDesign(
+        img.base64,
+        prompt,
+        activePropertyId || undefined,
+        selectedStyle || undefined,
+        generationMode,
+      );
+
+      setImages(current => current.map(i =>
+        i.id === img.id
+          ? { ...i, generatedUrl: response.result, isGenerating: false, selected: false }
+          : i
+      ));
+
+      // Refresh profile to update credits display
+      await refreshProfile();
+
+      // Show compression warning for free tier
+      if (response.is_compressed) {
+        console.info('Imagem salva em formato comprimido (plano gratuito). Resolução máxima disponível nos planos premium.');
+      }
     } catch (err: any) {
       console.error(`Error generating for image ${img.id}:`, err);
-      setImages(current => current.map(i => i.id === img.id ? { ...i, error: err.message || "Failed", isGenerating: false } : i));
+
+      if (err.message?.includes('No credits remaining') || err.message?.includes('credits')) {
+        setNoCreditsError(true);
+      }
+
+      setImages(current => current.map(i =>
+        i.id === img.id ? { ...i, error: err.message || "Failed", isGenerating: false } : i
+      ));
     }
   };
 
   const handleGenerate = async () => {
+    if (!hasCredits) {
+      setNoCreditsError(true);
+      return;
+    }
+
     const imagesToGenerate = images.filter(img => img.selected);
     if (imagesToGenerate.length === 0) return;
 
+    // Check if user has enough credits for all selected images
+    if (imagesToGenerate.length > credits) {
+      setNoCreditsError(true);
+      return;
+    }
+
+    setNoCreditsError(false);
     setIsGenerating(true);
 
-    // Set only selected images to generating state
     setImages(prev => prev.map(img => img.selected ? { ...img, isGenerating: true, error: undefined } : img));
 
-    const finalPrompt = buildPrompt();
+    const finalPrompt = buildPrompt({ generationMode, selectedStyle, customPrompt });
     console.log("Starting selective generation with prompt:", finalPrompt, `(${imagesToGenerate.length} images)`);
 
     await Promise.all(imagesToGenerate.map(img => generateForImage(img, finalPrompt)));
@@ -131,13 +155,19 @@ const App: React.FC = () => {
   };
 
   const handleRegenerateSingle = async (imageId: string) => {
+    if (!hasCredits) {
+      setNoCreditsError(true);
+      return;
+    }
+
     const img = images.find(i => i.id === imageId);
     if (!img) return;
 
+    setNoCreditsError(false);
     setIsGenerating(true);
     setImages(prev => prev.map(i => i.id === imageId ? { ...i, isGenerating: true, error: undefined } : i));
 
-    const finalPrompt = buildPrompt();
+    const finalPrompt = buildPrompt({ generationMode, selectedStyle, customPrompt });
     await generateForImage(img, finalPrompt);
 
     setIsGenerating(false);
@@ -165,7 +195,6 @@ const App: React.FC = () => {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // Load images
     const loadImage = (src: string) => new Promise<HTMLImageElement>((resolve, reject) => {
       const img = new Image();
       img.crossOrigin = "anonymous";
@@ -177,7 +206,6 @@ const App: React.FC = () => {
     try {
       const [img1, img2] = await Promise.all([loadImage(originalUrl), loadImage(generatedUrl)]);
 
-      // Set canvas size (side by side)
       const width = img1.width + img2.width;
       const height = Math.max(img1.height, img2.height);
       const footerHeight = 80;
@@ -185,45 +213,36 @@ const App: React.FC = () => {
       canvas.width = width;
       canvas.height = height + footerHeight;
 
-      // Draw background
       ctx.fillStyle = "#ffffff";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      // Draw images
       ctx.drawImage(img1, 0, 0);
       ctx.drawImage(img2, img1.width, 0);
 
-      // Draw "Before" / "After" labels
       ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
       const labelW = 120;
       const labelH = 40;
 
-      // Before Label
       ctx.fillRect(20, 20, labelW, labelH);
       ctx.fillStyle = "#ffffff";
       ctx.font = "bold 20px sans-serif";
-      ctx.fillText("BEFORE", 40, 48);
+      ctx.fillText("ANTES", 40, 48);
 
-      // After Label
       ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
       ctx.fillRect(img1.width + 20, 20, labelW, labelH);
       ctx.fillStyle = "#ffffff";
-      ctx.fillText("AFTER", img1.width + 45, 48);
+      ctx.fillText("DEPOIS", img1.width + 40, 48);
 
-      // Draw Footer
-      ctx.fillStyle = "#0f172a"; // Slate-900
+      ctx.fillStyle = "#0f172a";
       ctx.fillRect(0, height, width, footerHeight);
 
-      // Draw Property Name
       ctx.fillStyle = "#ffffff";
       ctx.font = "bold 24px sans-serif";
       const propName = activeProperty?.name || "DreamSpace Design";
       ctx.fillText(propName, 30, height + 50);
 
-      // Draw Logo if exists
       if (activeProperty?.logo) {
         const logo = await loadImage(activeProperty.logo);
-        // Resize logo to fit in footer height - 20px padding
         const maxLogoH = footerHeight - 20;
         const scale = maxLogoH / logo.height;
         const logoW = logo.width * scale;
@@ -231,14 +250,12 @@ const App: React.FC = () => {
 
         ctx.drawImage(logo, width - logoW - 30, height + 10, logoW, logoH);
       } else {
-        // Draw default text
-        ctx.fillStyle = "#94a3b8"; // Slate-400
+        ctx.fillStyle = "#94a3b8";
         ctx.font = "16px sans-serif";
         ctx.textAlign = "right";
-        ctx.fillText("Generated with DreamSpace AI", width - 30, height + 45);
+        ctx.fillText("Gerado com DreamSpace AI", width - 30, height + 45);
       }
 
-      // Download
       const link = document.createElement('a');
       link.download = `comparison-${Date.now()}.png`;
       link.href = canvas.toDataURL('image/png');
@@ -247,7 +264,7 @@ const App: React.FC = () => {
       document.body.removeChild(link);
     } catch (err) {
       console.error("Failed to generate comparison", err);
-      alert("Failed to generate comparison image. Please try again.");
+      alert("Falha ao gerar a imagem de comparação. Por favor, tente novamente.");
     }
   };
 
@@ -275,7 +292,6 @@ const App: React.FC = () => {
       for (const [index, img] of generatedImages.entries()) {
         const url = img.generatedUrl!;
 
-        // Convert data URL to Blob for JSZip
         const arr = url.split(',');
         const mimeMatch = arr[0].match(/:(.*?);/);
         const mime = mimeMatch ? mimeMatch[1] : 'image/png';
@@ -287,17 +303,15 @@ const App: React.FC = () => {
         }
         const blob = new Blob([u8arr], { type: mime });
 
-        // Add to zip
         const extension = mime.split('/')[1] || 'png';
         folder.file(`design-${index + 1}.${extension}`, blob);
       }
 
-      // Generate and save
       const content = await zip.generateAsync({ type: "blob" });
       saveAs(content, "dreamspace-designs.zip");
     } catch (err) {
       console.error("Failed to generate ZIP", err);
-      alert("Failed to create ZIP file. Please try downloading individually.");
+      alert("Falha ao criar o arquivo ZIP. Por favor, tente baixar individualmente.");
     } finally {
       setIsDownloadingZip(false);
     }
@@ -312,7 +326,13 @@ const App: React.FC = () => {
   }
 
   if (!isAuthenticated) {
-    return <Login onLogin={handleLogin} />;
+    return (
+      <Login
+        onSignIn={signInWithEmail}
+        onSignUp={signUpWithEmail}
+        onGoogleSignIn={signInWithGoogle}
+      />
+    );
   }
 
   if (!activePropertyId) {
@@ -325,13 +345,71 @@ const App: React.FC = () => {
     );
   }
 
+  if (appView === 'admin' && profile?.is_admin) {
+    return (
+      <div className="min-h-screen bg-zinc-950 flex flex-col font-sans">
+        <Header
+          activeProperty={activeProperty}
+          setActivePropertyId={setActivePropertyId}
+          handleLogout={signOut}
+          profile={profile}
+          onAdminClick={() => setAppView('app')}
+          isAdminView={true}
+        />
+        <AdminDashboard onBack={() => setAppView('app')} />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-zinc-950 via-zinc-900 to-zinc-950 text-zinc-200 flex flex-col">
       <Header
         activeProperty={activeProperty}
         setActivePropertyId={setActivePropertyId}
-        handleLogout={handleLogout}
+        handleLogout={signOut}
+        profile={profile}
+        onAdminClick={() => setAppView('admin')}
+        isAdminView={false}
       />
+
+      {/* No Credits Banner */}
+      {noCreditsError && (
+        <div className="bg-amber-500/10 border-b border-amber-500/20 px-4 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <svg className="w-5 h-5 text-amber-400 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+              <line x1="12" y1="9" x2="12" y2="13" />
+              <line x1="12" y1="17" x2="12.01" y2="17" />
+            </svg>
+            <span className="text-sm text-amber-200">
+              {credits === 0
+                ? `Você usou todos os seus créditos (plano ${plan}). Faça o upgrade para mais gerações.`
+                : `Créditos insuficientes para ${selectedCount} imagens. Você tem ${credits} crédito${credits !== 1 ? 's' : ''} restante${credits !== 1 ? 's' : ''}.`
+              }
+            </span>
+          </div>
+          <button
+            onClick={() => setNoCreditsError(false)}
+            className="text-amber-400/60 hover:text-amber-300 text-sm px-2"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
+      {/* Free tier compression notice */}
+      {plan === 'free' && images.some(img => img.generatedUrl) && (
+        <div className="bg-zinc-900/60 border-b border-zinc-800/40 px-4 py-2 flex items-center gap-2">
+          <svg className="w-4 h-4 text-zinc-500 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <circle cx="12" cy="12" r="10" />
+            <line x1="12" y1="16" x2="12" y2="12" />
+            <line x1="12" y1="8" x2="12.01" y2="8" />
+          </svg>
+          <span className="text-xs text-zinc-500">
+            Plano gratuito: as imagens são salvas em formato comprimido. Alguma perda de resolução pode ocorrer ao recuperar em sessões futuras. Faça o upgrade para armazenamento em resolução máxima.
+          </span>
+        </div>
+      )}
 
       {/* ─── MOBILE VIEW ─── */}
       <main className="lg:hidden flex-1 overflow-hidden">
@@ -410,7 +488,7 @@ const App: React.FC = () => {
                       : 'text-zinc-500 hover:text-zinc-300'
                       }`}
                   >
-                    {mode === GenerationMode.REDESIGN ? '🎨 Redesign' : '🪑 Furnish'}
+                    {mode === GenerationMode.REDESIGN ? '🎨 Redesign' : '🪑 Mobiliar'}
                   </button>
                 ))}
               </div>
@@ -432,7 +510,7 @@ const App: React.FC = () => {
                   </>
                 ) : (
                   <>
-                    Select Style
+                    Selecionar Estilo
                     <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                       <path d={showControls ? "M18 15l-6-6-6 6" : "M6 9l6 6 6-6"} />
                     </svg>
@@ -449,13 +527,21 @@ const App: React.FC = () => {
 
               <div className="flex-1" />
 
+              {/* Credits mini indicator */}
+              <span className={`text-xs font-medium px-2 py-1 rounded-md ${hasCredits
+                ? 'text-emerald-400/70 bg-emerald-500/5'
+                : 'text-red-400/70 bg-red-500/5'
+                }`}>
+                {credits} créditos
+              </span>
+
               {/* Generate button */}
               <button
                 onClick={handleGenerate}
-                disabled={isGenerating || selectedCount === 0}
+                disabled={isGenerating || selectedCount === 0 || !hasCredits}
                 className={`
                   px-5 py-2 rounded-xl font-bold text-sm flex items-center gap-2 transition-all relative overflow-hidden group
-                  ${isGenerating || selectedCount === 0
+                  ${isGenerating || selectedCount === 0 || !hasCredits
                     ? 'bg-zinc-800/60 text-zinc-500 cursor-not-allowed border border-zinc-700/40'
                     : 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white shadow-lg shadow-emerald-600/20 hover:shadow-emerald-600/35 hover:-translate-y-0.5 active:translate-y-0'
                   }
@@ -465,18 +551,18 @@ const App: React.FC = () => {
                   {isGenerating ? (
                     <>
                       <RefreshIcon className="animate-spin w-4 h-4" />
-                      Generating...
+                      Gerando...
                     </>
                   ) : (
                     <>
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" />
                       </svg>
-                      Generate{selectedCount < images.length ? ` (${selectedCount}/${images.length})` : ''}
+                      Gerar{selectedCount < images.length ? ` (${selectedCount}/${images.length})` : ''}
                     </>
                   )}
                 </span>
-                {!isGenerating && selectedCount > 0 && (
+                {!isGenerating && selectedCount > 0 && hasCredits && (
                   <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/10 to-transparent" />
                 )}
               </button>

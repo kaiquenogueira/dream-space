@@ -1,6 +1,6 @@
-import jwt from 'jsonwebtoken';
+import { supabaseAdmin } from './lib/supabaseAdmin';
 
-export default function handler(req: any, res: any) {
+export default async function handler(req: any, res: any) {
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
@@ -11,11 +11,15 @@ export default function handler(req: any, res: any) {
   }
 
   const token = authHeader.split(' ')[1];
-  const jwtSecret = process.env.JWT_SECRET || 'default-secret-change-me';
 
   try {
-    jwt.verify(token, jwtSecret);
-    return res.status(200).json({ valid: true });
+    const { data: { user }, error } = await supabaseAdmin.auth.getUser(token);
+
+    if (error || !user) {
+      return res.status(401).json({ error: 'Invalid token' });
+    }
+
+    return res.status(200).json({ valid: true, userId: user.id });
   } catch (error) {
     return res.status(401).json({ error: 'Invalid token' });
   }

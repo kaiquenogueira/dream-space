@@ -60,7 +60,7 @@ const ComparisonSlider: React.FC<{ originalUrl: string; generatedUrl: string }> 
         value={sliderPosition}
         onChange={handleSliderChange}
         className="absolute inset-0 w-full h-full opacity-0 cursor-ew-resize z-20 focus:outline-none"
-        aria-label="Comparison slider"
+        aria-label="Controle de comparação"
         aria-valuemin={0}
         aria-valuemax={100}
         aria-valuenow={sliderPosition}
@@ -68,10 +68,10 @@ const ComparisonSlider: React.FC<{ originalUrl: string; generatedUrl: string }> 
 
       {/* Labels */}
       <div className="absolute bottom-4 left-4 bg-black/60 backdrop-blur-md text-white text-xs font-bold px-3 py-1.5 rounded-lg border border-white/10 shadow-lg pointer-events-none z-10">
-        Before
+        Antes
       </div>
       <div className="absolute bottom-4 right-4 bg-emerald-600/80 backdrop-blur-md text-white text-xs font-bold px-3 py-1.5 rounded-lg border border-emerald-400/20 shadow-lg pointer-events-none z-10">
-        After
+        Depois
       </div>
     </div>
   );
@@ -109,16 +109,16 @@ const PreviewArea: React.FC<PreviewAreaProps> = ({
         <div className="w-16 h-16 rounded-2xl bg-zinc-800/50 flex items-center justify-center mb-4 animate-float">
           <ImageIcon className="w-7 h-7 text-zinc-600" />
         </div>
-        <p className="text-base font-medium text-zinc-400">Upload photos to start designing</p>
-        <p className="text-sm text-zinc-600 mt-1">Select images from the sidebar</p>
+        <p className="text-base font-medium text-zinc-400">Faça upload de fotos para começar a desenhar</p>
+        <p className="text-sm text-zinc-600 mt-1">Selecione imagens na barra lateral</p>
       </div>
     );
   }
 
   const VIEW_OPTIONS = [
     { key: 'original' as const, label: 'Original', disabled: false },
-    { key: 'generated' as const, label: 'Result', disabled: !activeImage.generatedUrl && !activeImage.isGenerating },
-    { key: 'split' as const, label: 'Compare', icon: <ColumnsIcon className="w-3.5 h-3.5" />, disabled: !activeImage.generatedUrl && !activeImage.isGenerating },
+    { key: 'generated' as const, label: 'Resultado', disabled: !activeImage.generatedUrl && !activeImage.isGenerating },
+    { key: 'split' as const, label: 'Comparar', icon: <ColumnsIcon className="w-3.5 h-3.5" />, disabled: !activeImage.generatedUrl && !activeImage.isGenerating },
   ];
 
   return (
@@ -130,7 +130,7 @@ const PreviewArea: React.FC<PreviewAreaProps> = ({
           </div>
           <div>
             <h3 className="text-base md:text-lg font-bold text-white flex items-center gap-2">
-              Preview
+              Visualização
               <span className="text-zinc-500 text-xs font-medium px-2 py-0.5 bg-zinc-800/50 rounded-md">
                 {imageIndex + 1} / {totalImages}
               </span>
@@ -145,16 +145,16 @@ const PreviewArea: React.FC<PreviewAreaProps> = ({
               <button
                 onClick={onPrev}
                 className="p-1.5 text-zinc-400 hover:text-white hover:bg-zinc-800/60 rounded-lg transition-all"
-                title="Previous Image"
-                aria-label="Previous Image"
+                title="Imagem Anterior"
+                aria-label="Imagem Anterior"
               >
                 <ArrowLeftIcon className="w-4 h-4" />
               </button>
               <button
                 onClick={onNext}
                 className="p-1.5 text-zinc-400 hover:text-white hover:bg-zinc-800/60 rounded-lg transition-all"
-                title="Next Image"
-                aria-label="Next Image"
+                title="Próxima Imagem"
+                aria-label="Próxima Imagem"
               >
                 <ArrowRightIcon className="w-4 h-4" />
               </button>
@@ -186,11 +186,11 @@ const PreviewArea: React.FC<PreviewAreaProps> = ({
                 onClick={() => setShowDownloadMenu(!showDownloadMenu)}
                 onBlur={() => setTimeout(() => setShowDownloadMenu(false), 200)}
                 className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-teal-600 to-purple-600 hover:from-teal-500 hover:to-purple-500 text-white rounded-xl transition-all shadow-lg shadow-teal-900/20 hover:shadow-teal-900/35 transform hover:-translate-y-0.5 active:translate-y-0 text-xs font-bold relative overflow-hidden group"
-                title="Download"
-                aria-label="Download options"
+                title="Baixar"
+                aria-label="Opções de download"
               >
                 <DownloadIcon className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Download</span>
+                <span className="hidden sm:inline">Baixar</span>
                 <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
                   <path d="M6 9l6 6 6-6" />
                 </svg>
@@ -210,8 +210,8 @@ const PreviewArea: React.FC<PreviewAreaProps> = ({
                       >
                         <ImageIcon className="w-4 h-4 text-emerald-400" />
                         <div>
-                          <span className="block font-medium text-xs">Result Only</span>
-                          <span className="block text-xs text-zinc-500">Download AI design</span>
+                          <span className="block font-medium text-xs">Apenas o Resultado</span>
+                          <span className="block text-xs text-zinc-500">Baixar design de IA</span>
                         </div>
                       </button>
                       <button
@@ -223,8 +223,8 @@ const PreviewArea: React.FC<PreviewAreaProps> = ({
                       >
                         <ColumnsIcon className="w-4 h-4 text-teal-400" />
                         <div>
-                          <span className="block font-medium text-xs">Before & After</span>
-                          <span className="block text-xs text-zinc-500">Side-by-side comparison</span>
+                          <span className="block font-medium text-xs">Antes e Depois</span>
+                          <span className="block text-xs text-zinc-500">Comparação lado a lado</span>
                         </div>
                       </button>
                     </>
@@ -248,10 +248,10 @@ const PreviewArea: React.FC<PreviewAreaProps> = ({
                         )}
                         <div>
                           <span className="block font-medium text-xs">
-                            {isDownloadingZip ? 'Creating ZIP...' : 'Download All (ZIP)'}
+                            {isDownloadingZip ? 'Criando ZIP...' : 'Baixar Tudo (ZIP)'}
                           </span>
                           <span className="block text-xs text-zinc-500">
-                            {isDownloadingZip ? 'Please wait' : 'All generated designs'}
+                            {isDownloadingZip ? 'Por favor, aguarde' : 'Todos os designs gerados'}
                           </span>
                         </div>
                       </button>
@@ -268,7 +268,7 @@ const PreviewArea: React.FC<PreviewAreaProps> = ({
       {activeImage.error && (
         <div className="bg-red-500/10 border border-red-500/15 text-red-300 p-3.5 rounded-xl mb-4 flex items-center gap-3 animate-scale-in flex-shrink-0">
           <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse flex-shrink-0" />
-          <p className="text-sm font-medium">Generation failed: {activeImage.error}</p>
+          <p className="text-sm font-medium">Falha na geração: {activeImage.error}</p>
         </div>
       )}
 
@@ -282,8 +282,8 @@ const PreviewArea: React.FC<PreviewAreaProps> = ({
               <div className="relative inline-block animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-emerald-500" style={{ boxShadow: '0 0 20px rgba(59,130,246,0.4)' }} />
             </div>
             <div>
-              <p className="text-lg font-medium text-white">Designing your space...</p>
-              <p className="text-sm text-zinc-400 mt-1">This usually takes 15-30 seconds</p>
+              <p className="text-lg font-medium text-white">Desenhando seu espaço...</p>
+              <p className="text-sm text-zinc-400 mt-1">Isso geralmente leva de 15 a 30 segundos</p>
             </div>
           </div>
         ) : (
@@ -294,8 +294,8 @@ const PreviewArea: React.FC<PreviewAreaProps> = ({
                 onClick={handleZoomOut}
                 disabled={zoom <= 1}
                 className="p-1.5 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-lg disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                title="Zoom Out"
-                aria-label="Zoom Out"
+                title="Diminuir Zoom"
+                aria-label="Diminuir Zoom"
               >
                 <ZoomOutIcon className="w-4 h-4" />
               </button>
@@ -306,8 +306,8 @@ const PreviewArea: React.FC<PreviewAreaProps> = ({
                 onClick={handleZoomIn}
                 disabled={zoom >= 4}
                 className="p-1.5 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-lg disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                title="Zoom In"
-                aria-label="Zoom In"
+                title="Aumentar Zoom"
+                aria-label="Aumentar Zoom"
               >
                 <ZoomInIcon className="w-4 h-4" />
               </button>
@@ -317,8 +317,8 @@ const PreviewArea: React.FC<PreviewAreaProps> = ({
                   <button
                     onClick={handleResetZoom}
                     className="p-1.5 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-lg transition-colors"
-                    title="Reset Zoom"
-                    aria-label="Reset Zoom"
+                    title="Redefinir Zoom"
+                    aria-label="Redefinir Zoom"
                   >
                     <RefreshIcon className="w-3.5 h-3.5" />
                   </button>
@@ -341,7 +341,7 @@ const PreviewArea: React.FC<PreviewAreaProps> = ({
                 <div className="w-full h-full relative animate-fade-in">
                   <img src={activeImage.previewUrl} alt="Original" className="w-full h-full object-contain" />
                   {zoom === 1 && (
-                    <div className="absolute bottom-4 left-4 bg-black/60 backdrop-blur-md text-white text-xs font-bold px-3 py-1.5 rounded-lg border border-white/10 shadow-lg z-20">Original Photo</div>
+                    <div className="absolute bottom-4 left-4 bg-black/60 backdrop-blur-md text-white text-xs font-bold px-3 py-1.5 rounded-lg border border-white/10 shadow-lg z-20">Foto Original</div>
                   )}
                 </div>
               )}
@@ -351,7 +351,7 @@ const PreviewArea: React.FC<PreviewAreaProps> = ({
                 <div className="w-full h-full relative animate-fade-in">
                   <img src={activeImage.generatedUrl} alt="Generated" className="w-full h-full object-contain" />
                   {zoom === 1 && (
-                    <div className="absolute bottom-4 left-4 bg-emerald-600/80 backdrop-blur-md text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-lg border border-emerald-400/20 z-20">AI Design</div>
+                    <div className="absolute bottom-4 left-4 bg-emerald-600/80 backdrop-blur-md text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-lg border border-emerald-400/20 z-20">Design com IA</div>
                   )}
                 </div>
               )}

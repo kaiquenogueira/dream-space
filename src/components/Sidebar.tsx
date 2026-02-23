@@ -46,7 +46,7 @@ const Sidebar: React.FC<SidebarProps> = ({
       {/* Branding Section — hidden in compact (mobile) mode */}
       {!compact && (
         <div className="glass-card p-4">
-          <h3 className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-3">Project Branding</h3>
+          <h3 className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-3">Identidade Visual do Projeto</h3>
           <div className="flex items-center gap-3 bg-zinc-950/40 p-3 rounded-xl border border-zinc-800/40 hover:border-zinc-700/50 transition-all group">
             {activeProperty?.logo ? (
               <div className="relative w-11 h-11 bg-white rounded-xl overflow-hidden flex items-center justify-center flex-shrink-0 border border-zinc-200 shadow-sm group/logo">
@@ -54,7 +54,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                 <button
                   onClick={() => setProperties(prev => prev.map(p => p.id === activePropertyId ? { ...p, logo: undefined } : p))}
                   className="absolute inset-0 bg-black/60 text-white opacity-0 group-hover/logo:opacity-100 flex items-center justify-center transition-opacity rounded-xl"
-                  aria-label="Remove logo"
+                  aria-label="Remover logo"
                 >
                   <XIcon className="w-4 h-4" />
                 </button>
@@ -66,8 +66,8 @@ const Sidebar: React.FC<SidebarProps> = ({
             )}
             <div className="flex-1 overflow-hidden">
               <label className="cursor-pointer group/label">
-                <span className="block text-sm font-medium text-zinc-300 group-hover/label:text-white transition-colors">Upload Logo</span>
-                <span className="block text-xs text-zinc-500 truncate">PNG, JPG (Max 2MB)</span>
+                <span className="block text-sm font-medium text-zinc-300 group-hover/label:text-white transition-colors">Enviar Logo</span>
+                <span className="block text-xs text-zinc-500 truncate">PNG, JPG (Máx 2MB)</span>
                 <input
                   type="file"
                   accept="image/*"
@@ -84,8 +84,8 @@ const Sidebar: React.FC<SidebarProps> = ({
       <div className="glass-card p-4">
         <div className="flex justify-between items-end mb-3">
           <div>
-            <h2 className="text-base font-bold text-white tracking-tight">{compact ? 'Photos' : 'Project Spaces'}</h2>
-            <p className="text-xs text-zinc-500 mt-0.5">{compact ? 'Tap to edit' : 'Manage your uploaded photos'}</p>
+            <h2 className="text-base font-bold text-white tracking-tight">{compact ? 'Fotos' : 'Espaços do Projeto'}</h2>
+            <p className="text-xs text-zinc-500 mt-0.5">{compact ? 'Toque para editar' : 'Gerencie as fotos enviadas'}</p>
           </div>
           <span className="text-xs font-mono bg-zinc-800/60 text-zinc-400 px-2 py-0.5 rounded-md border border-zinc-700/40">
             {images.length}/{maxImages}
@@ -109,11 +109,11 @@ const Sidebar: React.FC<SidebarProps> = ({
                   </svg>
                 )}
               </div>
-              {allSelected ? 'Deselect All' : 'Select All'}
+              {allSelected ? 'Desmarcar Tudo' : 'Selecionar Tudo'}
             </button>
             {selectedCount > 0 && selectedCount < images.length && (
               <span className="text-xs text-emerald-400/80 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
-                {selectedCount} selected
+                {selectedCount} selecionada(s)
               </span>
             )}
           </div>
@@ -142,7 +142,7 @@ const Sidebar: React.FC<SidebarProps> = ({
               `}
               style={{ animationDelay: `${i * 50}ms` }}
             >
-              <img src={img.previewUrl} alt="Room" className="w-full h-full object-cover" />
+              <img src={img.previewUrl} alt="Ambiente" className="w-full h-full object-cover" />
 
               {/* Hover gradient overlay */}
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
@@ -151,21 +151,21 @@ const Sidebar: React.FC<SidebarProps> = ({
               {img.isGenerating && (
                 <div className="absolute inset-0 bg-zinc-950/70 backdrop-blur-sm flex flex-col items-center justify-center gap-1.5">
                   <RefreshIcon className="animate-spin text-emerald-400 w-5 h-5" />
-                  <span className="text-xs font-medium text-emerald-300">Designing...</span>
+                  <span className="text-xs font-medium text-emerald-300">Desenhando...</span>
                 </div>
               )}
 
               {/* Error */}
               {img.error && (
                 <div className="absolute inset-0 bg-red-950/80 backdrop-blur-sm flex items-center justify-center">
-                  <span className="text-xs text-white font-bold bg-red-500 px-2.5 py-0.5 rounded-full">Error</span>
+                  <span className="text-xs text-white font-bold bg-red-500 px-2.5 py-0.5 rounded-full">Erro</span>
                 </div>
               )}
 
               {/* Done badge */}
               {!img.isGenerating && img.generatedUrl && (
                 <div className="absolute top-1.5 left-1.5 flex items-center gap-1 bg-emerald-500/90 backdrop-blur text-white text-xs font-bold px-2 py-0.5 rounded-full shadow-lg">
-                  <span>✓ Done</span>
+                  <span>✓ Concluído</span>
                 </div>
               )}
 
@@ -179,8 +179,8 @@ const Sidebar: React.FC<SidebarProps> = ({
                   ? 'bg-emerald-500 border-emerald-400 scale-100'
                   : 'bg-black/40 border-white/40 opacity-0 group-hover:opacity-100 hover:border-white/70'
                   }`}
-                title={img.selected ? "Deselect" : "Select for generation"}
-                aria-label={img.selected ? "Deselect image" : "Select image for generation"}
+                title={img.selected ? "Desmarcar" : "Selecionar para geração"}
+                aria-label={img.selected ? "Desmarcar imagem" : "Selecionar imagem para geração"}
               >
                 {img.selected && (
                   <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round">
@@ -201,8 +201,8 @@ const Sidebar: React.FC<SidebarProps> = ({
                     ? 'bg-zinc-800/60 text-zinc-500 cursor-not-allowed'
                     : 'bg-emerald-600/90 hover:bg-emerald-500 text-white hover:scale-110'
                     }`}
-                  title="Regenerate this image"
-                  aria-label="Regenerate this image"
+                  title="Gerar novamente esta imagem"
+                  aria-label="Gerar novamente esta imagem"
                 >
                   <RefreshIcon className="w-3 h-3" />
                 </button>
@@ -215,8 +215,8 @@ const Sidebar: React.FC<SidebarProps> = ({
                   removeImage(img.id, e);
                 }}
                 className="absolute top-1.5 right-1.5 p-1.5 bg-black/40 hover:bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-all duration-200 hover:scale-110"
-                title="Remove image"
-                aria-label="Remove image"
+                title="Remover imagem"
+                aria-label="Remover imagem"
               >
                 <XIcon className="w-3.5 h-3.5" />
               </button>

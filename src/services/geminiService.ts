@@ -1,27 +1,49 @@
+import { supabase } from '../lib/supabase';
+
 export const generateRoomDesign = async (
   imageBase64: string,
-  prompt: string
-): Promise<string> => {
+  prompt: string,
+  propertyId?: string,
+  style?: string,
+  generationMode?: string,
+): Promise<{ result: string; credits_remaining: number; is_compressed: boolean }> => {
   try {
-    const token = localStorage.getItem('dreamspace_token');
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      throw new Error('Não autenticado. Por favor, faça login.');
+    }
+
     const response = await fetch('/api/generate', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
+        'Authorization': `Bearer ${session.access_token}`,
       },
-      body: JSON.stringify({ imageBase64, prompt }),
+      body: JSON.stringify({
+        imageBase64,
+        prompt,
+        propertyId,
+        style,
+        generationMode,
+      }),
     });
 
     if (!response.ok) {
       const errorData = await response.json();
-      throw new Error(errorData.error || 'Failed to generate design');
+      if (response.status === 403) {
+        throw new Error(errorData.message || 'Sem créditos restantes. Por favor, atualize seu plano.');
+      }
+      throw new Error(errorData.error || 'Falha ao gerar o design');
     }
 
     const data = await response.json();
-    return data.result;
+    return {
+      result: data.result,
+      credits_remaining: data.credits_remaining,
+      is_compressed: data.is_compressed ?? false,
+    };
   } catch (error) {
-    console.error("Gemini API Error:", error);
+    console.error("Generation API Error:", error);
     throw error;
   }
 };
@@ -32,7 +54,6 @@ export const fileToBase64 = (file: File): Promise<string> => {
     reader.readAsDataURL(file);
     reader.onload = () => {
       const result = reader.result as string;
-      // Remove data URL prefix (e.g., "data:image/jpeg;base64,") to get raw base64
       const base64 = result.split(',')[1];
       resolve(base64);
     };

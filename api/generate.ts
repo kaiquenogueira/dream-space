@@ -1,32 +1,55 @@
 import { GoogleGenAI } from "@google/genai";
-import jwt from 'jsonwebtoken';
+import { supabaseAdmin } from './lib/supabaseAdmin';
 
 export default async function handler(req: any, res: any) {
-  // Log request size for debugging
   const requestSize = req.headers['content-length'] ? parseInt(req.headers['content-length']) : 0;
   console.log(`Incoming request size: ${(requestSize / 1024 / 1024).toFixed(2)} MB`);
 
-  // --- Auth Check ---
+  // --- Auth Check via Supabase ---
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return res.status(401).json({ error: 'Unauthorized: Missing or invalid token' });
   }
 
   const token = authHeader.split(' ')[1];
-  const jwtSecret = process.env.JWT_SECRET || 'default-secret-change-me';
 
+  let userId: string;
   try {
-    jwt.verify(token, jwtSecret);
+    const { data: { user }, error } = await supabaseAdmin.auth.getUser(token);
+    if (error || !user) {
+      return res.status(401).json({ error: 'Unauthorized: Invalid token' });
+    }
+    userId = user.id;
   } catch (error) {
     return res.status(401).json({ error: 'Unauthorized: Invalid token' });
   }
-  // ------------------
 
+  // --- Credit Check ---
+  const { data: profile, error: profileError } = await supabaseAdmin
+    .from('profiles')
+    .select('credits_remaining, plan')
+    .eq('id', userId)
+    .single();
+
+  if (profileError || !profile) {
+    return res.status(500).json({ error: 'Failed to fetch user profile' });
+  }
+
+  if (profile.credits_remaining <= 0) {
+    return res.status(403).json({
+      error: 'No credits remaining',
+      credits_remaining: 0,
+      plan: profile.plan,
+      message: 'You have used all your credits for this period. Upgrade your plan for more generations.',
+    });
+  }
+
+  // --- Method Check ---
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
 
-  const { imageBase64, prompt } = req.body;
+  const { imageBase64, prompt, propertyId, style, generationMode } = req.body;
 
   if (!imageBase64 || !prompt) {
     return res.status(400).json({ error: 'Missing imageBase64 or prompt' });
@@ -62,8 +85,95 @@ export default async function handler(req: any, res: any) {
       const parts = response.candidates[0].content.parts;
       for (const part of parts) {
         if (part.inlineData && part.inlineData.data) {
-          const resultBase64 = `data:image/png;base64,${part.inlineData.data}`;
-          return res.status(200).json({ result: resultBase64 });
+          const generatedBase64 = part.inlineData.data;
+          const resultBase64 = `data:image/png;base64,${generatedBase64}`;
+
+          // --- Deduct 1 credit ---
+          const { error: creditError } = await supabaseAdmin
+            .from('profiles')
+            .update({ credits_remaining: profile.credits_remaining - 1 })
+            .eq('id', userId);
+
+          if (creditError) {
+            console.error("Failed to deduct credit:", creditError);
+          }
+
+          // --- Determine storage strategy based on plan ---
+          const isPremium = profile.plan !== 'free';
+          let generatedImageUrl: string | null = null;
+          let isCompressed = false;
+
+          if (isPremium) {
+            // Premium: save full-res to Supabase Storage
+            try {
+              const buffer = Buffer.from(generatedBase64, 'base64');
+              const filePath = `${userId}/${Date.now()}.png`;
+
+              const { error: uploadError } = await supabaseAdmin.storage
+                .from('generations')
+                .upload(filePath, buffer, {
+                  contentType: 'image/png',
+                  upsert: false,
+                });
+
+              if (!uploadError) {
+                const { data: urlData } = supabaseAdmin.storage
+                  .from('generations')
+                  .getPublicUrl(filePath);
+                generatedImageUrl = urlData.publicUrl;
+              }
+            } catch (storageErr) {
+              console.error("Storage upload failed (premium):", storageErr);
+            }
+          } else {
+            // Free: save compressed version (lower quality JPEG)
+            isCompressed = true;
+            try {
+              const buffer = Buffer.from(generatedBase64, 'base64');
+              const filePath = `${userId}/${Date.now()}_compressed.jpg`;
+
+              // Store as-is for now (compression happens client-side before upload)
+              // Mark as compressed for future reference
+              const { error: uploadError } = await supabaseAdmin.storage
+                .from('generations')
+                .upload(filePath, buffer, {
+                  contentType: 'image/jpeg',
+                  upsert: false,
+                });
+
+              if (!uploadError) {
+                const { data: urlData } = supabaseAdmin.storage
+                  .from('generations')
+                  .getPublicUrl(filePath);
+                generatedImageUrl = urlData.publicUrl;
+              }
+            } catch (storageErr) {
+              console.error("Storage upload failed (free):", storageErr);
+              // Non-blocking: generation still succeeds, just no persistence
+            }
+          }
+
+          // --- Save generation record to DB ---
+          try {
+            await supabaseAdmin.from('generations').insert({
+              user_id: userId,
+              property_id: propertyId || null,
+              original_image_url: 'client-side', // originals stay on client for free tier
+              generated_image_url: generatedImageUrl || 'not-stored',
+              prompt_used: prompt,
+              style: style || null,
+              generation_mode: generationMode || null,
+              is_compressed: isCompressed,
+            });
+          } catch (dbErr) {
+            console.error("Failed to save generation record:", dbErr);
+          }
+
+          return res.status(200).json({
+            result: resultBase64,
+            credits_remaining: profile.credits_remaining - 1,
+            is_compressed: isCompressed,
+          });
         }
       }
     }

@@ -31,14 +31,14 @@ export interface GenerationResult {
 }
 
 export enum ArchitecturalStyle {
-  MODERN = 'Modern',
-  SCANDINAVIAN = 'Scandinavian',
+  MODERN = 'Moderno',
+  SCANDINAVIAN = 'Escandinavo',
   INDUSTRIAL = 'Industrial',
-  BOHEMIAN = 'Bohemian',
-  MINIMALIST = 'Minimalist',
-  MID_CENTURY = 'Mid-Century Modern',
-  COASTAL = 'Coastal',
-  FARMHOUSE = 'Farmhouse'
+  BOHEMIAN = 'Boêmio',
+  MINIMALIST = 'Minimalista',
+  MID_CENTURY = 'Moderno de Meados do Século',
+  COASTAL = 'Costeiro',
+  FARMHOUSE = 'Casa de Fazenda'
 }
 
 export const STYLE_PROMPTS: Record<ArchitecturalStyle, string> = {

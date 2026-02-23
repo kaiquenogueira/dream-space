@@ -57,7 +57,7 @@ const PropertyCreation: React.FC<PropertyCreationProps> = ({ properties, setActi
             DreamSpace AI
           </h1>
           <p className="text-zinc-400 text-center max-w-sm mx-auto text-sm">
-            Architectural redesign and virtual staging for real estate professionals.
+            Redesign de arquitetura e virtual staging para profissionais do mercado imobiliário.
           </p>
         </div>
 
@@ -67,12 +67,12 @@ const PropertyCreation: React.FC<PropertyCreationProps> = ({ properties, setActi
             <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center">
               <SparkleIcon className="w-4 h-4 text-emerald-400" />
             </div>
-            <h2 className="text-lg font-semibold text-white">New Project</h2>
+            <h2 className="text-lg font-semibold text-white">Novo Projeto</h2>
           </div>
 
           <form onSubmit={onSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-zinc-400 mb-2">Property Name / Address</label>
+              <label className="block text-sm font-medium text-zinc-400 mb-2">Nome / Endereço da Propriedade</label>
               <div className="relative group">
                 <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-500 group-focus-within:text-emerald-400 transition-colors">
                   <MapPinIcon />
@@ -81,7 +81,7 @@ const PropertyCreation: React.FC<PropertyCreationProps> = ({ properties, setActi
                   type="text"
                   value={newPropertyName}
                   onChange={(e) => setNewPropertyName(e.target.value)}
-                  placeholder="e.g. 123 Ocean Drive, Apt 4B"
+                  placeholder="ex: Rua Augusta, 123, Apto 4"
                   className="w-full bg-zinc-900/60 border border-zinc-700/50 rounded-xl pl-11 pr-4 py-3 text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500/30 transition-all"
                   autoFocus
                 />
@@ -92,7 +92,7 @@ const PropertyCreation: React.FC<PropertyCreationProps> = ({ properties, setActi
               disabled={!newPropertyName.trim()}
               className="w-full relative overflow-hidden bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold py-3.5 rounded-xl transition-all shadow-lg shadow-emerald-500/20 active:scale-[0.98] group"
             >
-              <span className="relative z-10">Start Project</span>
+              <span className="relative z-10">Iniciar Projeto</span>
               <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/10 to-transparent" />
             </button>
           </form>
@@ -102,7 +102,7 @@ const PropertyCreation: React.FC<PropertyCreationProps> = ({ properties, setActi
             <div className="mt-8 pt-6 border-t border-zinc-800/50">
               <h3 className="text-xs font-semibold text-zinc-500 mb-3 uppercase tracking-wider flex items-center gap-2">
                 <FolderIcon className="w-3.5 h-3.5" />
-                Recent Projects
+                Projetos Recentes
               </h3>
               <div className="space-y-2 max-h-52 overflow-y-auto custom-scrollbar pr-1">
                 {properties.map((p, i) => (
