@@ -1,6 +1,6 @@
 import { GoogleGenAI } from "@google/genai";
-import { supabaseAdmin } from './lib/supabaseAdmin';
-import { buildPrompt } from './lib/promptBuilder';
+import { supabaseAdmin } from './lib/supabaseAdmin.js';
+import { buildPrompt } from './lib/promptBuilder.js';
 
 export const config = {
   maxDuration: 60, // Increase timeout to 60 seconds

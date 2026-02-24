@@ -1,6 +1,6 @@
 
 import { GoogleGenAI, GenerateVideosOperation } from "@google/genai";
-import { supabaseAdmin } from './lib/supabaseAdmin';
+import { supabaseAdmin } from './lib/supabaseAdmin.js';
 
 export default async function handler(req: any, res: any) {
     // --- Auth Check via Supabase ---
