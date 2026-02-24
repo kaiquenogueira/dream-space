@@ -85,15 +85,7 @@ export const useAuth = () => {
         if (session?.user) {
           console.log('[Auth] Fetching profile for user:', session.user.id);
           // Start fetching profile
-          const profilePromise = fetchProfile(session.user.id).catch(e => console.error('[Auth] Profile fetch failed in init:', e));
-          
-          // Wait briefly for profile to load (better UX), but don't block too long
-          // If profile loads within 500ms, we show the app with profile ready.
-          // If not, we show the app and profile will pop in later.
-          await Promise.race([
-            profilePromise,
-            new Promise(resolve => setTimeout(resolve, 500))
-          ]);
+          await fetchProfile(session.user.id).catch(e => console.error('[Auth] Profile fetch failed in init:', e));
         }
       } catch (err) {
         console.error('[Auth] Unexpected error during init:', err);
@@ -120,7 +112,7 @@ export const useAuth = () => {
           // If this is the initial SIGNED_IN event, it might overlap with initAuth.
           // But that's okay, fetchProfile handles being called multiple times (it just overwrites state).
           // We must ensure we don't block UI indefinitely.
-          fetchProfile(session.user.id).catch(e => console.error('[Auth] Profile fetch failed in listener:', e));
+          await fetchProfile(session.user.id).catch(e => console.error('[Auth] Profile fetch failed in listener:', e));
         } else {
           setProfile(null);
         }
