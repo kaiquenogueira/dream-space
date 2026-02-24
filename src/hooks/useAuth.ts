@@ -21,56 +21,96 @@ export const useAuth = () => {
 
   const fetchProfile = async (userId: string) => {
     console.log('[Auth] Fetching profile...');
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .single();
+    try {
+      // Add a timeout to prevent hanging indefinitely
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Profile fetch timeout')), 5000)
+      );
 
-    if (error) {
-      console.error('[Auth] Error fetching profile:', error);
-    }
+      const fetchPromise = supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
 
-    if (data && !error) {
+      const { data, error } = await Promise.race([fetchPromise, timeoutPromise]) as any;
+
+      if (error) {
+        console.error('[Auth] Error fetching profile:', error);
+      }
+
+      if (data && !error) {
       console.log('[Auth] Profile fetched successfully');
       setProfile(data as UserProfile);
     }
-  };
+  } catch (err) {
+    console.error('[Auth] Exception fetching profile:', err);
+  }
+};
 
   useEffect(() => {
     console.log('[Auth] Initializing auth check...');
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session }, error }) => {
-      if (error) {
-        console.error('[Auth] Error getting session:', error);
+    let mounted = true;
+
+    const initAuth = async () => {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (!mounted) return;
+        
+        if (error) {
+          console.error('[Auth] Error getting session:', error);
+        }
+        console.log('[Auth] Initial session retrieved:', session ? 'Session found' : 'No session');
+        
+        setSession(session);
+        setUser(session?.user ?? null);
+        
+        if (session?.user) {
+          console.log('[Auth] Fetching profile for user:', session.user.id);
+          // We await here to try to get profile before finishing check, but we catch errors
+          await fetchProfile(session.user.id).catch(e => console.error('[Auth] Profile fetch failed in init:', e));
+        }
+      } catch (err) {
+        console.error('[Auth] Unexpected error during init:', err);
+      } finally {
+        if (mounted) {
+          console.log('[Auth] Auth check complete, setting isCheckingAuth to false');
+          setIsCheckingAuth(false);
+        }
       }
-      console.log('[Auth] Initial session retrieved:', session ? 'Session found' : 'No session');
-      
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        console.log('[Auth] Fetching profile for user:', session.user.id);
-        fetchProfile(session.user.id);
-      }
-      setIsCheckingAuth(false);
-    });
+    };
+
+    initAuth();
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        if (!mounted) return;
+        
         console.log(`[Auth] Auth state changed: ${event}`, session ? 'Session active' : 'No session');
         setSession(session);
         setUser(session?.user ?? null);
+        
         if (session?.user) {
-          await fetchProfile(session.user.id);
+          // If this is the initial SIGNED_IN event, it might overlap with initAuth.
+          // But that's okay, fetchProfile handles being called multiple times (it just overwrites state).
+          // We must ensure we don't block UI indefinitely.
+          await fetchProfile(session.user.id).catch(e => console.error('[Auth] Profile fetch failed in listener:', e));
         } else {
           setProfile(null);
         }
-        setIsCheckingAuth(false); // Ensure we stop loading on change
+        
+        if (mounted) {
+          setIsCheckingAuth(false);
+        }
       }
     );
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signInWithEmail = async (email: string, password: string) => {
