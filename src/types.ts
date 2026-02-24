@@ -17,6 +17,8 @@ export interface UploadedImage {
   previewUrl: string;
   base64: string;
   generatedUrl?: string;
+  videoUrl?: string; // Generated video URL
+  videoOperationName?: string; // For resuming polling
   isGenerating?: boolean;
   error?: string;
   selected: boolean;

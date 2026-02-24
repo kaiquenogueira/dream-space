@@ -56,7 +56,7 @@ export default async function handler(req: any, res: any) {
         if (!countError && count && count >= 1) {
             return res.status(403).json({
                 error: 'Free limit reached',
-                message: 'Usuários do plano grátis podem gerar apenas 1 Cinematic Drone Tour. Faça upgrade para gerar mais.',
+                message: 'Usuários do plano grátis podem gerar apenas 1 Cinematic Tour. Faça upgrade para gerar mais.',
             });
         }
     }
@@ -133,7 +133,7 @@ export default async function handler(req: any, res: any) {
 
         try {
             // Enhanced prompt for luxury real estate drone shot
-            const videoPrompt = "Cinematic FPV drone shot flying smoothly through this luxury interior. High-end real estate video, 4k, soft natural lighting, slow motion, photorealistic, architectural digest style.";
+            const videoPrompt = "Cinematic FPV drone shot flying smoothly through this luxury interior in the room. High-end real estate video, 4k, soft natural lighting, slow motion, photorealistic, architectural digest style.";
 
             // Construct the request for generateVideos
             // Using the correct method generateContent is likely wrong for video generation which usually returns an Operation

@@ -97,9 +97,9 @@ export const downloadComparison = async (
   }
 };
 
-export const downloadSingle = (url: string, name: string): void => {
+export const downloadSingle = (url: string, name: string, extension: string = 'png'): void => {
   const link = document.createElement('a');
-  link.download = `${name}-${Date.now()}.png`;
+  link.download = `${name}-${Date.now()}.${extension}`;
   link.href = url;
   document.body.appendChild(link);
   link.click();
@@ -107,7 +107,7 @@ export const downloadSingle = (url: string, name: string): void => {
 };
 
 export const downloadAllImages = async (images: UploadedImage[]): Promise<void> => {
-  const generatedImages = images.filter(img => img.generatedUrl);
+  const generatedImages = images.filter(img => img.generatedUrl || img.videoUrl);
   if (generatedImages.length === 0) return;
 
   try {
@@ -117,21 +117,34 @@ export const downloadAllImages = async (images: UploadedImage[]): Promise<void> 
     if (!folder) throw new Error("Could not create zip folder");
 
     for (const [index, img] of generatedImages.entries()) {
-      const url = img.generatedUrl!;
-
-      const arr = url.split(',');
-      const mimeMatch = arr[0].match(/:(.*?);/);
-      const mime = mimeMatch ? mimeMatch[1] : 'image/png';
-      const bstr = atob(arr[1]);
-      let n = bstr.length;
-      const u8arr = new Uint8Array(n);
-      while (n--) {
-        u8arr[n] = bstr.charCodeAt(n);
+      if (img.generatedUrl) {
+        const url = img.generatedUrl;
+        const arr = url.split(',');
+        const mimeMatch = arr[0].match(/:(.*?);/);
+        const mime = mimeMatch ? mimeMatch[1] : 'image/png';
+        const bstr = atob(arr[1]);
+        let n = bstr.length;
+        const u8arr = new Uint8Array(n);
+        while (n--) {
+          u8arr[n] = bstr.charCodeAt(n);
+        }
+        const blob = new Blob([u8arr], { type: mime });
+        const extension = mime.split('/')[1] || 'png';
+        folder.file(`design-${index + 1}.${extension}`, blob);
       }
-      const blob = new Blob([u8arr], { type: mime });
 
-      const extension = mime.split('/')[1] || 'png';
-      folder.file(`design-${index + 1}.${extension}`, blob);
+      if (img.videoUrl) {
+         try {
+            // Fetch video content
+            const videoBlob = await fetch(img.videoUrl).then(r => {
+                if (!r.ok) throw new Error(`Failed to fetch video: ${r.statusText}`);
+                return r.blob();
+            });
+            folder.file(`tour-${index + 1}.mp4`, videoBlob);
+         } catch (videoErr) {
+             console.error(`Failed to include video for image ${index + 1}:`, videoErr);
+         }
+      }
     }
 
     const content = await zip.generateAsync({ type: "blob" });

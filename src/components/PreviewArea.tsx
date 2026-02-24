@@ -15,8 +15,9 @@ interface PreviewAreaProps {
   viewMode: 'original' | 'generated' | 'split';
   setViewMode: (mode: 'original' | 'generated' | 'split') => void;
   handleDownloadComparison: (originalUrl: string, generatedUrl: string) => void;
-  handleDownloadSingle: (url: string, name: string) => void;
+  handleDownloadSingle: (url: string, name: string, extension?: string) => void;
   handleDownloadAll: () => void;
+  onVideoGenerated: (url: string) => void;
   hasGeneratedImages: boolean;
   isDownloadingZip: boolean;
   onNext: () => void;
@@ -32,6 +33,7 @@ const PreviewArea: React.FC<PreviewAreaProps> = ({
   handleDownloadComparison,
   handleDownloadSingle,
   handleDownloadAll,
+  onVideoGenerated,
   hasGeneratedImages,
   isDownloadingZip,
   onNext,
@@ -45,6 +47,12 @@ const PreviewArea: React.FC<PreviewAreaProps> = ({
   const handleCreateTour = async () => {
     const targetUrl = activeImage?.generatedUrl || activeImage?.previewUrl;
     if (!targetUrl) return;
+
+    // If video already exists, just show it
+    if (activeImage?.videoUrl) {
+      setTourImageUrl(targetUrl);
+      return;
+    }
 
     setIsGeneratingTour(true);
     try {
@@ -84,6 +92,8 @@ const PreviewArea: React.FC<PreviewAreaProps> = ({
     { key: 'generated' as const, label: 'Resultado', disabled: !activeImage.generatedUrl && !activeImage.isGenerating },
     { key: 'split' as const, label: 'Comparar', icon: <ColumnsIcon className="w-3.5 h-3.5" />, disabled: !activeImage.generatedUrl && !activeImage.isGenerating },
   ];
+
+  const effectiveViewMode = (!activeImage.generatedUrl && !activeImage.isGenerating) ? 'original' : viewMode;
 
   return (
     <section className="glass-card p-4 md:p-5 overflow-hidden flex flex-col h-full">
@@ -156,7 +166,7 @@ const PreviewArea: React.FC<PreviewAreaProps> = ({
               ) : (
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
               )}
-              <span className="hidden sm:inline">{isGeneratingTour ? 'Criando...' : 'Drone Tour'}</span>
+              <span className="hidden sm:inline">{isGeneratingTour ? 'Criando...' : (activeImage.videoUrl ? 'Ver Drone Tour' : 'Drone Tour')}</span>
             </button>
           )}
 
@@ -169,6 +179,7 @@ const PreviewArea: React.FC<PreviewAreaProps> = ({
             onDownloadSingle={handleDownloadSingle}
             onDownloadComparison={handleDownloadComparison}
             onDownloadAll={handleDownloadAll}
+            onDownloadVideo={(url) => handleDownloadSingle(url, `video-${imageIndex + 1}`, 'mp4')}
           />
         </div>
       </div>
@@ -216,7 +227,7 @@ const PreviewArea: React.FC<PreviewAreaProps> = ({
             >
 
               {/* Original View */}
-              {viewMode === 'original' && (
+              {effectiveViewMode === 'original' && (
                 <div className="w-full h-full relative animate-fade-in">
                   <img src={activeImage.previewUrl} alt="Original" className="w-full h-full object-contain" />
                   {zoom === 1 && (
@@ -226,7 +237,7 @@ const PreviewArea: React.FC<PreviewAreaProps> = ({
               )}
 
               {/* Generated View */}
-              {viewMode === 'generated' && activeImage.generatedUrl && (
+              {effectiveViewMode === 'generated' && activeImage.generatedUrl && (
                 <div className="w-full h-full relative animate-fade-in">
                   <img src={activeImage.generatedUrl} alt="Generated" className="w-full h-full object-contain" />
                   {zoom === 1 && (
@@ -236,7 +247,7 @@ const PreviewArea: React.FC<PreviewAreaProps> = ({
               )}
 
               {/* Split View with Interactive Slider */}
-              {viewMode === 'split' && activeImage.generatedUrl && (
+              {effectiveViewMode === 'split' && activeImage.generatedUrl && (
                 <ComparisonSlider
                   originalUrl={activeImage.previewUrl}
                   generatedUrl={activeImage.generatedUrl}
@@ -246,10 +257,12 @@ const PreviewArea: React.FC<PreviewAreaProps> = ({
           </>
         )}
       </div>
-      {tourImageUrl && tourVideoOpName && (
+      {tourImageUrl && (tourVideoOpName || activeImage?.videoUrl) && (
         <DroneTourPlayer
           imageUrl={tourImageUrl}
           videoOperationName={tourVideoOpName}
+          initialVideoUrl={activeImage?.videoUrl}
+          onVideoGenerated={onVideoGenerated}
           onClose={() => {
             setTourImageUrl(null);
             setTourVideoOpName(undefined);

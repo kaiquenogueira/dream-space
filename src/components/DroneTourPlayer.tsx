@@ -5,12 +5,14 @@ import { supabase } from '../lib/supabase';
 interface DroneTourPlayerProps {
     imageUrl: string;
     videoOperationName?: string;
+    initialVideoUrl?: string | null;
+    onVideoGenerated?: (url: string) => void;
     onClose: () => void;
 }
 
-const DroneTourPlayer: React.FC<DroneTourPlayerProps> = ({ imageUrl, videoOperationName, onClose }) => {
-    const [videoUrl, setVideoUrl] = useState<string | null>(null);
-    const [isVideoProcessing, setIsVideoProcessing] = useState(!!videoOperationName);
+const DroneTourPlayer: React.FC<DroneTourPlayerProps> = ({ imageUrl, videoOperationName, initialVideoUrl, onVideoGenerated, onClose }) => {
+    const [videoUrl, setVideoUrl] = useState<string | null>(initialVideoUrl || null);
+    const [isVideoProcessing, setIsVideoProcessing] = useState(!!videoOperationName && !initialVideoUrl);
 
     // Polling for video
     useEffect(() => {
@@ -39,10 +41,12 @@ const DroneTourPlayer: React.FC<DroneTourPlayerProps> = ({ imageUrl, videoOperat
                              const video = result.generatedVideos[0];
                              if (video.video && video.video.uri) {
                                  setVideoUrl(video.video.uri);
-                                 setIsVideoProcessing(false);
+                                setIsVideoProcessing(false);
+                                onVideoGenerated?.(video.video.uri);
                              } else if (video.videoUri) {
-                                 setVideoUrl(video.videoUri);
-                                 setIsVideoProcessing(false);
+                                setVideoUrl(video.videoUri);
+                                setIsVideoProcessing(false);
+                                onVideoGenerated?.(video.videoUri);
                              }
                         }
                     } else if (op.error) {
@@ -60,19 +64,45 @@ const DroneTourPlayer: React.FC<DroneTourPlayerProps> = ({ imageUrl, videoOperat
         checkStatus(); // Initial check
 
         return () => clearInterval(pollInterval);
-    }, [videoOperationName, videoUrl]);
+    }, [videoOperationName, videoUrl, onVideoGenerated]);
+
+    const handleDownload = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (!videoUrl) return;
+        const link = document.createElement('a');
+        link.href = videoUrl;
+        link.download = `drone-tour-${Date.now()}.mp4`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
 
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 backdrop-blur-md">
-            <button
-                onClick={onClose}
-                className="absolute top-6 right-6 p-2 rounded-full bg-white/10 text-white hover:bg-white/20 transition-all z-50"
-            >
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <line x1="18" y1="6" x2="6" y2="18"></line>
-                    <line x1="6" y1="6" x2="18" y2="18"></line>
-                </svg>
-            </button>
+            <div className="absolute top-6 right-6 flex items-center gap-3 z-50">
+                {videoUrl && (
+                    <button
+                        onClick={handleDownload}
+                        className="p-2 rounded-full bg-white/10 text-white hover:bg-white/20 transition-all"
+                        title="Baixar Vídeo"
+                    >
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="7 10 12 15 17 10"></polyline>
+                            <line x1="12" y1="15" x2="12" y2="3"></line>
+                        </svg>
+                    </button>
+                )}
+                <button
+                    onClick={onClose}
+                    className="p-2 rounded-full bg-white/10 text-white hover:bg-white/20 transition-all"
+                >
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
 
             <div className="relative w-full max-w-5xl aspect-video rounded-2xl overflow-hidden shadow-2xl ring-1 ring-white/10 bg-zinc-900 flex items-center justify-center">
 

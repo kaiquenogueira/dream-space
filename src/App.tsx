@@ -138,6 +138,13 @@ const App: React.FC = () => {
     }
   };
 
+  const handleVideoGeneratedWrapper = (videoUrl: string) => {
+    if (!activeImage) return;
+    setImages(prev => prev.map(img =>
+      img.id === activeImage.id ? { ...img, videoUrl } : img
+    ));
+  };
+
   const handleDownloadAllWrapper = async () => {
     setIsDownloadingZip(true);
     try {
@@ -406,7 +413,7 @@ const App: React.FC = () => {
 
           {/* Collapsible Design Controls */}
           {showControls && (
-            <div className="flex-shrink-0 border-b border-glass-border px-5 py-4 bg-surface/30 animate-slide-down overflow-y-auto max-h-[320px] custom-scrollbar">
+            <div className="flex-shrink-0 border-b border-glass-border px-5 py-2 bg-surface/30 animate-slide-down overflow-y-auto max-h-[220px] custom-scrollbar">
               <DesignStudio
                 isGenerating={isGenerating}
                 hasImages={images.length > 0}
@@ -432,6 +439,7 @@ const App: React.FC = () => {
               handleDownloadComparison={handleDownloadComparisonWrapper}
               handleDownloadSingle={downloadSingle}
               handleDownloadAll={handleDownloadAllWrapper}
+              onVideoGenerated={handleVideoGeneratedWrapper}
               hasGeneratedImages={images.some(img => !!img.generatedUrl)}
               isDownloadingZip={isDownloadingZip}
               onNext={handleNextImage}
