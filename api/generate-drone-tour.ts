@@ -71,27 +71,51 @@ export default async function handler(req: any, res: any) {
         return res.status(400).json({ error: 'Missing imageUrl' });
     }
 
-    // SSRF Protection: Validate image URL domain
-    try {
-        const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
-        if (!supabaseUrl) {
-             console.error('Missing SUPABASE_URL');
-             return res.status(500).json({ error: 'Server configuration error' });
+    let imageBase64: string;
+    let mimeType: string;
+
+    if (imageUrl.startsWith('data:')) {
+        const matches = imageUrl.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
+        if (!matches || matches.length !== 3) {
+            return res.status(400).json({ error: 'Invalid data URL format' });
+        }
+        mimeType = matches[1];
+        imageBase64 = matches[2];
+    } else {
+        // SSRF Protection: Validate image URL domain
+        try {
+            const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+            if (!supabaseUrl) {
+                console.error('Missing SUPABASE_URL');
+                return res.status(500).json({ error: 'Server configuration error' });
+            }
+
+            const url = new URL(imageUrl);
+            const allowedHost = new URL(supabaseUrl).hostname;
+
+            // Allow Supabase project URL and standard Supabase domains
+            const isAllowed = url.hostname === allowedHost ||
+                url.hostname.endsWith('.supabase.co') ||
+                url.hostname.endsWith('.supabase.in');
+
+            if (!isAllowed) {
+                return res.status(400).json({ error: 'Invalid image URL domain. Only Supabase storage URLs are allowed.' });
+            }
+        } catch (e) {
+            return res.status(400).json({ error: 'Invalid image URL format' });
         }
 
-        const url = new URL(imageUrl);
-        const allowedHost = new URL(supabaseUrl).hostname;
-        
-        // Allow Supabase project URL and standard Supabase domains
-        const isAllowed = url.hostname === allowedHost || 
-                          url.hostname.endsWith('.supabase.co') ||
-                          url.hostname.endsWith('.supabase.in');
-                          
-        if (!isAllowed) {
-            return res.status(400).json({ error: 'Invalid image URL domain. Only Supabase storage URLs are allowed.' });
+        // Fetch the image to get base64
+        try {
+            const imageRes = await fetch(imageUrl);
+            const arrayBuffer = await imageRes.arrayBuffer();
+            const buffer = Buffer.from(arrayBuffer);
+            imageBase64 = buffer.toString('base64');
+            mimeType = imageRes.headers.get('content-type') || 'image/jpeg';
+        } catch (fetchErr) {
+            console.error("Failed to fetch image URL:", fetchErr);
+            return res.status(400).json({ error: 'Failed to fetch image from URL' });
         }
-    } catch (e) {
-        return res.status(400).json({ error: 'Invalid image URL format' });
     }
 
     try {
@@ -99,13 +123,6 @@ export default async function handler(req: any, res: any) {
         if (!apiKey) {
             return res.status(500).json({ error: 'Server configuration error' });
         }
-
-        // Fetch the image to get base64
-        const imageRes = await fetch(imageUrl);
-        const arrayBuffer = await imageRes.arrayBuffer();
-        const buffer = Buffer.from(arrayBuffer);
-        const imageBase64 = buffer.toString('base64');
-        const mimeType = imageRes.headers.get('content-type') || 'image/jpeg';
 
         const ai = new GoogleGenAI({ apiKey });
 
@@ -117,14 +134,14 @@ export default async function handler(req: any, res: any) {
         try {
             // Enhanced prompt for luxury real estate drone shot
             const videoPrompt = "Cinematic FPV drone shot flying smoothly through this luxury interior. High-end real estate video, 4k, soft natural lighting, slow motion, photorealistic, architectural digest style.";
-            
+
             // Construct the request for generateVideos
             // Using the correct method generateContent is likely wrong for video generation which usually returns an Operation
             // The previous error was about `image` struct format in `generateVideos` (or `generateVideo` which likely aliases to it)
-            
+
             // Let's go back to generateVideos but fix the structure based on the error
             // Error: "Input instance with `image` should contain both `bytesBase64Encoded` and `mimeType`"
-            
+
             const videoOp = await (ai.models as any).generateVideos({
                 model: 'veo-3.1-generate-preview',
                 prompt: videoPrompt,
@@ -136,13 +153,13 @@ export default async function handler(req: any, res: any) {
                     durationSeconds: 8
                 }
             });
-            
+
             if (videoOp && videoOp.name) {
                 videoOperationName = videoOp.name;
             } else if (videoOp && videoOp.operation && videoOp.operation.name) {
-                 videoOperationName = videoOp.operation.name;
+                videoOperationName = videoOp.operation.name;
             }
-            
+
             console.log("Video generation started:", videoOperationName);
 
             if (!videoOperationName) {
