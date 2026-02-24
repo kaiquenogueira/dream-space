@@ -18,6 +18,13 @@ export const useAuth = () => {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+  
+  // Use a ref to track profile state without triggering re-subscriptions in useEffect
+  const profileRef = useRef<UserProfile | null>(null);
+
+  useEffect(() => {
+    profileRef.current = profile;
+  }, [profile]);
 
   const fetchProfilePromiseRef = useRef<Promise<void> | null>(null);
 
@@ -33,8 +40,9 @@ export const useAuth = () => {
     const promise = (async () => {
       try {
         // Add a timeout to prevent hanging indefinitely
+        // Reduced to 15s to fail faster if network is stuck
         const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Profile fetch timeout')), 60000)
+          setTimeout(() => reject(new Error('Profile fetch timeout')), 15000)
         );
   
         const fetchPromise = supabase
@@ -47,6 +55,8 @@ export const useAuth = () => {
   
         if (error) {
           console.error('[Auth] Error fetching profile:', error);
+          // If profile fetch fails, we don't want to break the whole app flow if we can avoid it.
+          // But usually this is critical.
         }
   
         if (data && !error) {
@@ -109,10 +119,13 @@ export const useAuth = () => {
         setUser(session?.user ?? null);
         
         if (session?.user) {
-          // If this is the initial SIGNED_IN event, it might overlap with initAuth.
-          // But that's okay, fetchProfile handles being called multiple times (it just overwrites state).
-          // We must ensure we don't block UI indefinitely.
-          await fetchProfile(session.user.id).catch(e => console.error('[Auth] Profile fetch failed in listener:', e));
+          // Check if we already have the profile for this user to avoid unnecessary fetches
+          if (!profileRef.current || profileRef.current.id !== session.user.id) {
+            console.log('[Auth] Fetching profile for user:', session.user.id);
+            await fetchProfile(session.user.id).catch(e => console.error('[Auth] Profile fetch failed in listener:', e));
+          } else {
+             console.log('[Auth] Profile already loaded for user, skipping fetch on auth change');
+          }
         } else {
           setProfile(null);
         }
