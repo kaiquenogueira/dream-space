@@ -149,8 +149,8 @@ const App: React.FC = () => {
     }
   };
 
-  if (isCheckingAuth) {
-    console.log('[App] Waiting for auth check...');
+  if (isCheckingAuth || (isAuthenticated && !profile)) {
+    console.log('[App] Waiting for auth check or profile...');
     return (
       <div className="min-h-screen bg-surface-dark flex items-center justify-center">
         <RefreshIcon className="animate-spin text-primary w-8 h-8" />

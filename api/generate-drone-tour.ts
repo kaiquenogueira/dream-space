@@ -143,7 +143,7 @@ export default async function handler(req: any, res: any) {
             // Error: "Input instance with `image` should contain both `bytesBase64Encoded` and `mimeType`"
 
             const videoOp = await (ai.models as any).generateVideos({
-                model: 'veo-3.1-generate-preview',
+                model: 'veo-3.0-fast-generate-001',
                 prompt: videoPrompt,
                 image: {
                     imageBytes: imageBase64,

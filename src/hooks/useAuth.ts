@@ -34,7 +34,7 @@ export const useAuth = () => {
       try {
         // Add a timeout to prevent hanging indefinitely
         const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Profile fetch timeout')), 20000)
+          setTimeout(() => reject(new Error('Profile fetch timeout')), 60000)
         );
   
         const fetchPromise = supabase
