@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import Login from './components/Login';
 import Header from './components/Header';
@@ -7,14 +8,12 @@ import PreviewArea from './components/PreviewArea';
 import PropertyCreation from './components/PropertyCreation';
 import { RefreshIcon } from './components/Icons';
 import { ArchitecturalStyle, GenerationMode, UploadedImage } from './types';
-import { generateRoomDesign, fileToBase64 } from './services/geminiService';
 import { compressImage } from './utils/imageUtils';
-import { buildPrompt } from './utils/promptBuilder';
 import { useAuth } from './hooks/useAuth';
 import { useCredits } from './hooks/useCredits';
 import { useProject } from './hooks/useProject';
-import JSZip from 'jszip';
-import { saveAs } from 'file-saver';
+import { useImageGeneration } from './hooks/useImageGeneration';
+import { downloadComparison, downloadSingle, downloadAllImages } from './utils/downloadUtils';
 
 import MobileEditor from './components/MobileEditor';
 import AdminDashboard from './components/AdminDashboard';
@@ -56,13 +55,29 @@ const App: React.FC = () => {
   const [selectedStyle, setSelectedStyle] = useState<ArchitecturalStyle | null>(null);
   const [generationMode, setGenerationMode] = useState<GenerationMode>(GenerationMode.REDESIGN);
   const [customPrompt, setCustomPrompt] = useState('');
-  const [isGenerating, setIsGenerating] = useState(false);
   const [isDownloadingZip, setIsDownloadingZip] = useState(false);
   const [viewMode, setViewMode] = useState<'original' | 'generated' | 'split'>('split');
   const [appView, setAppView] = useState<'app' | 'admin'>('app');
   const [mobileView, setMobileView] = useState<'gallery' | 'editor'>('gallery');
   const [showControls, setShowControls] = useState(true);
-  const [noCreditsError, setNoCreditsError] = useState(false);
+
+  const {
+    isGenerating,
+    noCreditsError,
+    setNoCreditsError,
+    handleGenerate: generateImages,
+    handleRegenerateSingle: regenerateImage
+  } = useImageGeneration({
+    images,
+    setImages,
+    credits,
+    hasCredits,
+    refreshProfile,
+    activePropertyId,
+    selectedStyle,
+    generationMode,
+    customPrompt
+  });
 
   const activeImage = images.find(img => img.id === selectedImageId) || images[0];
   const activeImageIndex = activeImage ? images.indexOf(activeImage) : 0;
@@ -89,88 +104,13 @@ const App: React.FC = () => {
     setSelectedImageId(images[prevIndex].id);
   };
 
-  const generateForImage = async (img: UploadedImage, prompt: string) => {
-    try {
-      const response = await generateRoomDesign(
-        img.base64,
-        prompt,
-        activePropertyId || undefined,
-        selectedStyle || undefined,
-        generationMode,
-      );
-
-      setImages(current => current.map(i =>
-        i.id === img.id
-          ? { ...i, generatedUrl: response.result, isGenerating: false, selected: false }
-          : i
-      ));
-
-      // Refresh profile to update credits display
-      await refreshProfile();
-
-      // Show compression warning for free tier
-      if (response.is_compressed) {
-        console.info('Imagem salva em formato comprimido (plano gratuito). Resolução máxima disponível nos planos premium.');
-      }
-    } catch (err: any) {
-      console.error(`Error generating for image ${img.id}:`, err);
-
-      if (err.message?.includes('No credits remaining') || err.message?.includes('credits')) {
-        setNoCreditsError(true);
-      }
-
-      setImages(current => current.map(i =>
-        i.id === img.id ? { ...i, error: err.message || "Failed", isGenerating: false } : i
-      ));
-    }
-  };
-
-  const handleGenerate = async () => {
-    if (!hasCredits) {
-      setNoCreditsError(true);
-      return;
-    }
-
-    const imagesToGenerate = images.filter(img => img.selected);
-    if (imagesToGenerate.length === 0) return;
-
-    // Check if user has enough credits for all selected images
-    if (imagesToGenerate.length > credits) {
-      setNoCreditsError(true);
-      return;
-    }
-
-    setNoCreditsError(false);
-    setIsGenerating(true);
-
-    setImages(prev => prev.map(img => img.selected ? { ...img, isGenerating: true, error: undefined } : img));
-
-    const finalPrompt = buildPrompt({ generationMode, selectedStyle, customPrompt });
-    console.log("Starting selective generation with prompt:", finalPrompt, `(${imagesToGenerate.length} images)`);
-
-    await Promise.all(imagesToGenerate.map(img => generateForImage(img, finalPrompt)));
-
-    setIsGenerating(false);
+  const handleGenerateWrapper = async () => {
+    await generateImages();
     setViewMode('split');
   };
 
-  const handleRegenerateSingle = async (imageId: string) => {
-    if (!hasCredits) {
-      setNoCreditsError(true);
-      return;
-    }
-
-    const img = images.find(i => i.id === imageId);
-    if (!img) return;
-
-    setNoCreditsError(false);
-    setIsGenerating(true);
-    setImages(prev => prev.map(i => i.id === imageId ? { ...i, isGenerating: true, error: undefined } : i));
-
-    const finalPrompt = buildPrompt({ generationMode, selectedStyle, customPrompt });
-    await generateForImage(img, finalPrompt);
-
-    setIsGenerating(false);
+  const handleRegenerateSingleWrapper = async (imageId: string) => {
+    await regenerateImage(imageId);
     setViewMode('split');
   };
 
@@ -190,127 +130,19 @@ const App: React.FC = () => {
     }
   };
 
-  const handleDownloadComparison = async (originalUrl: string, generatedUrl: string) => {
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    const loadImage = (src: string) => new Promise<HTMLImageElement>((resolve, reject) => {
-      const img = new Image();
-      img.crossOrigin = "anonymous";
-      img.onload = () => resolve(img);
-      img.onerror = reject;
-      img.src = src;
-    });
-
+  const handleDownloadComparisonWrapper = async (originalUrl: string, generatedUrl: string) => {
     try {
-      const [img1, img2] = await Promise.all([loadImage(originalUrl), loadImage(generatedUrl)]);
-
-      const width = img1.width + img2.width;
-      const height = Math.max(img1.height, img2.height);
-      const footerHeight = 80;
-
-      canvas.width = width;
-      canvas.height = height + footerHeight;
-
-      ctx.fillStyle = "#ffffff";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-      ctx.drawImage(img1, 0, 0);
-      ctx.drawImage(img2, img1.width, 0);
-
-      ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
-      const labelW = 120;
-      const labelH = 40;
-
-      ctx.fillRect(20, 20, labelW, labelH);
-      ctx.fillStyle = "#ffffff";
-      ctx.font = "bold 20px sans-serif";
-      ctx.fillText("ANTES", 40, 48);
-
-      ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
-      ctx.fillRect(img1.width + 20, 20, labelW, labelH);
-      ctx.fillStyle = "#ffffff";
-      ctx.fillText("DEPOIS", img1.width + 40, 48);
-
-      ctx.fillStyle = "#0f172a";
-      ctx.fillRect(0, height, width, footerHeight);
-
-      ctx.fillStyle = "#ffffff";
-      ctx.font = "bold 24px sans-serif";
-      const propName = activeProperty?.name || "DreamSpace Design";
-      ctx.fillText(propName, 30, height + 50);
-
-      if (activeProperty?.logo) {
-        const logo = await loadImage(activeProperty.logo);
-        const maxLogoH = footerHeight - 20;
-        const scale = maxLogoH / logo.height;
-        const logoW = logo.width * scale;
-        const logoH = logo.height * scale;
-
-        ctx.drawImage(logo, width - logoW - 30, height + 10, logoW, logoH);
-      } else {
-        ctx.fillStyle = "#94a3b8";
-        ctx.font = "16px sans-serif";
-        ctx.textAlign = "right";
-        ctx.fillText("Gerado com DreamSpace AI", width - 30, height + 45);
-      }
-
-      const link = document.createElement('a');
-      link.download = `comparison-${Date.now()}.png`;
-      link.href = canvas.toDataURL('image/png');
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      await downloadComparison(originalUrl, generatedUrl, activeProperty || null);
     } catch (err) {
-      console.error("Failed to generate comparison", err);
       alert("Falha ao gerar a imagem de comparação. Por favor, tente novamente.");
     }
   };
 
-  const handleDownloadSingle = (url: string, name: string) => {
-    const link = document.createElement('a');
-    link.download = `${name}-${Date.now()}.png`;
-    link.href = url;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
-  const handleDownloadAll = async () => {
-    const generatedImages = images.filter(img => img.generatedUrl);
-    if (generatedImages.length === 0) return;
-
+  const handleDownloadAllWrapper = async () => {
     setIsDownloadingZip(true);
-
     try {
-      const zip = new JSZip();
-      const folder = zip.folder("dreamspace-designs");
-
-      if (!folder) throw new Error("Could not create zip folder");
-
-      for (const [index, img] of generatedImages.entries()) {
-        const url = img.generatedUrl!;
-
-        const arr = url.split(',');
-        const mimeMatch = arr[0].match(/:(.*?);/);
-        const mime = mimeMatch ? mimeMatch[1] : 'image/png';
-        const bstr = atob(arr[1]);
-        let n = bstr.length;
-        const u8arr = new Uint8Array(n);
-        while (n--) {
-          u8arr[n] = bstr.charCodeAt(n);
-        }
-        const blob = new Blob([u8arr], { type: mime });
-
-        const extension = mime.split('/')[1] || 'png';
-        folder.file(`design-${index + 1}.${extension}`, blob);
-      }
-
-      const content = await zip.generateAsync({ type: "blob" });
-      saveAs(content, "dreamspace-designs.zip");
+      await downloadAllImages(images);
     } catch (err) {
-      console.error("Failed to generate ZIP", err);
       alert("Falha ao criar o arquivo ZIP. Por favor, tente baixar individualmente.");
     } finally {
       setIsDownloadingZip(false);
@@ -320,8 +152,8 @@ const App: React.FC = () => {
   if (isCheckingAuth) {
     console.log('[App] Waiting for auth check...');
     return (
-      <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
-        <RefreshIcon className="animate-spin text-emerald-500 w-8 h-8" />
+      <div className="min-h-screen bg-surface-dark flex items-center justify-center">
+        <RefreshIcon className="animate-spin text-primary w-8 h-8" />
       </div>
     );
   }
@@ -349,7 +181,7 @@ const App: React.FC = () => {
 
   if (appView === 'admin' && profile?.is_admin) {
     return (
-      <div className="min-h-screen bg-zinc-950 flex flex-col font-sans">
+      <div className="min-h-screen bg-surface-dark flex flex-col font-sans">
         <Header
           activeProperty={activeProperty}
           setActivePropertyId={setActivePropertyId}
@@ -364,7 +196,7 @@ const App: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-zinc-950 via-zinc-900 to-zinc-950 text-zinc-200 flex flex-col">
+    <div className="min-h-screen bg-gradient-to-br from-surface-dark via-surface to-surface-dark text-text-main flex flex-col">
       <Header
         activeProperty={activeProperty}
         setActivePropertyId={setActivePropertyId}
@@ -430,7 +262,7 @@ const App: React.FC = () => {
               handleLogoUpload={handleLogoUpload}
               toggleImageSelection={toggleImageSelection}
               toggleSelectAll={toggleSelectAll}
-              handleRegenerateSingle={handleRegenerateSingle}
+              handleRegenerateSingle={handleRegenerateSingleWrapper}
               isGenerating={isGenerating}
               compact
             />
@@ -438,10 +270,10 @@ const App: React.FC = () => {
         ) : (
           <MobileEditor
             activeImage={activeImage}
-            onRegenerateSingle={handleRegenerateSingle}
+            onRegenerateSingle={handleRegenerateSingleWrapper}
             onBack={() => setMobileView('gallery')}
             isGenerating={isGenerating}
-            onGenerate={handleGenerate}
+            onGenerate={handleGenerateWrapper}
             generationMode={generationMode}
             setGenerationMode={setGenerationMode}
             selectedStyle={selectedStyle}
@@ -455,7 +287,7 @@ const App: React.FC = () => {
       {/* ─── DESKTOP VIEW ─── */}
       <main className="hidden lg:flex flex-1 overflow-hidden">
         {/* Left Panel: Sidebar (fixed width) */}
-        <aside className="w-72 xl:w-80 flex-shrink-0 border-r border-zinc-800/40 overflow-y-auto p-4 custom-scrollbar">
+        <aside className="w-72 xl:w-80 flex-shrink-0 border-r border-glass-border overflow-y-auto p-4 custom-scrollbar">
           <Sidebar
             images={images}
             selectedImageId={selectedImageId}
@@ -469,7 +301,7 @@ const App: React.FC = () => {
             handleLogoUpload={handleLogoUpload}
             toggleImageSelection={toggleImageSelection}
             toggleSelectAll={toggleSelectAll}
-            handleRegenerateSingle={handleRegenerateSingle}
+            handleRegenerateSingle={handleRegenerateSingleWrapper}
             isGenerating={isGenerating}
           />
         </aside>
@@ -477,17 +309,17 @@ const App: React.FC = () => {
         {/* Center: Preview (takes all remaining space) */}
         <section className="flex-1 min-w-0 flex flex-col overflow-hidden">
           {/* Inline controls bar: mode + style + generate (compact, always visible) */}
-          <div className="flex-shrink-0 border-b border-zinc-800/40 px-5 py-3 bg-zinc-950/40 backdrop-blur-sm">
+          <div className="flex-shrink-0 border-b border-glass-border px-5 py-3 bg-surface-dark/40 backdrop-blur-sm">
             <div className="flex items-center gap-4 flex-wrap">
               {/* Mode Toggle (compact) */}
-              <div className="flex items-center bg-zinc-900/60 p-0.5 rounded-lg border border-zinc-800/40">
+              <div className="flex items-center bg-surface/60 p-0.5 rounded-lg border border-glass-border">
                 {Object.values(GenerationMode).map((mode) => (
                   <button
                     key={mode}
                     onClick={() => setGenerationMode(mode)}
                     className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-200 ${generationMode === mode
-                      ? 'text-white bg-zinc-800 shadow-sm ring-1 ring-white/10'
-                      : 'text-zinc-500 hover:text-zinc-300'
+                      ? 'text-white bg-surface shadow-sm ring-1 ring-white/10'
+                      : 'text-text-muted hover:text-text-main'
                       }`}
                   >
                     {mode === GenerationMode.REDESIGN ? '🎨 Redesign' : '🪑 Mobiliar'}
@@ -499,8 +331,8 @@ const App: React.FC = () => {
               <button
                 onClick={() => setShowControls(!showControls)}
                 className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all border ${selectedStyle
-                  ? 'bg-emerald-500/10 border-emerald-500/25 text-emerald-300 hover:bg-emerald-500/15'
-                  : 'bg-zinc-900/60 border-zinc-800/40 text-zinc-400 hover:text-zinc-300 hover:border-zinc-700'
+                  ? 'bg-primary/10 border-primary/25 text-primary hover:bg-primary/15'
+                  : 'bg-surface/60 border-glass-border text-text-muted hover:text-text-main hover:border-text-muted'
                   }`}
               >
                 {selectedStyle ? (
@@ -522,7 +354,7 @@ const App: React.FC = () => {
 
               {/* Custom prompt indicator */}
               {customPrompt && (
-                <span className="text-xs text-zinc-500 bg-zinc-800/40 px-2 py-1 rounded-md border border-zinc-700/30 max-w-[200px] truncate">
+                <span className="text-xs text-text-muted bg-surface/40 px-2 py-1 rounded-md border border-glass-border max-w-[200px] truncate">
                   "{customPrompt}"
                 </span>
               )}
@@ -531,7 +363,7 @@ const App: React.FC = () => {
 
               {/* Credits mini indicator */}
               <span className={`text-xs font-medium px-2 py-1 rounded-md ${hasCredits
-                ? 'text-emerald-400/70 bg-emerald-500/5'
+                ? 'text-primary/70 bg-primary/5'
                 : 'text-red-400/70 bg-red-500/5'
                 }`}>
                 {credits} créditos
@@ -539,13 +371,13 @@ const App: React.FC = () => {
 
               {/* Generate button */}
               <button
-                onClick={handleGenerate}
+                onClick={handleGenerateWrapper}
                 disabled={isGenerating || selectedCount === 0 || !hasCredits}
                 className={`
-                  px-5 py-2 rounded-xl font-bold text-sm flex items-center gap-2 transition-all relative overflow-hidden group
+                  px-5 py-2 rounded-sm font-bold text-sm flex items-center gap-2 transition-all relative overflow-hidden group uppercase tracking-wider font-heading
                   ${isGenerating || selectedCount === 0 || !hasCredits
-                    ? 'bg-zinc-800/60 text-zinc-500 cursor-not-allowed border border-zinc-700/40'
-                    : 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white shadow-lg shadow-emerald-600/20 hover:shadow-emerald-600/35 hover:-translate-y-0.5 active:translate-y-0'
+                    ? 'bg-surface/60 text-text-muted cursor-not-allowed border border-glass-border'
+                    : 'bg-gradient-to-r from-secondary to-secondary-light hover:from-secondary-dark hover:to-secondary text-black shadow-lg shadow-secondary/20 hover:shadow-secondary/35 hover:-translate-y-0.5 active:translate-y-0'
                   }
                 `}
               >
@@ -573,11 +405,11 @@ const App: React.FC = () => {
 
           {/* Collapsible Design Controls */}
           {showControls && (
-            <div className="flex-shrink-0 border-b border-zinc-800/40 px-5 py-4 bg-zinc-900/30 animate-slide-down overflow-y-auto max-h-[320px] custom-scrollbar">
+            <div className="flex-shrink-0 border-b border-glass-border px-5 py-4 bg-surface/30 animate-slide-down overflow-y-auto max-h-[320px] custom-scrollbar">
               <DesignStudio
                 isGenerating={isGenerating}
                 hasImages={images.length > 0}
-                handleGenerateAll={handleGenerate}
+                handleGenerateAll={handleGenerateWrapper}
                 generationMode={generationMode}
                 setGenerationMode={setGenerationMode}
                 selectedStyle={selectedStyle}
@@ -596,9 +428,9 @@ const App: React.FC = () => {
               totalImages={images.length}
               viewMode={viewMode}
               setViewMode={setViewMode}
-              handleDownloadComparison={handleDownloadComparison}
-              handleDownloadSingle={handleDownloadSingle}
-              handleDownloadAll={handleDownloadAll}
+              handleDownloadComparison={handleDownloadComparisonWrapper}
+              handleDownloadSingle={downloadSingle}
+              handleDownloadAll={handleDownloadAllWrapper}
               hasGeneratedImages={images.some(img => !!img.generatedUrl)}
               isDownloadingZip={isDownloadingZip}
               onNext={handleNextImage}

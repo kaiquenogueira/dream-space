@@ -3,6 +3,11 @@ import { supabaseAdmin } from './lib/supabaseAdmin';
 
 export default async function handler(req: any, res: any) {
     // --- Auth Check via Supabase ---
+    if (!supabaseAdmin) {
+        console.error("Supabase Admin client is not initialized. Check server logs for missing env vars.");
+        return res.status(500).json({ error: 'Server configuration error: Missing Supabase credentials' });
+    }
+
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
         return res.status(401).json({ error: 'Unauthorized: Missing or invalid token' });
@@ -66,6 +71,29 @@ export default async function handler(req: any, res: any) {
         return res.status(400).json({ error: 'Missing imageUrl' });
     }
 
+    // SSRF Protection: Validate image URL domain
+    try {
+        const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+        if (!supabaseUrl) {
+             console.error('Missing SUPABASE_URL');
+             return res.status(500).json({ error: 'Server configuration error' });
+        }
+
+        const url = new URL(imageUrl);
+        const allowedHost = new URL(supabaseUrl).hostname;
+        
+        // Allow Supabase project URL and standard Supabase domains
+        const isAllowed = url.hostname === allowedHost || 
+                          url.hostname.endsWith('.supabase.co') ||
+                          url.hostname.endsWith('.supabase.in');
+                          
+        if (!isAllowed) {
+            return res.status(400).json({ error: 'Invalid image URL domain. Only Supabase storage URLs are allowed.' });
+        }
+    } catch (e) {
+        return res.status(400).json({ error: 'Invalid image URL format' });
+    }
+
     try {
         const apiKey = process.env.GEMINI_API_KEY;
         if (!apiKey) {
@@ -81,76 +109,49 @@ export default async function handler(req: any, res: any) {
 
         const ai = new GoogleGenAI({ apiKey });
 
-        // 1. Generate Script
-        const scriptResponse = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
-            contents: {
-                parts: [
-                    {
-                        inlineData: {
-                            data: imageBase64,
-                            mimeType: mimeType,
-                        },
-                    },
-                    {
-                        text: "Você é um corretor de imóveis de altíssimo luxo narrando um 'Cinematic Drone Tour' para este ambiente. Descreva os diferenciais, a iluminação, os materiais e a sensação de exclusividade em um parágrafo único, dramático e muito envolvente. O texto será lido por uma IA de voz, então escreva de forma natural para a fala (use pausas sutis sugeridas por pontuação). O idioma deve ser Português do Brasil. Mantenha em no máximo 50 palavras.",
-                    },
-                ],
-            },
-        });
-
-        let script = "";
-        if (scriptResponse.candidates && scriptResponse.candidates.length > 0) {
-            const parts = scriptResponse.candidates[0].content.parts;
-            if (parts && parts[0].text) {
-                script = parts[0].text;
-            }
-        }
-
-        if (!script) {
-            throw new Error("Failed to generate script");
-        }
-
-        // 2. Start Video Generation (if requested)
+        // 1. Generate Video
+        // Using Veo for 5s video
+        // We use the image to prompt the video generation for better context
         let videoOperationName = null;
-        if (includeVideo) {
-            try {
-                // Using Veo 3.1 for 5s video
-                // Note: We use 'any' to bypass TS check if types aren't fully updated in the environment
-                const videoPrompt = "Cinematic drone shot of this luxury property, 4k, slow smooth motion, professional lighting, photorealistic";
-                
-                // Construct the request for generateVideos
-                // Based on new SDK patterns, it likely accepts prompt and image/contents
-                // We'll try passing 'prompt' and 'image' which seems to be the pattern for specific helpers
-                // or fall back to a generic 'contents' structure if needed.
-                // However, the python example used client.models.generate_videos(model=..., prompt=...)
-                
-                // Let's try the most likely signature for the Node SDK helper
-                const videoOp = await (ai.models as any).generateVideos({
-                    model: 'veo-3.1-generate-preview',
-                    prompt: videoPrompt,
-                    video_length_seconds: 5, // Requesting 5 seconds
-                    image: {
-                        inlineData: {
-                            data: imageBase64,
-                            mimeType: mimeType
-                        }
-                    }
-                });
-                
-                if (videoOp && videoOp.name) {
-                    videoOperationName = videoOp.name;
-                } else if (videoOp && videoOp.operation && videoOp.operation.name) {
-                     // Sometimes it returns an object wrapping the operation
-                     videoOperationName = videoOp.operation.name;
-                }
-                
-                console.log("Video generation started:", videoOperationName);
 
-            } catch (videoError) {
-                console.error("Failed to start video generation:", videoError);
-                // We don't fail the whole request, just return no video op
+        try {
+            // Enhanced prompt for luxury real estate drone shot
+            const videoPrompt = "Cinematic FPV drone shot flying smoothly through this luxury interior. High-end real estate video, 4k, soft natural lighting, slow motion, photorealistic, architectural digest style.";
+            
+            // Construct the request for generateVideos
+            // Using the correct method generateContent is likely wrong for video generation which usually returns an Operation
+            // The previous error was about `image` struct format in `generateVideos` (or `generateVideo` which likely aliases to it)
+            
+            // Let's go back to generateVideos but fix the structure based on the error
+            // Error: "Input instance with `image` should contain both `bytesBase64Encoded` and `mimeType`"
+            
+            const videoOp = await (ai.models as any).generateVideos({
+                model: 'veo-3.1-generate-preview',
+                prompt: videoPrompt,
+                image: {
+                    imageBytes: imageBase64,
+                    mimeType: mimeType
+                },
+                config: {
+                    durationSeconds: 8
+                }
+            });
+            
+            if (videoOp && videoOp.name) {
+                videoOperationName = videoOp.name;
+            } else if (videoOp && videoOp.operation && videoOp.operation.name) {
+                 videoOperationName = videoOp.operation.name;
             }
+            
+            console.log("Video generation started:", videoOperationName);
+
+            if (!videoOperationName) {
+                throw new Error("Failed to start video generation");
+            }
+
+        } catch (videoError: any) {
+            console.error("Failed to start video generation:", videoError);
+            return res.status(500).json({ error: videoError.message || 'Failed to start video generation' });
         }
 
         // --- Deduct 2 credits ---
@@ -167,9 +168,9 @@ export default async function handler(req: any, res: any) {
         try {
             await supabaseAdmin.from('generations').insert({
                 user_id: userId,
-                original_image_url: 'drone-tour',
-                generated_image_url: 'drone-tour',
-                prompt_used: 'Cinematic Drone Tour Script',
+                original_image_url: imageUrl, // Store the actual input image URL
+                generated_image_url: 'drone-tour-video', // Still placeholder as we don't store the video anymore
+                prompt_used: 'Cinematic Drone Tour Video',
                 generation_mode: 'Drone Tour',
                 is_compressed: false,
             });
@@ -178,7 +179,6 @@ export default async function handler(req: any, res: any) {
         }
 
         return res.status(200).json({
-            script,
             videoOperationName,
             credits_remaining: profile.credits_remaining - 2,
         });

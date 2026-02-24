@@ -1,9 +1,45 @@
-import { GenerationMode, ArchitecturalStyle, STYLE_PROMPTS } from '../types';
+export enum GenerationMode {
+  REDESIGN = 'Redesign',
+  VIRTUAL_STAGING = 'Virtual Staging (Mobiliar)'
+}
+
+export enum ArchitecturalStyle {
+  MODERN = 'Moderno',
+  SCANDINAVIAN = 'Escandinavo',
+  INDUSTRIAL = 'Industrial',
+  BOHEMIAN = 'Boêmio',
+  MINIMALIST = 'Minimalista',
+  MID_CENTURY = 'Moderno de Meados do Século',
+  COASTAL = 'Costeiro',
+  FARMHOUSE = 'Casa de Fazenda'
+}
+
+export const STYLE_PROMPTS: Record<string, string> = {
+  [ArchitecturalStyle.MODERN]: "sleek modern style with neutral tones, clean lines, and contemporary furniture",
+  [ArchitecturalStyle.SCANDINAVIAN]: "scandinavian style with bright white walls, wooden accents, cozy textiles, and functional furniture",
+  [ArchitecturalStyle.INDUSTRIAL]: "industrial loft style with exposed textures, leather furniture, metal accents, and raw finishes",
+  [ArchitecturalStyle.BOHEMIAN]: "bohemian style with eclectic patterns, vibrant colors, many plants, and layered textures",
+  [ArchitecturalStyle.MINIMALIST]: "ultra-minimalist style with decluttered spaces, monochromatic color palette, and essential furniture only",
+  [ArchitecturalStyle.MID_CENTURY]: "mid-century modern style with organic curves, teak wood furniture, and retro color accents",
+  [ArchitecturalStyle.COASTAL]: "breezy coastal style with light blues, whites, natural fibers, and an airy atmosphere",
+  [ArchitecturalStyle.FARMHOUSE]: "modern farmhouse style with rustic wood beams, white shiplap walls, and comfortable traditional furniture"
+};
 
 export interface PromptOptions {
-    generationMode: GenerationMode;
-    selectedStyle: ArchitecturalStyle | null;
+    generationMode: string;
+    selectedStyle: string | null;
     customPrompt: string;
+}
+
+function sanitizeInput(input: string): string {
+    // Basic sanitization to prevent control characters and obvious injection attempts
+    // Remove null bytes and other control chars
+    let sanitized = input.replace(/[\x00-\x1F\x7F]/g, "");
+    
+    // Normalize whitespace
+    sanitized = sanitized.replace(/\s+/g, " ").trim();
+    
+    return sanitized;
 }
 
 export const buildPrompt = ({
@@ -29,7 +65,10 @@ export const buildPrompt = ({
     `;
 
     let finalPrompt = '';
-    const styleInstruction = selectedStyle ? STYLE_PROMPTS[selectedStyle] : 'modern and elegant design';
+    // Use the style prompt map, fallback to modern if not found or if style is null
+    const styleInstruction = (selectedStyle && STYLE_PROMPTS[selectedStyle]) 
+        ? STYLE_PROMPTS[selectedStyle] 
+        : 'modern and elegant design';
 
     if (generationMode === GenerationMode.VIRTUAL_STAGING) {
         // Virtual Staging: Only add furniture/decor to empty spaces
@@ -47,6 +86,7 @@ export const buildPrompt = ({
         `;
     } else {
         // Redesign: Change materials/style but keep structure
+        // Default to Redesign if mode is unknown
         finalPrompt = `
         TASK: Interior Redesign (Renovation).
         ${structuralRules}
@@ -63,7 +103,9 @@ export const buildPrompt = ({
     }
 
     if (customPrompt) {
-        finalPrompt += `\nADDITIONAL USER REQUIREMENTS: ${customPrompt} (Prioritize this instruction while strictly adhering to structural rules).`;
+        const sanitizedCustom = sanitizeInput(customPrompt);
+        // Using explicit delimiters for user content
+        finalPrompt += `\nADDITIONAL USER REQUIREMENTS (Prioritize this instruction while strictly adhering to structural rules): <user_instruction>${sanitizedCustom}</user_instruction>`;
     }
 
     // Clean up extra whitespace and return

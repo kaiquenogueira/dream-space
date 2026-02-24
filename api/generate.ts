@@ -1,11 +1,17 @@
 import { GoogleGenAI } from "@google/genai";
 import { supabaseAdmin } from './lib/supabaseAdmin';
+import { buildPrompt } from './lib/promptBuilder';
 
 export default async function handler(req: any, res: any) {
   const requestSize = req.headers['content-length'] ? parseInt(req.headers['content-length']) : 0;
   console.log(`Incoming request size: ${(requestSize / 1024 / 1024).toFixed(2)} MB`);
 
   // --- Auth Check via Supabase ---
+  if (!supabaseAdmin) {
+    console.error("Supabase Admin client is not initialized. Check server logs for missing env vars.");
+    return res.status(500).json({ error: 'Server configuration error: Missing Supabase credentials' });
+  }
+
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return res.status(401).json({ error: 'Unauthorized: Missing or invalid token' });
@@ -49,11 +55,32 @@ export default async function handler(req: any, res: any) {
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
 
-  const { imageBase64, prompt, propertyId, style, generationMode } = req.body;
+  const { imageBase64, customPrompt, prompt: legacyPrompt, propertyId, style, generationMode } = req.body;
 
-  if (!imageBase64 || !prompt) {
-    return res.status(400).json({ error: 'Missing imageBase64 or prompt' });
+  // Use customPrompt (new) or legacyPrompt (old) as user instruction
+  const userInstruction = customPrompt || legacyPrompt || "";
+
+  if (!imageBase64) {
+    return res.status(400).json({ error: 'Missing imageBase64' });
   }
+
+  // Input Validation
+  if (userInstruction.length > 1000) {
+      return res.status(400).json({ error: 'Prompt too long (max 1000 chars)' });
+  }
+  
+  // Validate imageBase64 size roughly (base64 is ~1.33x binary size)
+  // 10MB limit -> ~13.3MB base64 string
+  if (imageBase64.length > 14 * 1024 * 1024) {
+      return res.status(400).json({ error: 'Image too large (max 10MB)' });
+  }
+
+  // Build the prompt securely on the server
+  const finalPrompt = buildPrompt({
+      generationMode: generationMode || 'Redesign',
+      selectedStyle: style || null,
+      customPrompt: userInstruction
+  });
 
   try {
     const apiKey = process.env.GEMINI_API_KEY;
@@ -63,9 +90,10 @@ export default async function handler(req: any, res: any) {
     }
 
     const ai = new GoogleGenAI({ apiKey });
+    const MODEL_NAME = 'gemini-2.5-flash-image'; // Constant for model name
 
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash-image',
+      model: MODEL_NAME,
       contents: {
         parts: [
           {
@@ -75,7 +103,7 @@ export default async function handler(req: any, res: any) {
             },
           },
           {
-            text: prompt,
+            text: finalPrompt,
           },
         ],
       },
@@ -160,7 +188,7 @@ export default async function handler(req: any, res: any) {
               property_id: propertyId || null,
               original_image_url: 'client-side', // originals stay on client for free tier
               generated_image_url: generatedImageUrl || 'not-stored',
-              prompt_used: prompt,
+              prompt_used: finalPrompt,
               style: style || null,
               generation_mode: generationMode || null,
               is_compressed: isCompressed,

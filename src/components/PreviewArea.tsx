@@ -1,8 +1,12 @@
-import React, { useState, useRef, useCallback, useEffect } from 'react';
-import { LayoutIcon, DownloadIcon, ColumnsIcon, ArrowLeftIcon, ArrowRightIcon, ImageIcon, EyeIcon, ZoomInIcon, ZoomOutIcon, RefreshIcon } from './Icons';
+import React, { useState, useEffect } from 'react';
+import { ColumnsIcon, ArrowLeftIcon, ArrowRightIcon, ImageIcon, EyeIcon } from './Icons';
 import { UploadedImage } from '../types';
 import DroneTourPlayer from './DroneTourPlayer';
+import ComparisonSlider from './ComparisonSlider';
+import ZoomControls from './ZoomControls';
+import DownloadMenu from './DownloadMenu';
 import { generateDroneTourScript } from '../services/geminiService';
+import { UI_CONSTANTS } from '../constants';
 
 interface PreviewAreaProps {
   activeImage: UploadedImage | undefined;
@@ -19,66 +23,6 @@ interface PreviewAreaProps {
   onPrev: () => void;
 }
 
-const ComparisonSlider: React.FC<{ originalUrl: string; generatedUrl: string }> = ({ originalUrl, generatedUrl }) => {
-  const [sliderPosition, setSliderPosition] = useState(50);
-
-  const handleSliderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSliderPosition(Number(e.target.value));
-  };
-
-  return (
-    <div className="relative w-full h-full bg-zinc-950 overflow-hidden select-none group">
-      {/* Generated (full, behind) */}
-      <img src={generatedUrl} alt="Generated" className="absolute inset-0 w-full h-full object-contain pointer-events-none" />
-
-      {/* Original (clipped via clip-path — no distortion) */}
-      <div className="absolute inset-0 pointer-events-none" style={{ clipPath: `inset(0 ${100 - sliderPosition}% 0 0)` }}>
-        <img
-          src={originalUrl}
-          alt="Original"
-          className="w-full h-full object-contain"
-        />
-      </div>
-
-      {/* Slider Line */}
-      <div
-        className="absolute top-0 bottom-0 w-0.5 bg-white/80 shadow-[0_0_10px_rgba(255,255,255,0.5)] pointer-events-none z-10"
-        style={{ left: `${sliderPosition}%`, transform: 'translateX(-50%)' }}
-      >
-        {/* Slider Handle Visual */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-10 h-10 bg-white/90 backdrop-blur-sm rounded-full shadow-xl flex items-center justify-center border-2 border-white/50 transition-transform group-active:scale-110">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1e293b" strokeWidth="2.5" strokeLinecap="round">
-            <path d="M8 6l-4 6 4 6" />
-            <path d="M16 6l4 6-4 6" />
-          </svg>
-        </div>
-      </div>
-
-      {/* Invisible Range Input for Interaction & A11y */}
-      <input
-        type="range"
-        min="0"
-        max="100"
-        value={sliderPosition}
-        onChange={handleSliderChange}
-        className="absolute inset-0 w-full h-full opacity-0 cursor-ew-resize z-20 focus:outline-none"
-        aria-label="Controle de comparação"
-        aria-valuemin={0}
-        aria-valuemax={100}
-        aria-valuenow={sliderPosition}
-      />
-
-      {/* Labels */}
-      <div className="absolute bottom-4 left-4 bg-black/60 backdrop-blur-md text-white text-xs font-bold px-3 py-1.5 rounded-lg border border-white/10 shadow-lg pointer-events-none z-10">
-        Antes
-      </div>
-      <div className="absolute bottom-4 right-4 bg-emerald-600/80 backdrop-blur-md text-white text-xs font-bold px-3 py-1.5 rounded-lg border border-emerald-400/20 shadow-lg pointer-events-none z-10">
-        Depois
-      </div>
-    </div>
-  );
-};
-
 const PreviewArea: React.FC<PreviewAreaProps> = ({
   activeImage,
   imageIndex,
@@ -93,10 +37,8 @@ const PreviewArea: React.FC<PreviewAreaProps> = ({
   onNext,
   onPrev
 }) => {
-  const [showDownloadMenu, setShowDownloadMenu] = useState(false);
   const [zoom, setZoom] = useState(1);
   const [isGeneratingTour, setIsGeneratingTour] = useState(false);
-  const [tourScript, setTourScript] = useState<string | null>(null);
   const [tourImageUrl, setTourImageUrl] = useState<string | null>(null);
   const [tourVideoOpName, setTourVideoOpName] = useState<string | undefined>(undefined);
 
@@ -106,8 +48,7 @@ const PreviewArea: React.FC<PreviewAreaProps> = ({
 
     setIsGeneratingTour(true);
     try {
-      const { script, videoOperationName } = await generateDroneTourScript(targetUrl, true);
-      setTourScript(script);
+      const { videoOperationName } = await generateDroneTourScript(targetUrl, true);
       setTourImageUrl(targetUrl);
       setTourVideoOpName(videoOperationName);
     } catch (err: any) {
@@ -122,18 +63,18 @@ const PreviewArea: React.FC<PreviewAreaProps> = ({
     setZoom(1);
   }, [activeImage?.id, viewMode]);
 
-  const handleZoomIn = () => setZoom(prev => Math.min(prev + 0.5, 4));
-  const handleZoomOut = () => setZoom(prev => Math.max(prev - 0.5, 1));
+  const handleZoomIn = () => setZoom(prev => Math.min(prev + UI_CONSTANTS.ZOOM_STEP, UI_CONSTANTS.MAX_ZOOM));
+  const handleZoomOut = () => setZoom(prev => Math.max(prev - UI_CONSTANTS.ZOOM_STEP, UI_CONSTANTS.MIN_ZOOM));
   const handleResetZoom = () => setZoom(1);
 
   if (!activeImage) {
     return (
-      <div className="h-[50vh] flex flex-col items-center justify-center text-zinc-500 border-2 border-dashed border-zinc-800/50 rounded-2xl bg-zinc-900/30 animate-fade-in">
-        <div className="w-16 h-16 rounded-2xl bg-zinc-800/50 flex items-center justify-center mb-4 animate-float">
-          <ImageIcon className="w-7 h-7 text-zinc-600" />
+      <div className="h-[50vh] flex flex-col items-center justify-center text-text-muted border-2 border-dashed border-glass-border rounded-2xl bg-surface/30 animate-fade-in">
+        <div className="w-16 h-16 rounded-2xl bg-surface/50 flex items-center justify-center mb-4 animate-float">
+          <ImageIcon className="w-7 h-7 text-text-muted" />
         </div>
-        <p className="text-base font-medium text-zinc-400">Faça upload de fotos para começar a desenhar</p>
-        <p className="text-sm text-zinc-600 mt-1">Selecione imagens na barra lateral</p>
+        <p className="text-base font-medium text-text-muted">Faça upload de fotos para começar a desenhar</p>
+        <p className="text-sm text-text-muted mt-1">Selecione imagens na barra lateral</p>
       </div>
     );
   }
@@ -148,13 +89,13 @@ const PreviewArea: React.FC<PreviewAreaProps> = ({
     <section className="glass-card p-4 md:p-5 overflow-hidden flex flex-col h-full">
       <div className="flex flex-col sm:flex-row justify-between items-center mb-4 gap-3 flex-shrink-0">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-teal-500/10 flex items-center justify-center border border-teal-500/10">
-            <EyeIcon className="w-4 h-4 text-teal-400" />
+          <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center border border-primary/10">
+            <EyeIcon className="w-4 h-4 text-primary" />
           </div>
           <div>
             <h3 className="text-base md:text-lg font-bold text-white flex items-center gap-2">
               Visualização
-              <span className="text-zinc-500 text-xs font-medium px-2 py-0.5 bg-zinc-800/50 rounded-md">
+              <span className="text-text-muted text-xs font-medium px-2 py-0.5 bg-surface/50 rounded-md">
                 {imageIndex + 1} / {totalImages}
               </span>
             </h3>
@@ -164,10 +105,10 @@ const PreviewArea: React.FC<PreviewAreaProps> = ({
         <div className="flex items-center gap-2.5">
           {/* Navigation */}
           {totalImages > 1 && (
-            <div className="flex items-center gap-1 bg-zinc-950/50 p-1 rounded-xl border border-zinc-800/40">
+            <div className="flex items-center gap-1 bg-surface-dark/50 p-1 rounded-xl border border-glass-border">
               <button
                 onClick={onPrev}
-                className="p-1.5 text-zinc-400 hover:text-white hover:bg-zinc-800/60 rounded-lg transition-all"
+                className="p-1.5 text-text-muted hover:text-white hover:bg-surface/60 rounded-lg transition-all"
                 title="Imagem Anterior"
                 aria-label="Imagem Anterior"
               >
@@ -175,7 +116,7 @@ const PreviewArea: React.FC<PreviewAreaProps> = ({
               </button>
               <button
                 onClick={onNext}
-                className="p-1.5 text-zinc-400 hover:text-white hover:bg-zinc-800/60 rounded-lg transition-all"
+                className="p-1.5 text-text-muted hover:text-white hover:bg-surface/60 rounded-lg transition-all"
                 title="Próxima Imagem"
                 aria-label="Próxima Imagem"
               >
@@ -185,15 +126,15 @@ const PreviewArea: React.FC<PreviewAreaProps> = ({
           )}
 
           {/* View Mode */}
-          <div className="flex items-center bg-zinc-950/50 p-1 rounded-xl border border-zinc-800/40">
+          <div className="flex items-center bg-surface-dark/50 p-1 rounded-xl border border-glass-border">
             {VIEW_OPTIONS.map(opt => (
               <button
                 key={opt.key}
                 onClick={() => setViewMode(opt.key)}
                 disabled={opt.disabled}
                 className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all duration-300 flex items-center gap-1.5 disabled:opacity-30 disabled:cursor-not-allowed ${viewMode === opt.key
-                  ? (opt.key === 'original' ? 'bg-zinc-800/80 text-white shadow-sm ring-1 ring-white/10' : 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/20')
-                  : 'text-zinc-400 hover:text-white hover:bg-zinc-800/40'
+                  ? (opt.key === 'original' ? 'bg-surface/80 text-white shadow-sm ring-1 ring-white/10' : 'bg-primary-dark text-white shadow-sm shadow-primary-dark/20')
+                  : 'text-text-muted hover:text-white hover:bg-surface/40'
                   }`}
               >
                 {opt.icon}
@@ -207,11 +148,11 @@ const PreviewArea: React.FC<PreviewAreaProps> = ({
             <button
               onClick={handleCreateTour}
               disabled={isGeneratingTour}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all shadow-lg text-xs font-bold ${isGeneratingTour ? 'bg-zinc-800 text-zinc-400 cursor-not-allowed' : 'bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white shadow-orange-900/20 hover:-translate-y-0.5'}`}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-sm transition-all shadow-lg text-xs font-bold uppercase tracking-wide ${isGeneratingTour ? 'bg-surface text-text-muted cursor-not-allowed' : 'bg-gradient-to-r from-secondary to-secondary-dark hover:from-secondary-light hover:to-secondary text-black shadow-secondary/20 hover:-translate-y-0.5'}`}
               title="Cinematic Drone Tour (2 Créditos)"
             >
               {isGeneratingTour ? (
-                <div className="w-3.5 h-3.5 rounded-full border-2 border-zinc-500/30 border-t-zinc-400 animate-spin" />
+                <div className="w-3.5 h-3.5 rounded-full border-2 border-text-muted/30 border-t-text-muted animate-spin" />
               ) : (
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
               )}
@@ -220,87 +161,15 @@ const PreviewArea: React.FC<PreviewAreaProps> = ({
           )}
 
           {/* Download Menu */}
-          {(activeImage.generatedUrl || hasGeneratedImages) && (
-            <div className="relative">
-              <button
-                onClick={() => setShowDownloadMenu(!showDownloadMenu)}
-                onBlur={() => setTimeout(() => setShowDownloadMenu(false), 200)}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-teal-600 to-purple-600 hover:from-teal-500 hover:to-purple-500 text-white rounded-xl transition-all shadow-lg shadow-teal-900/20 hover:shadow-teal-900/35 transform hover:-translate-y-0.5 active:translate-y-0 text-xs font-bold relative overflow-hidden group"
-                title="Baixar"
-                aria-label="Opções de download"
-              >
-                <DownloadIcon className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Baixar</span>
-                <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-                  <path d="M6 9l6 6 6-6" />
-                </svg>
-              </button>
-
-              {/* Dropdown Menu */}
-              {showDownloadMenu && (
-                <div className="absolute right-0 top-full mt-2 w-56 bg-zinc-900/95 backdrop-blur-xl border border-zinc-700/50 rounded-xl shadow-2xl shadow-black/40 z-50 py-1.5 animate-scale-in">
-                  {activeImage.generatedUrl && (
-                    <>
-                      <button
-                        onClick={() => {
-                          handleDownloadSingle(activeImage.generatedUrl!, `design-${imageIndex + 1}`);
-                          setShowDownloadMenu(false);
-                        }}
-                        className="w-full text-left px-4 py-2.5 text-sm text-zinc-200 hover:bg-zinc-800/60 hover:text-white transition-colors flex items-center gap-3"
-                      >
-                        <ImageIcon className="w-4 h-4 text-emerald-400" />
-                        <div>
-                          <span className="block font-medium text-xs">Apenas o Resultado</span>
-                          <span className="block text-xs text-zinc-500">Baixar design de IA</span>
-                        </div>
-                      </button>
-                      <button
-                        onClick={() => {
-                          handleDownloadComparison(activeImage.previewUrl, activeImage.generatedUrl!);
-                          setShowDownloadMenu(false);
-                        }}
-                        className="w-full text-left px-4 py-2.5 text-sm text-zinc-200 hover:bg-zinc-800/60 hover:text-white transition-colors flex items-center gap-3"
-                      >
-                        <ColumnsIcon className="w-4 h-4 text-teal-400" />
-                        <div>
-                          <span className="block font-medium text-xs">Antes e Depois</span>
-                          <span className="block text-xs text-zinc-500">Comparação lado a lado</span>
-                        </div>
-                      </button>
-                    </>
-                  )}
-                  {hasGeneratedImages && (
-                    <>
-                      <div className="border-t border-zinc-800/60 my-1.5" />
-                      <button
-                        onClick={() => {
-                          if (!isDownloadingZip) handleDownloadAll();
-                          // Don't close menu immediately to show feedback
-                        }}
-                        disabled={isDownloadingZip}
-                        className={`w-full text-left px-4 py-2.5 text-sm text-zinc-200 transition-colors flex items-center gap-3 ${isDownloadingZip ? 'opacity-70 cursor-not-allowed' : 'hover:bg-zinc-800/60 hover:text-white'
-                          }`}
-                      >
-                        {isDownloadingZip ? (
-                          <div className="w-4 h-4 rounded-full border-2 border-emerald-500/30 border-t-emerald-400 animate-spin" />
-                        ) : (
-                          <DownloadIcon className="w-4 h-4 text-emerald-400" />
-                        )}
-                        <div>
-                          <span className="block font-medium text-xs">
-                            {isDownloadingZip ? 'Criando ZIP...' : 'Baixar Tudo (ZIP)'}
-                          </span>
-                          <span className="block text-xs text-zinc-500">
-                            {isDownloadingZip ? 'Por favor, aguarde' : 'Todos os designs gerados'}
-                          </span>
-                        </div>
-                      </button>
-                    </>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
+          <DownloadMenu
+            activeImage={activeImage}
+            imageIndex={imageIndex}
+            hasGeneratedImages={hasGeneratedImages}
+            isDownloadingZip={isDownloadingZip}
+            onDownloadSingle={handleDownloadSingle}
+            onDownloadComparison={handleDownloadComparison}
+            onDownloadAll={handleDownloadAll}
+          />
         </div>
       </div>
 
@@ -313,58 +182,28 @@ const PreviewArea: React.FC<PreviewAreaProps> = ({
       )}
 
       {/* Preview Container */}
-      <div className={`relative flex-1 min-h-0 bg-zinc-950/80 rounded-xl flex items-center justify-center border border-zinc-800/40 shadow-inner transition-all duration-500 group ${zoom > 1 ? 'overflow-auto cursor-move' : 'overflow-hidden'}`}>
+      <div className={`relative flex-1 min-h-0 bg-surface-dark/80 rounded-xl flex items-center justify-center border border-glass-border shadow-inner transition-all duration-500 group ${zoom > 1 ? 'overflow-auto cursor-move' : 'overflow-hidden'}`}>
 
         {activeImage.isGenerating ? (
           <div className="text-center space-y-6 animate-fade-in">
             <div className="relative">
-              <div className="absolute inset-0 bg-emerald-500 blur-2xl opacity-20 animate-pulse rounded-full" />
-              <div className="relative inline-block animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-emerald-500" style={{ boxShadow: '0 0 20px rgba(59,130,246,0.4)' }} />
+              <div className="absolute inset-0 bg-primary blur-2xl opacity-20 animate-pulse rounded-full" />
+              <div className="relative inline-block animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-primary" style={{ boxShadow: '0 0 20px rgba(59,130,246,0.4)' }} />
             </div>
             <div>
               <p className="text-lg font-medium text-white">Desenhando seu espaço...</p>
-              <p className="text-sm text-zinc-400 mt-1">Isso geralmente leva de 15 a 30 segundos</p>
+              <p className="text-sm text-text-muted mt-1">Isso geralmente leva de 15 a 30 segundos</p>
             </div>
           </div>
         ) : (
           <>
             {/* Zoom Controls */}
-            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-1 bg-zinc-900/80 backdrop-blur-md p-1.5 rounded-xl border border-white/10 shadow-xl z-30 transition-opacity duration-300 hover:opacity-100 opacity-0 group-hover:opacity-100">
-              <button
-                onClick={handleZoomOut}
-                disabled={zoom <= 1}
-                className="p-1.5 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-lg disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                title="Diminuir Zoom"
-                aria-label="Diminuir Zoom"
-              >
-                <ZoomOutIcon className="w-4 h-4" />
-              </button>
-              <span className="text-xs font-mono text-zinc-400 min-w-[3ch] text-center select-none">
-                {Math.round(zoom * 100)}%
-              </span>
-              <button
-                onClick={handleZoomIn}
-                disabled={zoom >= 4}
-                className="p-1.5 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-lg disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                title="Aumentar Zoom"
-                aria-label="Aumentar Zoom"
-              >
-                <ZoomInIcon className="w-4 h-4" />
-              </button>
-              {zoom > 1 && (
-                <>
-                  <div className="w-px h-3 bg-zinc-700 mx-1" />
-                  <button
-                    onClick={handleResetZoom}
-                    className="p-1.5 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-lg transition-colors"
-                    title="Redefinir Zoom"
-                    aria-label="Redefinir Zoom"
-                  >
-                    <RefreshIcon className="w-3.5 h-3.5" />
-                  </button>
-                </>
-              )}
-            </div>
+            <ZoomControls
+              zoom={zoom}
+              onZoomIn={handleZoomIn}
+              onZoomOut={handleZoomOut}
+              onResetZoom={handleResetZoom}
+            />
 
             <div
               className="absolute inset-0 transition-transform duration-200 ease-out origin-center"
@@ -391,7 +230,7 @@ const PreviewArea: React.FC<PreviewAreaProps> = ({
                 <div className="w-full h-full relative animate-fade-in">
                   <img src={activeImage.generatedUrl} alt="Generated" className="w-full h-full object-contain" />
                   {zoom === 1 && (
-                    <div className="absolute bottom-4 left-4 bg-emerald-600/80 backdrop-blur-md text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-lg border border-emerald-400/20 z-20">Design com IA</div>
+                    <div className="absolute bottom-4 left-4 bg-primary-dark/80 backdrop-blur-md text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-lg border border-primary/20 z-20">Design com IA</div>
                   )}
                 </div>
               )}
@@ -407,13 +246,12 @@ const PreviewArea: React.FC<PreviewAreaProps> = ({
           </>
         )}
       </div>
-      {tourScript && tourImageUrl && (
+      {tourImageUrl && tourVideoOpName && (
         <DroneTourPlayer
           imageUrl={tourImageUrl}
-          script={tourScript}
           videoOperationName={tourVideoOpName}
           onClose={() => {
-            setTourScript(null);
+            setTourImageUrl(null);
             setTourVideoOpName(undefined);
           }}
         />

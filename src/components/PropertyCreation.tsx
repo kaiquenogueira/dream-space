@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { LayoutIcon, SparkleIcon, MapPinIcon, FolderIcon } from './Icons';
+import { LayoutIcon, SparkleIcon, MapPinIcon, FolderIcon, ChevronRightIcon } from './Icons';
 import { Property } from '../types';
 
 interface PropertyCreationProps {
@@ -18,71 +18,76 @@ const PropertyCreation: React.FC<PropertyCreationProps> = ({ properties, setActi
   };
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-200 flex flex-col items-center justify-center p-4 relative overflow-hidden">
-      {/* Animated Background Orbs */}
+    <div className="min-h-screen bg-primary-dark text-text-main flex flex-col items-center justify-center p-6 relative overflow-hidden font-sans">
+      {/* Animated Background Orbs - Adjusted for copper and higher contrast */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div
-          className="absolute -top-32 -left-32 w-[500px] h-[500px] rounded-full opacity-20 blur-[100px]"
+          className="absolute -top-[20%] -left-[10%] w-[500px] h-[500px] rounded-full opacity-[0.03] blur-[100px]"
           style={{
-            background: 'radial-gradient(circle, #3b82f6, transparent 70%)',
+            background: 'radial-gradient(circle, var(--color-secondary), transparent 70%)',
             animation: 'orbFloat1 20s ease-in-out infinite',
           }}
         />
         <div
-          className="absolute -bottom-48 -right-32 w-[600px] h-[600px] rounded-full opacity-15 blur-[120px]"
+          className="absolute -bottom-[20%] -right-[10%] w-[600px] h-[600px] rounded-full opacity-[0.02] blur-[120px]"
           style={{
-            background: 'radial-gradient(circle, #8b5cf6, transparent 70%)',
+            background: 'radial-gradient(circle, var(--color-secondary-light), transparent 70%)',
             animation: 'orbFloat2 25s ease-in-out infinite',
           }}
         />
       </div>
 
-      {/* Subtle grid */}
+      {/* Subtle grid with higher contrast */}
       <div
         className="absolute inset-0 opacity-[0.03] pointer-events-none"
         style={{
-          backgroundImage: `linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)`,
-          backgroundSize: '60px 60px',
+          backgroundImage: `linear-gradient(rgba(211, 156, 118, 0.4) 1px, transparent 1px), linear-gradient(90deg, rgba(211, 156, 118, 0.4) 1px, transparent 1px)`,
+          backgroundSize: '40px 40px',
         }}
       />
 
       {/* Content */}
       <div className="relative z-10 w-full max-w-md opacity-0 animate-fade-slide-in">
         {/* Branding */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 mb-5 shadow-lg shadow-emerald-500/25 animate-glow-pulse">
-            <LayoutIcon className="w-8 h-8 text-white" />
+        <div className="text-center mb-10 flex flex-col items-center">
+          <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-secondary/10 mb-6 border border-secondary/20 shadow-[0_0_30px_rgba(211,156,118,0.15)] animate-glow-pulse">
+            <LayoutIcon className="w-6 h-6 text-secondary" />
           </div>
-          <h1 className="text-4xl font-bold text-gradient mb-2 tracking-tight">
-            DreamSpace AI
+          <h1 className="text-3xl font-bold font-heading text-text-main mb-3 tracking-wide">
+            Etherea
           </h1>
-          <p className="text-zinc-400 text-center max-w-sm mx-auto text-sm">
-            Redesign de arquitetura e virtual staging para profissionais do mercado imobiliário.
+          <p className="text-text-muted text-center max-w-sm mx-auto text-[11px] uppercase tracking-[0.2em] font-medium">
+            Luxury AI Interior Design
           </p>
         </div>
 
         {/* Card */}
-        <div className="glass-card p-8">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center">
-              <SparkleIcon className="w-4 h-4 text-emerald-400" />
+        <div className="bg-surface/40 backdrop-blur-2xl p-8 rounded-2xl border border-white/5 shadow-2xl relative overflow-hidden">
+          {/* Subtle noise texture or top edge highlight */}
+          <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent"></div>
+
+          <div className="flex items-center gap-3 mb-8">
+            <div className="w-10 h-10 rounded-full bg-primary-dark/50 flex items-center justify-center border border-white/5 shadow-inner">
+              <SparkleIcon className="w-5 h-5 text-secondary" />
             </div>
-            <h2 className="text-lg font-semibold text-white">Novo Projeto</h2>
+            <h2 className="text-xl font-normal text-text-main font-heading tracking-wide">Novo Projeto</h2>
           </div>
 
-          <form onSubmit={onSubmit} className="space-y-4">
+          <form onSubmit={onSubmit} className="space-y-6">
             <div>
-              <label className="block text-sm font-medium text-zinc-400 mb-2">Nome / Endereço da Propriedade</label>
+              <label className="block text-[10px] font-bold text-text-muted/70 uppercase tracking-widest mb-3 ml-1">
+                Nome ou Endereço da Propriedade
+              </label>
               <div className="relative group">
-                <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-500 group-focus-within:text-emerald-400 transition-colors">
-                  <MapPinIcon />
+                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted/50 group-focus-within:text-secondary transition-colors duration-300">
+                  <MapPinIcon className="w-5 h-5" />
                 </div>
                 <input
                   type="text"
                   value={newPropertyName}
                   onChange={(e) => setNewPropertyName(e.target.value)}
-                  placeholder="ex: Rua Augusta, 123, Apto 4"
-                  className="w-full bg-zinc-900/60 border border-zinc-700/50 rounded-xl pl-11 pr-4 py-3 text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500/30 transition-all"
+                  placeholder="Ex: Cobertura Augusta, 123"
+                  className="w-full bg-primary-dark/80 border border-white/5 rounded-xl pl-12 pr-4 py-4 text-sm text-text-main placeholder-text-muted/30 focus:outline-none focus:ring-1 focus:ring-secondary/50 focus:border-secondary/50 transition-all duration-300 shadow-inner"
                   autoFocus
                 />
               </div>
@@ -90,35 +95,40 @@ const PropertyCreation: React.FC<PropertyCreationProps> = ({ properties, setActi
             <button
               type="submit"
               disabled={!newPropertyName.trim()}
-              className="w-full relative overflow-hidden bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold py-3.5 rounded-xl transition-all shadow-lg shadow-emerald-500/20 active:scale-[0.98] group"
+              className="w-full bg-gradient-to-r from-secondary to-secondary-light hover:from-secondary-light hover:to-secondary text-primary-dark font-bold text-xs uppercase tracking-[0.15em] py-4 rounded-xl transition-all shadow-[0_4px_20px_rgba(211,156,118,0.3)] hover:shadow-[0_4px_25px_rgba(211,156,118,0.4)] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-[0_4px_20px_rgba(211,156,118,0.3)] transform hover:-translate-y-0.5"
             >
-              <span className="relative z-10">Iniciar Projeto</span>
-              <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+              Iniciar Projeto
             </button>
           </form>
 
           {/* Recent Projects */}
           {properties.length > 0 && (
-            <div className="mt-8 pt-6 border-t border-zinc-800/50">
-              <h3 className="text-xs font-semibold text-zinc-500 mb-3 uppercase tracking-wider flex items-center gap-2">
-                <FolderIcon className="w-3.5 h-3.5" />
+            <div className="mt-10 pt-8 border-t border-white/5">
+              <h3 className="text-[10px] font-bold text-text-muted/70 mb-4 ml-1 uppercase tracking-widest">
                 Projetos Recentes
               </h3>
-              <div className="space-y-2 max-h-52 overflow-y-auto custom-scrollbar pr-1">
+              <div className="space-y-1 max-h-60 overflow-y-auto custom-scrollbar pr-2">
                 {properties.map((p, i) => (
                   <button
                     key={p.id}
                     onClick={() => setActivePropertyId(p.id)}
-                    className="w-full text-left px-4 py-3.5 rounded-xl bg-zinc-800/30 hover:bg-zinc-800/60 border border-transparent hover:border-zinc-700/50 transition-all flex justify-between items-center group opacity-0 animate-fade-slide-in"
+                    className="w-full text-left px-4 py-4 rounded-xl hover:bg-white/[0.03] transition-colors flex justify-between items-center group opacity-0 animate-fade-slide-in relative overflow-hidden"
                     style={{ animationFillMode: 'forwards', animationDelay: `${i * 75}ms` }}
                   >
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-zinc-800 flex items-center justify-center group-hover:bg-emerald-500/10 transition-colors">
-                        <FolderIcon className="w-4 h-4 text-zinc-500 group-hover:text-emerald-400 transition-colors" />
+                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-secondary opacity-0 group-hover:opacity-100 transition-opacity rounded-l-xl"></div>
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center group-hover:bg-secondary/10 group-hover:text-secondary text-text-muted transition-colors">
+                        <FolderIcon className="w-4 h-4" />
                       </div>
-                      <span className="font-medium text-zinc-300 group-hover:text-white transition-colors">{p.name}</span>
+                      <div className="flex flex-col">
+                        <span className="text-sm font-medium text-text-main group-hover:text-white transition-colors">{p.name}</span>
+                        <span className="text-[10px] text-text-muted/50 font-mono mt-0.5">{new Date(p.createdAt).toLocaleDateString()}</span>
+                      </div>
                     </div>
-                    <span className="text-xs text-zinc-600">{new Date(p.createdAt).toLocaleDateString()}</span>
+                    {/* Chevron for modern list feel */}
+                    <div className="text-text-muted/30 group-hover:text-secondary group-hover:translate-x-1 transition-all">
+                      <ChevronRightIcon className="w-5 h-5" />
+                    </div>
                   </button>
                 ))}
               </div>

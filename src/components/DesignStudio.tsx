@@ -39,21 +39,21 @@ const DesignStudio: React.FC<DesignStudioProps> = ({
     <div className="space-y-4">
       {/* Style Selector */}
       <div>
-        <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2.5">Estilo Arquitetônico</label>
+        <label className="block text-xs font-bold text-text-muted uppercase tracking-wider mb-2.5">Estilo Arquitetônico</label>
         <StyleSelector selectedStyle={selectedStyle} onSelectStyle={setSelectedStyle} />
       </div>
 
       {/* Custom Prompt */}
       <div>
-        <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2">Instruções Personalizadas</label>
+        <label className="block text-xs font-bold text-text-muted uppercase tracking-wider mb-2">Instruções Personalizadas</label>
         <div className="relative group">
           <textarea
             value={customPrompt}
             onChange={(e) => setCustomPrompt(e.target.value)}
             placeholder="Descreva detalhes específicos (ex: 'Pintar as paredes de verde sálvia, adicionar uma poltrona de couro...')"
-            className="w-full bg-zinc-950/50 border border-zinc-800/50 rounded-xl p-3 text-sm text-zinc-200 placeholder-zinc-600 focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500/20 outline-none transition-all resize-none h-20 group-hover:border-zinc-700/60"
+            className="w-full bg-surface-dark/50 border border-glass-border rounded-xl p-3 text-sm text-text-main placeholder-text-muted/60 focus:ring-2 focus:ring-primary/30 focus:border-primary/20 outline-none transition-all resize-none h-20 group-hover:border-text-muted/40"
           />
-          <div className="absolute bottom-2 right-3 text-xs text-zinc-600 pointer-events-none">
+          <div className="absolute bottom-2 right-3 text-xs text-text-muted/60 pointer-events-none">
             {customPrompt.length} caracs
           </div>
         </div>
@@ -66,8 +66,8 @@ const DesignStudio: React.FC<DesignStudioProps> = ({
               onClick={() => handleAddPrompt(suggestion)}
               className={`px-2.5 py-1 rounded-full text-xs font-medium transition-all duration-200
                 ${customPrompt.includes(suggestion)
-                  ? 'bg-emerald-500/15 border border-emerald-500/30 text-emerald-300'
-                  : 'bg-zinc-800/50 border border-zinc-700/40 text-zinc-400 hover:text-white hover:border-zinc-600/60 hover:bg-zinc-700/50'
+                  ? 'bg-primary/15 border border-primary/30 text-primary'
+                  : 'bg-surface/50 border border-glass-border text-text-muted hover:text-white hover:border-text-muted/60 hover:bg-surface/80'
                 }
               `}
             >

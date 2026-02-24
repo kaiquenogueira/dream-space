@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import type { Session, User } from '@supabase/supabase-js';
 
@@ -19,34 +19,50 @@ export const useAuth = () => {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
 
+  const fetchProfilePromiseRef = useRef<Promise<void> | null>(null);
+
   const fetchProfile = async (userId: string) => {
-    console.log('[Auth] Fetching profile...');
-    try {
-      // Add a timeout to prevent hanging indefinitely
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Profile fetch timeout')), 5000)
-      );
-
-      const fetchPromise = supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single();
-
-      const { data, error } = await Promise.race([fetchPromise, timeoutPromise]) as any;
-
-      if (error) {
-        console.error('[Auth] Error fetching profile:', error);
-      }
-
-      if (data && !error) {
-      console.log('[Auth] Profile fetched successfully');
-      setProfile(data as UserProfile);
+    // Return existing promise if already fetching for this user
+    if (fetchProfilePromiseRef.current) {
+      console.log('[Auth] Profile fetch already in progress, reusing promise');
+      return fetchProfilePromiseRef.current;
     }
-  } catch (err) {
-    console.error('[Auth] Exception fetching profile:', err);
-  }
-};
+
+    console.log('[Auth] Fetching profile...');
+    
+    const promise = (async () => {
+      try {
+        // Add a timeout to prevent hanging indefinitely
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Profile fetch timeout')), 20000)
+        );
+  
+        const fetchPromise = supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', userId)
+          .single();
+  
+        const { data, error } = await Promise.race([fetchPromise, timeoutPromise]) as any;
+  
+        if (error) {
+          console.error('[Auth] Error fetching profile:', error);
+        }
+  
+        if (data && !error) {
+          console.log('[Auth] Profile fetched successfully');
+          setProfile(data as UserProfile);
+        }
+      } catch (err) {
+        console.error('[Auth] Exception fetching profile:', err);
+      } finally {
+        fetchProfilePromiseRef.current = null;
+      }
+    })();
+
+    fetchProfilePromiseRef.current = promise;
+    return promise;
+  };
 
   useEffect(() => {
     console.log('[Auth] Initializing auth check...');
@@ -68,8 +84,16 @@ export const useAuth = () => {
         
         if (session?.user) {
           console.log('[Auth] Fetching profile for user:', session.user.id);
-          // We await here to try to get profile before finishing check, but we catch errors
-          await fetchProfile(session.user.id).catch(e => console.error('[Auth] Profile fetch failed in init:', e));
+          // Start fetching profile
+          const profilePromise = fetchProfile(session.user.id).catch(e => console.error('[Auth] Profile fetch failed in init:', e));
+          
+          // Wait briefly for profile to load (better UX), but don't block too long
+          // If profile loads within 500ms, we show the app with profile ready.
+          // If not, we show the app and profile will pop in later.
+          await Promise.race([
+            profilePromise,
+            new Promise(resolve => setTimeout(resolve, 500))
+          ]);
         }
       } catch (err) {
         console.error('[Auth] Unexpected error during init:', err);
@@ -96,7 +120,7 @@ export const useAuth = () => {
           // If this is the initial SIGNED_IN event, it might overlap with initAuth.
           // But that's okay, fetchProfile handles being called multiple times (it just overwrites state).
           // We must ensure we don't block UI indefinitely.
-          await fetchProfile(session.user.id).catch(e => console.error('[Auth] Profile fetch failed in listener:', e));
+          fetchProfile(session.user.id).catch(e => console.error('[Auth] Profile fetch failed in listener:', e));
         } else {
           setProfile(null);
         }

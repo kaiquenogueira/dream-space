@@ -78,10 +78,10 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ onImagesSelected, current
 
   if (isLimitReached) {
     return (
-      <div className="border-2 border-dashed border-zinc-800/60 rounded-xl h-full flex flex-col items-center justify-center text-zinc-600 bg-zinc-900/20 cursor-not-allowed">
-        <ImageIcon className="w-5 h-5 opacity-50 mb-1.5" />
-        <p className="font-medium text-xs">Limite Atingido</p>
-        <p className="text-xs opacity-60 mt-0.5">Remova para adicionar mais</p>
+      <div className="border border-dashed border-white/10 rounded-xl h-full flex flex-col items-center justify-center text-text-muted bg-primary-dark/80 backdrop-blur-md cursor-not-allowed p-2">
+        <ImageIcon className="w-5 h-5 opacity-30 mb-1" />
+        <p className="font-semibold text-[11px] text-center leading-tight">Limite Atingido</p>
+        <p className="text-[8px] opacity-50 mt-0.5 uppercase tracking-widest text-center">Remover imagens</p>
       </div>
     );
   }
@@ -89,10 +89,10 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ onImagesSelected, current
   return (
     <div
       className={`
-        relative border-2 border-dashed rounded-xl h-full flex flex-col items-center justify-center transition-all duration-300 overflow-hidden
+        relative border border-dashed rounded-xl h-full flex flex-col items-center justify-center transition-all duration-300 overflow-hidden
         ${isDragging
-          ? 'border-emerald-400 bg-emerald-500/10 scale-[1.02]'
-          : 'border-zinc-700/60 hover:border-emerald-500/50 bg-zinc-800/30 hover:bg-emerald-500/5'
+          ? 'border-secondary bg-secondary/5 scale-[1.02]'
+          : 'border-white/10 hover:border-secondary/40 bg-primary-dark/60 hover:bg-primary/40 backdrop-blur-md'
         }
       `}
       onDragOver={handleDragOver}
@@ -119,40 +119,39 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ onImagesSelected, current
       />
 
       {isDragging ? (
-        <div className="flex flex-col items-center">
-          <div className="p-2.5 rounded-full mb-2 bg-emerald-500/20 text-emerald-400 scale-110 transition-all duration-300">
-            <PlusIcon className="w-5 h-5" />
+        <div className="flex flex-col items-center justify-center w-full h-full p-2">
+          <div className="p-1.5 rounded-full mb-1 border border-secondary/20 bg-secondary/10 text-secondary scale-110 transition-all duration-300">
+            <PlusIcon className="w-4 h-4" />
           </div>
-          <p className="font-medium text-xs text-emerald-300">Solte aqui</p>
+          <p className="font-bold text-[9px] uppercase tracking-widest text-secondary text-center px-2">Solte aqui</p>
         </div>
       ) : (
-        <div className="flex flex-col items-center justify-center w-full h-full py-1.5">
-          <div className="flex items-center gap-3 mb-1.5">
+        <div className="flex flex-col items-center justify-center w-full h-full p-1">
+          <div className="flex items-center gap-3">
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); !isLimitReached && fileInputRef.current?.click(); }}
-              className="flex flex-col items-center gap-1.5 group outline-none"
+              className="flex flex-col items-center gap-1 group outline-none"
             >
-              <div className="p-2 rounded-full bg-zinc-700/50 text-zinc-400 group-hover:text-emerald-400 group-hover:bg-emerald-500/20 transition-all duration-300 group-focus-visible:ring-2 group-focus-visible:ring-emerald-500">
+              <div className="p-2 rounded-full bg-white/5 text-text-muted border border-white/5 group-hover:text-secondary group-hover:bg-secondary/10 group-hover:border-secondary/20 transition-all duration-300 group-focus-visible:ring-1 group-focus-visible:ring-secondary shadow-inner hover:shadow-[0_0_15px_rgba(211,156,118,0.15)] flex items-center justify-center">
                 <UploadIcon className="w-4 h-4" />
               </div>
-              <span className="font-medium text-xs text-zinc-400 group-hover:text-zinc-300 transition-colors">Enviar</span>
+              <span className="font-bold text-[8px] uppercase tracking-widest text-text-muted/70 group-hover:text-text-main transition-colors">Enviar</span>
             </button>
 
-            <div className="w-px h-8 bg-zinc-700/50"></div>
+            <div className="w-[1px] h-6 bg-white/10"></div>
 
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); !isLimitReached && cameraInputRef.current?.click(); }}
-              className="flex flex-col items-center gap-1.5 group outline-none"
+              className="flex flex-col items-center gap-1 group outline-none"
             >
-              <div className="p-2 rounded-full bg-zinc-700/50 text-zinc-400 group-hover:text-emerald-400 group-hover:bg-emerald-500/20 transition-all duration-300 group-focus-visible:ring-2 group-focus-visible:ring-emerald-500">
+              <div className="p-2 rounded-full bg-white/5 text-text-muted border border-white/5 group-hover:text-secondary group-hover:bg-secondary/10 group-hover:border-secondary/20 transition-all duration-300 group-focus-visible:ring-1 group-focus-visible:ring-secondary shadow-inner hover:shadow-[0_0_15px_rgba(211,156,118,0.15)] flex items-center justify-center">
                 <CameraIcon className="w-4 h-4" />
               </div>
-              <span className="font-medium text-xs text-zinc-400 group-hover:text-zinc-300 transition-colors">Câmera</span>
+              <span className="font-bold text-[8px] uppercase tracking-widest text-text-muted/70 group-hover:text-text-main transition-colors">Tirar</span>
             </button>
           </div>
-          <p className="text-xs text-zinc-500">{currentCount}/{maxImages}</p>
         </div>
       )}
     </div>

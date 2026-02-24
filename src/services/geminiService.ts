@@ -2,7 +2,7 @@ import { supabase } from '../lib/supabase';
 
 export const generateRoomDesign = async (
   imageBase64: string,
-  prompt: string,
+  customPrompt: string,
   propertyId?: string,
   style?: string,
   generationMode?: string,
@@ -21,7 +21,7 @@ export const generateRoomDesign = async (
       },
       body: JSON.stringify({
         imageBase64,
-        prompt,
+        customPrompt, // Send raw user input
         propertyId,
         style,
         generationMode,
@@ -29,7 +29,15 @@ export const generateRoomDesign = async (
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
+      const errorText = await response.text();
+      let errorData;
+      try {
+        errorData = JSON.parse(errorText);
+      } catch (e) {
+        // Handle non-JSON response (e.g. 500 from Vercel)
+        throw new Error(`Server Error: ${errorText || response.statusText}`);
+      }
+      
       if (response.status === 403) {
         throw new Error(errorData.message || 'Sem créditos restantes. Por favor, atualize seu plano.');
       }
@@ -64,7 +72,7 @@ export const fileToBase64 = (file: File): Promise<string> => {
 export const generateDroneTourScript = async (
   imageUrl: string,
   includeVideo: boolean = true
-): Promise<{ script: string; videoOperationName?: string; credits_remaining: number }> => {
+): Promise<{ videoOperationName?: string; credits_remaining: number }> => {
   try {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
@@ -81,18 +89,22 @@ export const generateDroneTourScript = async (
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.message || errorData.error || 'Falha ao gerar o script do tour');
+      const errorText = await response.text();
+      try {
+        const errorData = JSON.parse(errorText);
+        throw new Error(errorData.message || errorData.error || 'Falha ao gerar o tour');
+      } catch (e) {
+        throw new Error(`Server Error: ${errorText || response.statusText}`);
+      }
     }
 
     const data = await response.json();
     return {
-      script: data.script,
       videoOperationName: data.videoOperationName,
       credits_remaining: data.credits_remaining,
     };
   } catch (error) {
-    console.error("Drone Tour Script API Error:", error);
+    console.error("Drone Tour API Error:", error);
     throw error;
   }
 };

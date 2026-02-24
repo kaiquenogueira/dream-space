@@ -45,29 +45,29 @@ const Sidebar: React.FC<SidebarProps> = ({
     <div className="flex flex-col gap-5">
       {/* Branding Section — hidden in compact (mobile) mode */}
       {!compact && (
-        <div className="glass-card p-4">
-          <h3 className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-3">Identidade Visual do Projeto</h3>
-          <div className="flex items-center gap-3 bg-zinc-950/40 p-3 rounded-xl border border-zinc-800/40 hover:border-zinc-700/50 transition-all group">
+        <div className="bg-surface/40 backdrop-blur-md p-5 rounded-2xl border border-white/5 shadow-2xl relative overflow-hidden">
+          <h3 className="text-[10px] font-bold text-text-muted/70 uppercase tracking-widest mb-4">Identidade Visual do Projeto</h3>
+          <div className="flex items-center gap-4 bg-primary-dark/60 p-4 rounded-xl border border-white/5 hover:border-secondary/30 transition-all group">
             {activeProperty?.logo ? (
-              <div className="relative w-11 h-11 bg-white rounded-xl overflow-hidden flex items-center justify-center flex-shrink-0 border border-zinc-200 shadow-sm group/logo">
+              <div className="relative w-12 h-12 bg-white rounded-xl overflow-hidden flex items-center justify-center flex-shrink-0 border border-white/10 shadow-sm group/logo">
                 <img src={activeProperty.logo} alt="Logo" className="max-w-full max-h-full object-contain p-1" />
                 <button
                   onClick={() => setProperties(prev => prev.map(p => p.id === activePropertyId ? { ...p, logo: undefined } : p))}
-                  className="absolute inset-0 bg-black/60 text-white opacity-0 group-hover/logo:opacity-100 flex items-center justify-center transition-opacity rounded-xl"
+                  className="absolute inset-0 bg-primary-dark/80 text-secondary opacity-0 group-hover/logo:opacity-100 flex items-center justify-center transition-opacity rounded-xl"
                   aria-label="Remover logo"
                 >
-                  <XIcon className="w-4 h-4" />
+                  <XIcon className="w-5 h-5" />
                 </button>
               </div>
             ) : (
-              <div className="w-11 h-11 bg-zinc-800/60 rounded-xl flex items-center justify-center border-2 border-dashed border-zinc-600/50 text-zinc-500 flex-shrink-0 group-hover:border-emerald-500/30 group-hover:text-emerald-400/60 transition-all">
-                <span className="text-xs font-bold">LOGO</span>
+              <div className="w-12 h-12 bg-primary-dark/80 rounded-xl flex items-center justify-center border border-dashed border-white/20 text-text-muted flex-shrink-0 group-hover:border-secondary/40 group-hover:text-secondary transition-all shadow-inner">
+                <span className="text-[10px] font-bold tracking-widest">LOGO</span>
               </div>
             )}
             <div className="flex-1 overflow-hidden">
               <label className="cursor-pointer group/label">
-                <span className="block text-sm font-medium text-zinc-300 group-hover/label:text-white transition-colors">Enviar Logo</span>
-                <span className="block text-xs text-zinc-500 truncate">PNG, JPG (Máx 2MB)</span>
+                <span className="block text-sm font-bold text-text-main group-hover/label:text-white transition-colors">Enviar Logo</span>
+                <span className="block text-[10px] font-medium text-text-muted/50 truncate uppercase tracking-widest mt-0.5">PNG, JPG (Máx 2MB)</span>
                 <input
                   type="file"
                   accept="image/*"
@@ -81,30 +81,30 @@ const Sidebar: React.FC<SidebarProps> = ({
       )}
 
       {/* Upload & Gallery Section */}
-      <div className="glass-card p-4">
-        <div className="flex justify-between items-end mb-3">
+      <div className="bg-surface/40 backdrop-blur-md p-5 rounded-2xl border border-white/5 shadow-2xl relative overflow-hidden">
+        <div className="flex justify-between items-end mb-4">
           <div>
-            <h2 className="text-base font-bold text-white tracking-tight">{compact ? 'Fotos' : 'Espaços do Projeto'}</h2>
-            <p className="text-xs text-zinc-500 mt-0.5">{compact ? 'Toque para editar' : 'Gerencie as fotos enviadas'}</p>
+            <h2 className="text-xl font-normal font-heading text-white tracking-wide">{compact ? 'Fotos' : 'Espaços do Projeto'}</h2>
+            <p className="text-[10px] uppercase font-bold tracking-widest text-text-muted/70 mt-1">{compact ? 'Toque para editar' : 'Gerencie as fotos enviadas'}</p>
           </div>
-          <span className="text-xs font-mono bg-zinc-800/60 text-zinc-400 px-2 py-0.5 rounded-md border border-zinc-700/40">
+          <span className="text-xs font-mono bg-primary-dark/80 text-secondary px-2.5 py-1 rounded-md border border-secondary/20 shadow-inner">
             {images.length}/{maxImages}
           </span>
         </div>
 
         {/* Selection Controls */}
         {images.length > 0 && (
-          <div className="flex items-center justify-between mb-3 px-1">
+          <div className="flex items-center justify-between mb-4 px-1">
             <button
               onClick={toggleSelectAll}
-              className="text-xs font-medium text-zinc-400 hover:text-emerald-400 transition-colors flex items-center gap-1.5"
+              className="text-xs font-bold uppercase tracking-wider text-text-muted hover:text-secondary transition-colors flex items-center gap-2"
             >
-              <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center transition-all ${allSelected
-                ? 'bg-emerald-500 border-emerald-500'
-                : 'border-zinc-600 hover:border-zinc-400'
+              <div className={`w-4 h-4 rounded-sm border flex items-center justify-center transition-all ${allSelected
+                ? 'bg-secondary border-secondary shadow-[0_0_10px_rgba(211,156,118,0.3)]'
+                : 'bg-primary-dark/50 border-white/20 hover:border-text-muted'
                 }`}>
                 {allSelected && (
-                  <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#14161A" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round">
                     <polyline points="20 6 9 17 4 12" />
                   </svg>
                 )}
@@ -112,7 +112,7 @@ const Sidebar: React.FC<SidebarProps> = ({
               {allSelected ? 'Desmarcar Tudo' : 'Selecionar Tudo'}
             </button>
             {selectedCount > 0 && selectedCount < images.length && (
-              <span className="text-xs text-emerald-400/80 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-secondary bg-secondary/10 px-2 py-0.5 rounded-sm border border-secondary/20">
                 {selectedCount} selecionada(s)
               </span>
             )}
@@ -120,7 +120,7 @@ const Sidebar: React.FC<SidebarProps> = ({
         )}
 
         {/* Gallery Grid */}
-        <div className="grid grid-cols-2 gap-2.5">
+        <div className="grid grid-cols-2 gap-3">
           <div className="aspect-video">
             <ImageUploader
               onImagesSelected={handleImagesSelected}
@@ -134,12 +134,12 @@ const Sidebar: React.FC<SidebarProps> = ({
               key={img.id}
               onClick={() => setSelectedImageId(img.id)}
               className={`
-                relative group cursor-pointer rounded-xl overflow-hidden border-2 transition-all duration-300 aspect-video
-                ${selectedImageId === img.id
-                  ? 'border-emerald-500 ring-glow-emerald scale-[1.02]'
-                  : 'border-zinc-800/40 hover:border-zinc-600/60 hover:scale-[1.02]'
+                 relative group cursor-pointer rounded-xl overflow-hidden border-2 transition-all duration-300 aspect-video
+                 ${selectedImageId === img.id
+                  ? 'border-secondary shadow-[0_0_15px_rgba(211,156,118,0.2)] scale-[1.02]'
+                  : 'border-white/5 hover:border-secondary/30 hover:shadow-[0_0_15px_rgba(211,156,118,0.1)] hover:scale-[1.02]'
                 }
-              `}
+               `}
               style={{ animationDelay: `${i * 50}ms` }}
             >
               <img src={img.previewUrl} alt="Ambiente" className="w-full h-full object-cover" />
@@ -149,9 +149,9 @@ const Sidebar: React.FC<SidebarProps> = ({
 
               {/* Generating */}
               {img.isGenerating && (
-                <div className="absolute inset-0 bg-zinc-950/70 backdrop-blur-sm flex flex-col items-center justify-center gap-1.5">
-                  <RefreshIcon className="animate-spin text-emerald-400 w-5 h-5" />
-                  <span className="text-xs font-medium text-emerald-300">Desenhando...</span>
+                <div className="absolute inset-0 bg-surface-dark/70 backdrop-blur-sm flex flex-col items-center justify-center gap-1.5">
+                  <RefreshIcon className="animate-spin text-secondary w-5 h-5" />
+                  <span className="text-xs font-medium text-secondary-light uppercase tracking-wide">Desenhando...</span>
                 </div>
               )}
 
@@ -164,7 +164,7 @@ const Sidebar: React.FC<SidebarProps> = ({
 
               {/* Done badge */}
               {!img.isGenerating && img.generatedUrl && (
-                <div className="absolute top-1.5 left-1.5 flex items-center gap-1 bg-emerald-500/90 backdrop-blur text-white text-xs font-bold px-2 py-0.5 rounded-full shadow-lg">
+                <div className="absolute top-1.5 left-1.5 flex items-center gap-1 bg-primary/90 backdrop-blur text-white text-xs font-bold px-2 py-0.5 rounded-full shadow-lg">
                   <span>✓ Concluído</span>
                 </div>
               )}
@@ -176,7 +176,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                   toggleImageSelection(img.id);
                 }}
                 className={`absolute bottom-1.5 left-1.5 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-200 shadow-md ${img.selected
-                  ? 'bg-emerald-500 border-emerald-400 scale-100'
+                  ? 'bg-primary border-primary scale-100'
                   : 'bg-black/40 border-white/40 opacity-0 group-hover:opacity-100 hover:border-white/70'
                   }`}
                 title={img.selected ? "Desmarcar" : "Selecionar para geração"}
@@ -198,8 +198,8 @@ const Sidebar: React.FC<SidebarProps> = ({
                   }}
                   disabled={isGenerating}
                   className={`absolute bottom-1.5 right-1.5 p-2 rounded-full opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-md ${isGenerating
-                    ? 'bg-zinc-800/60 text-zinc-500 cursor-not-allowed'
-                    : 'bg-emerald-600/90 hover:bg-emerald-500 text-white hover:scale-110'
+                    ? 'bg-surface/60 text-text-muted cursor-not-allowed'
+                    : 'bg-primary-dark/90 hover:bg-primary text-white hover:scale-110'
                     }`}
                   title="Gerar novamente esta imagem"
                   aria-label="Gerar novamente esta imagem"
