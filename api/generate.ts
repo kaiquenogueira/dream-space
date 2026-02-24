@@ -90,7 +90,9 @@ export default async function handler(req: any, res: any) {
     }
 
     const ai = new GoogleGenAI({ apiKey });
-    const MODEL_NAME = 'gemini-2.5-flash-image'; // Constant for model name
+    // Use the latest stable model
+    const MODEL_NAME = 'gemini-2.0-flash'; 
+    console.log(`Using model: ${MODEL_NAME}`);
 
     const response = await ai.models.generateContent({
       model: MODEL_NAME,
@@ -98,7 +100,7 @@ export default async function handler(req: any, res: any) {
         parts: [
           {
             inlineData: {
-              data: imageBase64,
+              data: imageBase64.replace(/^data:image\/\w+;base64,/, ''),
               mimeType: 'image/jpeg',
             },
           },
