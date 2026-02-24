@@ -2,97 +2,117 @@ import { GoogleGenAI } from "@google/genai";
 import { supabaseAdmin } from './lib/supabaseAdmin';
 import { buildPrompt } from './lib/promptBuilder';
 
+export const config = {
+  maxDuration: 60, // Increase timeout to 60 seconds
+  api: {
+    bodyParser: {
+      sizeLimit: '10mb', // Increase body size limit
+    },
+  },
+};
+
 export default async function handler(req: any, res: any) {
-  const requestSize = req.headers['content-length'] ? parseInt(req.headers['content-length']) : 0;
-  console.log(`Incoming request size: ${(requestSize / 1024 / 1024).toFixed(2)} MB`);
-
-  // --- Auth Check via Supabase ---
-  if (!supabaseAdmin) {
-    console.error("Supabase Admin client is not initialized. Check server logs for missing env vars.");
-    return res.status(500).json({ error: 'Server configuration error: Missing Supabase credentials' });
-  }
-
-  const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return res.status(401).json({ error: 'Unauthorized: Missing or invalid token' });
-  }
-
-  const token = authHeader.split(' ')[1];
-
-  let userId: string;
+  console.log(`[API] Request received: ${req.method}`);
+  
   try {
-    const { data: { user }, error } = await supabaseAdmin.auth.getUser(token);
-    if (error || !user) {
+    const requestSize = req.headers['content-length'] ? parseInt(req.headers['content-length']) : 0;
+    console.log(`[API] Incoming request size: ${(requestSize / 1024 / 1024).toFixed(2)} MB`);
+
+    // --- Auth Check via Supabase ---
+    if (!supabaseAdmin) {
+      console.error("[API] Supabase Admin client is not initialized. Check server logs for missing env vars.");
+      return res.status(500).json({ error: 'Server configuration error: Missing Supabase credentials' });
+    }
+
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ error: 'Unauthorized: Missing or invalid token' });
+    }
+
+    const token = authHeader.split(' ')[1];
+
+    let userId: string;
+    try {
+      const { data: { user }, error } = await supabaseAdmin.auth.getUser(token);
+      if (error || !user) {
+        console.warn("[API] Invalid token:", error?.message);
+        return res.status(401).json({ error: 'Unauthorized: Invalid token' });
+      }
+      userId = user.id;
+    } catch (error) {
+      console.error("[API] Auth check failed:", error);
       return res.status(401).json({ error: 'Unauthorized: Invalid token' });
     }
-    userId = user.id;
-  } catch (error) {
-    return res.status(401).json({ error: 'Unauthorized: Invalid token' });
-  }
 
-  // --- Credit Check ---
-  const { data: profile, error: profileError } = await supabaseAdmin
-    .from('profiles')
-    .select('credits_remaining, plan')
-    .eq('id', userId)
-    .single();
+    // --- Credit Check ---
+    const { data: profile, error: profileError } = await supabaseAdmin
+      .from('profiles')
+      .select('credits_remaining, plan')
+      .eq('id', userId)
+      .single();
 
-  if (profileError || !profile) {
-    return res.status(500).json({ error: 'Failed to fetch user profile' });
-  }
+    if (profileError || !profile) {
+      console.error("[API] Profile fetch failed:", profileError);
+      return res.status(500).json({ error: 'Failed to fetch user profile' });
+    }
 
-  if (profile.credits_remaining <= 0) {
-    return res.status(403).json({
-      error: 'No credits remaining',
-      credits_remaining: 0,
-      plan: profile.plan,
-      message: 'You have used all your credits for this period. Upgrade your plan for more generations.',
+    if (profile.credits_remaining <= 0) {
+      return res.status(403).json({
+        error: 'No credits remaining',
+        credits_remaining: 0,
+        plan: profile.plan,
+        message: 'You have used all your credits for this period. Upgrade your plan for more generations.',
+      });
+    }
+
+    // --- Method Check ---
+    if (req.method !== 'POST') {
+      return res.status(405).json({ error: 'Method Not Allowed' });
+    }
+
+    // Body parsing is handled by Vercel automatically, but we check just in case
+    if (!req.body) {
+       console.error("[API] Missing request body");
+       return res.status(400).json({ error: 'Missing request body' });
+    }
+
+    const { imageBase64, customPrompt, prompt: legacyPrompt, propertyId, style, generationMode } = req.body;
+
+    // Use customPrompt (new) or legacyPrompt (old) as user instruction
+    const userInstruction = customPrompt || legacyPrompt || "";
+
+    if (!imageBase64) {
+      return res.status(400).json({ error: 'Missing imageBase64' });
+    }
+
+    // Input Validation
+    if (userInstruction.length > 1000) {
+        return res.status(400).json({ error: 'Prompt too long (max 1000 chars)' });
+    }
+    
+    // Validate imageBase64 size roughly (base64 is ~1.33x binary size)
+    // 10MB limit -> ~13.3MB base64 string
+    if (imageBase64.length > 14 * 1024 * 1024) {
+        return res.status(400).json({ error: 'Image too large (max 10MB)' });
+    }
+
+    // Build the prompt securely on the server
+    const finalPrompt = buildPrompt({
+        generationMode: generationMode || 'Redesign',
+        selectedStyle: style || null,
+        customPrompt: userInstruction
     });
-  }
 
-  // --- Method Check ---
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method Not Allowed' });
-  }
-
-  const { imageBase64, customPrompt, prompt: legacyPrompt, propertyId, style, generationMode } = req.body;
-
-  // Use customPrompt (new) or legacyPrompt (old) as user instruction
-  const userInstruction = customPrompt || legacyPrompt || "";
-
-  if (!imageBase64) {
-    return res.status(400).json({ error: 'Missing imageBase64' });
-  }
-
-  // Input Validation
-  if (userInstruction.length > 1000) {
-      return res.status(400).json({ error: 'Prompt too long (max 1000 chars)' });
-  }
-  
-  // Validate imageBase64 size roughly (base64 is ~1.33x binary size)
-  // 10MB limit -> ~13.3MB base64 string
-  if (imageBase64.length > 14 * 1024 * 1024) {
-      return res.status(400).json({ error: 'Image too large (max 10MB)' });
-  }
-
-  // Build the prompt securely on the server
-  const finalPrompt = buildPrompt({
-      generationMode: generationMode || 'Redesign',
-      selectedStyle: style || null,
-      customPrompt: userInstruction
-  });
-
-  try {
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
-      console.error("GEMINI_API_KEY is not set in environment variables");
-      return res.status(500).json({ error: 'Server configuration error' });
+      console.error("[API] GEMINI_API_KEY is not set in environment variables");
+      return res.status(500).json({ error: 'Server configuration error: API Key missing' });
     }
 
     const ai = new GoogleGenAI({ apiKey });
     // Use the latest stable model
     const MODEL_NAME = 'gemini-2.5-flash-image'; 
-    console.log(`Using model: ${MODEL_NAME}`);
+    console.log(`[API] Using model: ${MODEL_NAME}`);
 
     const response = await ai.models.generateContent({
       model: MODEL_NAME,
@@ -125,7 +145,7 @@ export default async function handler(req: any, res: any) {
             .eq('id', userId);
 
           if (creditError) {
-            console.error("Failed to deduct credit:", creditError);
+            console.error("[API] Failed to deduct credit:", creditError);
           }
 
           // --- Determine storage strategy based on plan ---
@@ -153,7 +173,7 @@ export default async function handler(req: any, res: any) {
                 generatedImageUrl = urlData.publicUrl;
               }
             } catch (storageErr) {
-              console.error("Storage upload failed (premium):", storageErr);
+              console.error("[API] Storage upload failed (premium):", storageErr);
             }
           } else {
             // Free: save compressed version (lower quality JPEG)
@@ -178,7 +198,7 @@ export default async function handler(req: any, res: any) {
                 generatedImageUrl = urlData.publicUrl;
               }
             } catch (storageErr) {
-              console.error("Storage upload failed (free):", storageErr);
+              console.error("[API] Storage upload failed (free):", storageErr);
               // Non-blocking: generation still succeeds, just no persistence
             }
           }
@@ -196,7 +216,7 @@ export default async function handler(req: any, res: any) {
               is_compressed: isCompressed,
             });
           } catch (dbErr) {
-            console.error("Failed to save generation record:", dbErr);
+            console.error("[API] Failed to save generation record:", dbErr);
           }
 
           return res.status(200).json({
@@ -210,7 +230,10 @@ export default async function handler(req: any, res: any) {
 
     throw new Error("No image data found in response");
   } catch (error: any) {
-    console.error("Gemini API Error:", error);
-    return res.status(500).json({ error: error.message || 'Failed to generate design' });
+    console.error("[API] Critical Error:", error);
+    return res.status(500).json({ 
+        error: error.message || 'Failed to generate design',
+        details: process.env.NODE_ENV === 'development' ? error.stack : undefined 
+    });
   }
 }
