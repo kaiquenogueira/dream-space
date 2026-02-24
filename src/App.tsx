@@ -318,6 +318,7 @@ const App: React.FC = () => {
   };
 
   if (isCheckingAuth) {
+    console.log('[App] Waiting for auth check...');
     return (
       <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
         <RefreshIcon className="animate-spin text-emerald-500 w-8 h-8" />
@@ -326,6 +327,7 @@ const App: React.FC = () => {
   }
 
   if (!isAuthenticated) {
+    console.log('[App] Not authenticated, showing Login');
     return (
       <Login
         onSignIn={signInWithEmail}

@@ -34,6 +34,7 @@ const Login: React.FC<LoginProps> = ({ onSignIn, onSignUp, onGoogleSignIn }) => 
         setMode('signin');
       }
     } catch (err: any) {
+      console.error('[Login] Error:', err);
       setError(err.message || 'Falha na autenticação. Por favor, tente novamente.');
     } finally {
       setIsLoading(false);
@@ -45,6 +46,7 @@ const Login: React.FC<LoginProps> = ({ onSignIn, onSignUp, onGoogleSignIn }) => 
     try {
       await onGoogleSignIn();
     } catch (err: any) {
+      console.error('[Login] Google Sign In Error:', err);
       setError(err.message || 'Falha no login com Google.');
     }
   };

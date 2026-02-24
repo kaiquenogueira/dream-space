@@ -20,23 +20,36 @@ export const useAuth = () => {
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
 
   const fetchProfile = async (userId: string) => {
+    console.log('[Auth] Fetching profile...');
     const { data, error } = await supabase
       .from('profiles')
       .select('*')
       .eq('id', userId)
       .single();
 
+    if (error) {
+      console.error('[Auth] Error fetching profile:', error);
+    }
+
     if (data && !error) {
+      console.log('[Auth] Profile fetched successfully');
       setProfile(data as UserProfile);
     }
   };
 
   useEffect(() => {
+    console.log('[Auth] Initializing auth check...');
     // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(({ data: { session }, error }) => {
+      if (error) {
+        console.error('[Auth] Error getting session:', error);
+      }
+      console.log('[Auth] Initial session retrieved:', session ? 'Session found' : 'No session');
+      
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
+        console.log('[Auth] Fetching profile for user:', session.user.id);
         fetchProfile(session.user.id);
       }
       setIsCheckingAuth(false);
@@ -44,7 +57,8 @@ export const useAuth = () => {
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
+      async (event, session) => {
+        console.log(`[Auth] Auth state changed: ${event}`, session ? 'Session active' : 'No session');
         setSession(session);
         setUser(session?.user ?? null);
         if (session?.user) {
@@ -52,6 +66,7 @@ export const useAuth = () => {
         } else {
           setProfile(null);
         }
+        setIsCheckingAuth(false); // Ensure we stop loading on change
       }
     );
 
@@ -59,11 +74,22 @@ export const useAuth = () => {
   }, []);
 
   const signInWithEmail = async (email: string, password: string) => {
+    console.log('[Auth] Attempting sign in with email:', email);
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
-    if (error) throw error;
+    if (error) {
+      console.error('[Auth] Sign in error:', error);
+      throw error;
+    }
+    
+    if (data.session) {
+      console.log('[Auth] Sign in successful, session received');
+    } else {
+      console.warn('[Auth] Sign in successful but no session returned (check email confirmation settings)');
+    }
+    
     return data;
   };
 
