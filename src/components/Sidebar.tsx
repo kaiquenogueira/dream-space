@@ -157,8 +157,9 @@ const Sidebar: React.FC<SidebarProps> = ({
 
               {/* Error */}
               {img.error && (
-                <div className="absolute inset-0 bg-red-950/80 backdrop-blur-sm flex items-center justify-center">
+                <div className="absolute inset-0 bg-red-950/80 backdrop-blur-sm flex flex-col items-center justify-center gap-2 px-2 text-center">
                   <span className="text-xs text-white font-bold bg-red-500 px-2.5 py-0.5 rounded-full">Erro</span>
+                  <span className="text-[10px] text-red-100 leading-snug">{img.error}</span>
                 </div>
               )}
 

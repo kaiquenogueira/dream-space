@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
+import type React from 'react';
 import { UploadedImage, ArchitecturalStyle, GenerationMode } from '../types';
-import { generateRoomDesign } from '../services/geminiService';
-import { buildPrompt } from '../utils/promptBuilder';
+import { generateRoomDesign, updateGeneratedImageMetadata } from '../services/geminiService';
+import { resolveImageBase64 } from '../utils/imageUtils';
 
 interface UseImageGenerationProps {
   images: UploadedImage[];
@@ -29,66 +30,90 @@ export const useImageGeneration = ({
   const [isGenerating, setIsGenerating] = useState(false);
   const [noCreditsError, setNoCreditsError] = useState(false);
 
+  const setImagesGenerating = (imageIds: string[], isGeneratingValue: boolean) => {
+    setImages(current => current.map(image => (
+      imageIds.includes(image.id)
+        ? { ...image, isGenerating: isGeneratingValue, error: isGeneratingValue ? undefined : image.error }
+        : image
+    )));
+  };
+
+  const setImageSuccess = (imageId: string, payload: { result: string; storage_path?: string; is_compressed?: boolean }) => {
+    setImages(current => current.map(image => (
+      image.id === imageId
+        ? { ...image, generatedUrl: payload.result, generatedPath: payload.storage_path, isCompressed: payload.is_compressed, isGenerating: false, selected: false }
+        : image
+    )));
+  };
+
+  const setImageError = (imageId: string, errorMessage: string) => {
+    setImages(current => current.map(image => (
+      image.id === imageId ? { ...image, error: errorMessage, isGenerating: false } : image
+    )));
+  };
+
+  const persistGenerationMetadata = async (imageId: string, payload: { storage_path?: string; is_compressed?: boolean }) => {
+    if (!activePropertyId) return;
+    await updateGeneratedImageMetadata({
+      imageId,
+      storagePath: payload.storage_path,
+      generationMode,
+      style: selectedStyle ?? null,
+      isCompressed: payload.is_compressed,
+    });
+  };
+
+  const canGenerate = (selectedCount: number) => {
+    if (!hasCredits) return false;
+    if (selectedCount === 0) return false;
+    if (selectedCount > credits) return false;
+    return true;
+  };
+
   const generateForImage = async (img: UploadedImage, prompt: string) => {
     try {
+      const base64 = await resolveImageBase64(img);
       const response = await generateRoomDesign(
-        img.base64,
+        base64,
         prompt,
         activePropertyId || undefined,
         selectedStyle || undefined,
         generationMode,
       );
 
-      setImages(current => current.map(i =>
-        i.id === img.id
-          ? { ...i, generatedUrl: response.result, isGenerating: false, selected: false }
-          : i
-      ));
+      setImageSuccess(img.id, response);
+      await persistGenerationMetadata(img.id, response);
 
-      // Refresh profile to update credits display
       await refreshProfile();
 
-      // Show compression warning for free tier
       if (response.is_compressed) {
         console.info('Imagem salva em formato comprimido (plano gratuito). Resolução máxima disponível nos planos premium.');
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Falha na geração';
       console.error(`Error generating for image ${img.id}:`, err);
 
-      if (err.message?.includes('No credits remaining') || err.message?.includes('credits')) {
+      if (errorMessage.includes('No credits remaining') || errorMessage.includes('credits')) {
         setNoCreditsError(true);
       }
 
-      setImages(current => current.map(i =>
-        i.id === img.id ? { ...i, error: err.message || "Failed", isGenerating: false } : i
-      ));
+      setImageError(img.id, errorMessage);
     }
   };
 
   const handleGenerate = async () => {
-    if (!hasCredits) {
-      setNoCreditsError(true);
-      return;
-    }
-
     const imagesToGenerate = images.filter(img => img.selected);
-    if (imagesToGenerate.length === 0) return;
-
-    // Check if user has enough credits for all selected images
-    if (imagesToGenerate.length > credits) {
-      setNoCreditsError(true);
+    if (!canGenerate(imagesToGenerate.length)) {
+      if (imagesToGenerate.length > 0) {
+        setNoCreditsError(true);
+      }
       return;
     }
 
     setNoCreditsError(false);
     setIsGenerating(true);
 
-    setImages(prev => prev.map(img => img.selected ? { ...img, isGenerating: true, error: undefined } : img));
-
-    // const finalPrompt = buildPrompt({ generationMode, selectedStyle, customPrompt });
-    // console.log("Starting selective generation with prompt:", finalPrompt, `(${imagesToGenerate.length} images)`);
-    // Passing raw customPrompt to backend to prevent prompt injection and allow backend construction
-    console.log("Starting selective generation with customPrompt:", customPrompt, `(${imagesToGenerate.length} images)`);
+    setImagesGenerating(imagesToGenerate.map(img => img.id), true);
 
     await Promise.all(imagesToGenerate.map(img => generateForImage(img, customPrompt)));
 
@@ -106,9 +131,8 @@ export const useImageGeneration = ({
 
     setNoCreditsError(false);
     setIsGenerating(true);
-    setImages(prev => prev.map(i => i.id === imageId ? { ...i, isGenerating: true, error: undefined } : i));
+    setImagesGenerating([imageId], true);
 
-    // const finalPrompt = buildPrompt({ generationMode, selectedStyle, customPrompt });
     await generateForImage(img, customPrompt);
 
     setIsGenerating(false);

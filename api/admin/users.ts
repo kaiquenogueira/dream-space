@@ -5,6 +5,10 @@ export default async function handler(req: any, res: any) {
         return res.status(405).json({ error: 'Method Not Allowed' });
     }
 
+    if (!supabaseAdmin) {
+        return res.status(500).json({ error: 'Erro de configuração do servidor: Credenciais do Supabase ausentes' });
+    }
+
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
         return res.status(401).json({ error: 'Unauthorized: Missing or invalid token' });

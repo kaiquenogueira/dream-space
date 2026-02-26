@@ -17,7 +17,11 @@ async function listModels() {
     
     console.log("Available models:");
     for await (const model of response) {
-      console.log(`- ${model.name} (Supported methods: ${model.supportedGenerationMethods})`);
+      const supportedMethods =
+        (model as any).supportedGenerationMethods ??
+        (model as any).supported_methods ??
+        'n/a';
+      console.log(`- ${model.name} (Supported methods: ${supportedMethods})`);
     }
   } catch (error) {
     console.error("Error listing models:", error);

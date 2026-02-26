@@ -1,18 +1,71 @@
 import { GoogleGenAI } from "@google/genai";
+import { z } from "zod";
 import { supabaseAdmin } from './lib/supabaseAdmin.js';
-import { buildPrompt } from './lib/promptBuilder.js';
+import { buildPrompt, GenerationMode, ArchitecturalStyle } from './lib/promptBuilder.js';
+import { checkRateLimit } from './lib/rateLimit.js';
+import type { VercelRequest, VercelResponse } from './types.js';
+
+const ORIGINALS_BUCKET = process.env.SUPABASE_BUCKET_ORIGINALS || process.env.VITE_SUPABASE_BUCKET_ORIGINALS || 'originals';
+const GENERATIONS_BUCKET = process.env.SUPABASE_BUCKET_GENERATIONS || process.env.VITE_SUPABASE_BUCKET_GENERATIONS || 'generations';
+
+const getClientIp = (req: VercelRequest) => {
+  const forwardedFor = req.headers['x-forwarded-for'];
+  if (typeof forwardedFor === 'string' && forwardedFor.length > 0) {
+    return forwardedFor.split(',')[0].trim();
+  }
+  if (Array.isArray(forwardedFor) && forwardedFor.length > 0) {
+    return forwardedFor[0].trim();
+  }
+  return req.socket?.remoteAddress || 'unknown';
+};
+
+const recordMetric = async (params: {
+  userId: string;
+  endpoint: string;
+  model?: string | null;
+  success: boolean;
+  errorMessage?: string | null;
+  latencyMs?: number | null;
+  inputBytes?: number | null;
+  outputBytes?: number | null;
+  creditsUsed?: number;
+  estimatedCostUsd?: number | null;
+}) => {
+  if (!supabaseAdmin) return;
+  try {
+    await supabaseAdmin.from('generation_metrics').insert({
+      user_id: params.userId,
+      endpoint: params.endpoint,
+      model: params.model,
+      success: params.success,
+      error_message: params.errorMessage ?? null,
+      latency_ms: params.latencyMs ?? null,
+      input_bytes: params.inputBytes ?? null,
+      output_bytes: params.outputBytes ?? null,
+      credits_used: params.creditsUsed ?? 0,
+      estimated_cost_usd: params.estimatedCostUsd ?? null
+    });
+  } catch (error) {
+    return;
+  }
+};
 
 export const config = {
-  maxDuration: 60, // Increase timeout to 60 seconds
+  maxDuration: 60,
   api: {
     bodyParser: {
-      sizeLimit: '10mb', // Increase body size limit
+      sizeLimit: '10mb',
     },
   },
 };
 
-export default async function handler(req: any, res: any) {
+export default async function handler(req: VercelRequest, res: VercelResponse) {
   console.log(`[API] Request received: ${req.method}`);
+  const startedAt = Date.now();
+  let userId: string | null = null;
+  let creditsRemaining: number | null = null;
+  let creditsReserved = false;
+  let creditsRefunded = false;
   
   try {
     const requestSize = req.headers['content-length'] ? parseInt(req.headers['content-length']) : 0;
@@ -21,27 +74,26 @@ export default async function handler(req: any, res: any) {
     // --- Auth Check via Supabase ---
     if (!supabaseAdmin) {
       console.error("[API] Supabase Admin client is not initialized. Check server logs for missing env vars.");
-      return res.status(500).json({ error: 'Server configuration error: Missing Supabase credentials' });
+      return res.status(500).json({ error: 'Erro de configuração do servidor: Credenciais do Supabase ausentes' });
     }
 
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return res.status(401).json({ error: 'Unauthorized: Missing or invalid token' });
+      return res.status(401).json({ error: 'Não autorizado: Token ausente ou inválido' });
     }
 
     const token = authHeader.split(' ')[1];
 
-    let userId: string;
     try {
       const { data: { user }, error } = await supabaseAdmin.auth.getUser(token);
       if (error || !user) {
         console.warn("[API] Invalid token:", error?.message);
-        return res.status(401).json({ error: 'Unauthorized: Invalid token' });
+        return res.status(401).json({ error: 'Não autorizado: Token inválido' });
       }
       userId = user.id;
     } catch (error) {
       console.error("[API] Auth check failed:", error);
-      return res.status(401).json({ error: 'Unauthorized: Invalid token' });
+      return res.status(401).json({ error: 'Não autorizado: Token inválido' });
     }
 
     // --- Credit Check ---
@@ -53,47 +105,59 @@ export default async function handler(req: any, res: any) {
 
     if (profileError || !profile) {
       console.error("[API] Profile fetch failed:", profileError);
-      return res.status(500).json({ error: 'Failed to fetch user profile' });
-    }
-
-    if (profile.credits_remaining <= 0) {
-      return res.status(403).json({
-        error: 'No credits remaining',
-        credits_remaining: 0,
-        plan: profile.plan,
-        message: 'You have used all your credits for this period. Upgrade your plan for more generations.',
-      });
+      return res.status(500).json({ error: 'Falha ao buscar perfil do usuário' });
     }
 
     // --- Method Check ---
     if (req.method !== 'POST') {
-      return res.status(405).json({ error: 'Method Not Allowed' });
+      return res.status(405).json({ error: 'Método não permitido' });
     }
 
-    // Body parsing is handled by Vercel automatically, but we check just in case
+    const rateLimitKey = `generate:${userId}:${getClientIp(req)}`;
+    const rateLimitResult = await checkRateLimit(rateLimitKey);
+    
+    if (!rateLimitResult.success) {
+      await recordMetric({
+        userId,
+        endpoint: 'generate',
+        model: 'imagen-3.0-generate-001',
+        success: false,
+        errorMessage: 'Rate limit',
+        latencyMs: Date.now() - startedAt,
+        creditsUsed: 0,
+        estimatedCostUsd: null
+      });
+      return res.status(429).json({ error: 'Muitas requisições. Tente novamente em instantes.' });
+    }
+
     if (!req.body) {
        console.error("[API] Missing request body");
-       return res.status(400).json({ error: 'Missing request body' });
+       return res.status(400).json({ error: 'Corpo da requisição ausente' });
     }
 
-    const { imageBase64, customPrompt, prompt: legacyPrompt, propertyId, style, generationMode } = req.body;
+    const GenerateSchema = z.object({
+      imageBase64: z.string().min(1, "Imagem obrigatória"),
+      customPrompt: z.string().max(1000, "Prompt muito longo").optional(),
+      prompt: z.string().max(1000).optional(),
+      style: z.nativeEnum(ArchitecturalStyle).nullable().optional(),
+      generationMode: z.nativeEnum(GenerationMode).optional().default(GenerationMode.REDESIGN),
+      propertyId: z.string().optional(),
+    });
 
-    // Use customPrompt (new) or legacyPrompt (old) as user instruction
+    const validation = GenerateSchema.safeParse(req.body);
+
+    if (!validation.success) {
+        const errorMsg = validation.error.issues.map(e => `${e.path.join('.')}: ${e.message}`).join(', ');
+        return res.status(400).json({ error: `Dados inválidos: ${errorMsg}` });
+    }
+
+    const { imageBase64, customPrompt, prompt: legacyPrompt, style, generationMode } = validation.data;
+
     const userInstruction = customPrompt || legacyPrompt || "";
 
-    if (!imageBase64) {
-      return res.status(400).json({ error: 'Missing imageBase64' });
-    }
-
-    // Input Validation
-    if (userInstruction.length > 1000) {
-        return res.status(400).json({ error: 'Prompt too long (max 1000 chars)' });
-    }
-    
-    // Validate imageBase64 size roughly (base64 is ~1.33x binary size)
-    // 10MB limit -> ~13.3MB base64 string
+    // Validate imageBase64 size roughly
     if (imageBase64.length > 14 * 1024 * 1024) {
-        return res.status(400).json({ error: 'Image too large (max 10MB)' });
+        return res.status(400).json({ error: 'Imagem muito grande (máx 10MB)' });
     }
 
     // Build the prompt securely on the server
@@ -103,137 +167,240 @@ export default async function handler(req: any, res: any) {
         customPrompt: userInstruction
     });
 
+    try {
+      const { data, error } = await supabaseAdmin.rpc('decrement_credits', {
+        p_user_id: userId,
+        p_amount: 1
+      });
+      if (error) {
+        throw error;
+      }
+      creditsRemaining = data;
+      creditsReserved = true;
+    } catch (creditError: any) {
+      const message = creditError?.message?.toLowerCase() || '';
+      if (message.includes('insufficient_credits')) {
+        return res.status(403).json({
+          error: 'Sem créditos restantes',
+          credits_remaining: 0,
+          plan: profile.plan,
+          message: 'Você usou todos os seus créditos. Atualize seu plano para continuar gerando.',
+        });
+      }
+      console.error("[API] Failed to reserve credit:", creditError);
+      return res.status(500).json({ error: 'Falha ao reservar créditos' });
+    }
+
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
       console.error("[API] GEMINI_API_KEY is not set in environment variables");
-      return res.status(500).json({ error: 'Server configuration error: API Key missing' });
+      await supabaseAdmin.rpc('increment_credits', { p_user_id: userId, p_amount: 1 });
+      creditsRefunded = true;
+      return res.status(500).json({ error: 'Erro de configuração: Chave da API ausente' });
     }
 
     const ai = new GoogleGenAI({ apiKey });
-    // Use the latest stable model
-    const MODEL_NAME = 'gemini-2.5-flash-image'; 
-    console.log(`[API] Using model: ${MODEL_NAME}`);
+    const modelName = 'gemini-2.5-flash-image';
+    console.log(`[API] Using model: ${modelName}`);
 
-    const response = await ai.models.generateContent({
-      model: MODEL_NAME,
-      contents: {
-        parts: [
-          {
-            inlineData: {
-              data: imageBase64.replace(/^data:image\/\w+;base64,/, ''),
-              mimeType: 'image/jpeg',
-            },
-          },
-          {
-            text: finalPrompt,
-          },
-        ],
-      },
-    });
+    let generatedBase64 = null;
 
-    if (response.candidates && response.candidates.length > 0) {
-      const parts = response.candidates[0].content.parts;
-      for (const part of parts) {
-        if (part.inlineData && part.inlineData.data) {
-          const generatedBase64 = part.inlineData.data;
-          const resultBase64 = `data:image/png;base64,${generatedBase64}`;
+    if (modelName.includes('gemini') || modelName.includes('flash')) {
+        // Use generateContent for Gemini Flash models (multimodal)
+        const matches = imageBase64.match(/^data:(image\/([a-zA-Z]+));base64,(.+)$/);
+        let mimeType = 'image/jpeg';
+        let imageData = imageBase64;
 
-          // --- Deduct 1 credit ---
-          const { error: creditError } = await supabaseAdmin
-            .from('profiles')
-            .update({ credits_remaining: profile.credits_remaining - 1 })
-            .eq('id', userId);
-
-          if (creditError) {
-            console.error("[API] Failed to deduct credit:", creditError);
-          }
-
-          // --- Determine storage strategy based on plan ---
-          const isPremium = profile.plan !== 'free';
-          let generatedImageUrl: string | null = null;
-          let isCompressed = false;
-
-          if (isPremium) {
-            // Premium: save full-res to Supabase Storage
-            try {
-              const buffer = Buffer.from(generatedBase64, 'base64');
-              const filePath = `${userId}/${Date.now()}.png`;
-
-              const { error: uploadError } = await supabaseAdmin.storage
-                .from('generations')
-                .upload(filePath, buffer, {
-                  contentType: 'image/png',
-                  upsert: false,
-                });
-
-              if (!uploadError) {
-                const { data: urlData } = supabaseAdmin.storage
-                  .from('generations')
-                  .getPublicUrl(filePath);
-                generatedImageUrl = urlData.publicUrl;
-              }
-            } catch (storageErr) {
-              console.error("[API] Storage upload failed (premium):", storageErr);
-            }
-          } else {
-            // Free: save compressed version (lower quality JPEG)
-            isCompressed = true;
-            try {
-              const buffer = Buffer.from(generatedBase64, 'base64');
-              const filePath = `${userId}/${Date.now()}_compressed.jpg`;
-
-              // Store as-is for now (compression happens client-side before upload)
-              // Mark as compressed for future reference
-              const { error: uploadError } = await supabaseAdmin.storage
-                .from('generations')
-                .upload(filePath, buffer, {
-                  contentType: 'image/jpeg',
-                  upsert: false,
-                });
-
-              if (!uploadError) {
-                const { data: urlData } = supabaseAdmin.storage
-                  .from('generations')
-                  .getPublicUrl(filePath);
-                generatedImageUrl = urlData.publicUrl;
-              }
-            } catch (storageErr) {
-              console.error("[API] Storage upload failed (free):", storageErr);
-              // Non-blocking: generation still succeeds, just no persistence
-            }
-          }
-
-          // --- Save generation record to DB ---
-          try {
-            await supabaseAdmin.from('generations').insert({
-              user_id: userId,
-              property_id: propertyId || null,
-              original_image_url: 'client-side', // originals stay on client for free tier
-              generated_image_url: generatedImageUrl || 'not-stored',
-              prompt_used: finalPrompt,
-              style: style || null,
-              generation_mode: generationMode || null,
-              is_compressed: isCompressed,
-            });
-          } catch (dbErr) {
-            console.error("[API] Failed to save generation record:", dbErr);
-          }
-
-          return res.status(200).json({
-            result: resultBase64,
-            credits_remaining: profile.credits_remaining - 1,
-            is_compressed: isCompressed,
-          });
+        if (matches && matches.length === 4) {
+            mimeType = matches[1];
+            imageData = matches[3];
+        } else {
+            imageData = imageBase64.replace(/^data:image\/\w+;base64,/, '');
         }
+
+        const result = await ai.models.generateContent({
+            model: modelName,
+            contents: [{
+                role: 'user',
+                parts: [
+                    { text: finalPrompt },
+                    { inlineData: { mimeType, data: imageData } }
+                ]
+            }]
+        });
+
+        // @ts-ignore - Response type handling
+        const response = result.response || result;
+        
+        if (response.candidates && response.candidates.length > 0) {
+            const parts = response.candidates[0].content.parts;
+            const imagePart = parts.find((p: any) => p.inlineData && p.inlineData.mimeType.startsWith('image/'));
+            if (imagePart && imagePart.inlineData) {
+                generatedBase64 = imagePart.inlineData.data;
+            }
+        }
+        
+        if (!generatedBase64) {
+             console.warn("[API] Gemini Flash returned no image. Response candidates:", JSON.stringify(response.candidates));
+        }
+
+    } else {
+        // Fallback: Using Imagen 3 for image generation via generateImages (predict)
+        const imagenResponse = await (ai.models as any).generateImages({
+            model: modelName,
+            prompt: finalPrompt,
+            image: {
+                imageBytes: imageBase64.replace(/^data:image\/\w+;base64,/, ''),
+                mimeType: 'image/jpeg' // or png
+            },
+            config: {
+                numberOfImages: 1,
+                aspectRatio: '1:1' // Optional, maybe infer from input?
+            }
+        });
+
+        // Parse result from generateImages
+        // Usually returns { generatedImages: [ { image: { imageBytes: '...' } } ] }
+        if (imagenResponse.generatedImages && imagenResponse.generatedImages.length > 0) {
+            generatedBase64 = imagenResponse.generatedImages[0].image.imageBytes;
+        } else if (imagenResponse.images && imagenResponse.images.length > 0) { // Fallback for some SDK versions
+            generatedBase64 = imagenResponse.images[0];
+        }
+    }
+    
+    if (!generatedBase64) {
+        throw new Error('Nenhuma imagem gerada pelo modelo.');
+    }
+    
+    // --- Determine storage strategy based on plan ---
+    const isPremium = profile.plan !== 'free';
+    let generatedImageUrl: string | null = null;
+    let isCompressed = false;
+    let storagePath: string | null = null;
+    let originalStoragePath: string | null = null;
+
+    try {
+      // 1. Upload Generated Image
+      const buffer = Buffer.from(generatedBase64, 'base64');
+      const extension = isPremium ? 'png' : 'jpg';
+      const contentType = isPremium ? 'image/png' : 'image/jpeg';
+      isCompressed = !isPremium;
+      storagePath = `${userId}/${Date.now()}${isPremium ? '' : '_compressed'}.${extension}`;
+
+      const { error: uploadError } = await supabaseAdmin.storage
+        .from(GENERATIONS_BUCKET)
+        .upload(storagePath, buffer, { contentType, upsert: false });
+
+      if (uploadError) {
+        throw uploadError;
       }
+      
+      // 2. Upload Original Image (for audit)
+      try {
+        const matches = imageBase64.match(/^data:(image\/([a-zA-Z]+));base64,(.+)$/);
+        if (matches && matches.length === 4) {
+            const mimeType = matches[1];
+            const ext = matches[2] === 'jpeg' ? 'jpg' : matches[2];
+            const data = matches[3];
+            const inputBuffer = Buffer.from(data, 'base64');
+            
+            originalStoragePath = `${userId}/${Date.now()}_input.${ext}`;
+            
+            const { error: originalUploadError } = await supabaseAdmin.storage
+                .from(ORIGINALS_BUCKET)
+                .upload(originalStoragePath, inputBuffer, { contentType: mimeType, upsert: false });
+                
+            if (originalUploadError) {
+                console.warn("Failed to upload original image:", originalUploadError);
+                // Fallback to null, effectively
+                originalStoragePath = null;
+            }
+        }
+      } catch (origErr) {
+        console.warn("Error processing original image upload:", origErr);
+      }
+
+      const { data: signedData, error: signedError } = await supabaseAdmin.storage
+        .from(GENERATIONS_BUCKET)
+        .createSignedUrl(storagePath, 60 * 60);
+
+      if (signedError || !signedData?.signedUrl) {
+        throw signedError || new Error('Falha ao gerar signed URL');
+      }
+
+      generatedImageUrl = signedData.signedUrl;
+    } catch (storageError) {
+      console.error("Storage error", storageError);
+      // Cleanup if one succeeded but other failed or general error
+      if (storagePath) await supabaseAdmin.storage.from(GENERATIONS_BUCKET).remove([storagePath]);
+      if (originalStoragePath) await supabaseAdmin.storage.from(ORIGINALS_BUCKET).remove([originalStoragePath]);
+      
+      await supabaseAdmin.rpc('increment_credits', { p_user_id: userId, p_amount: 1 });
+      creditsRefunded = true;
+      return res.status(500).json({ error: 'Falha ao salvar imagem no storage' });
     }
 
-    throw new Error("No image data found in response");
+    try {
+      await supabaseAdmin.from('generations').insert({
+        user_id: userId,
+        original_image_url: originalStoragePath || 'base64-upload',
+        generated_image_url: storagePath || generatedImageUrl,
+        prompt_used: finalPrompt,
+        generation_mode: generationMode || 'Redesign',
+        is_compressed: isCompressed,
+      });
+    } catch (dbError) {
+      console.error("Generation metadata insert failed:", dbError);
+      
+      // Compensating Transaction: Cleanup Storage
+      if (storagePath) await supabaseAdmin.storage.from(GENERATIONS_BUCKET).remove([storagePath]);
+      if (originalStoragePath) await supabaseAdmin.storage.from(ORIGINALS_BUCKET).remove([originalStoragePath]);
+
+      await supabaseAdmin.rpc('increment_credits', { p_user_id: userId, p_amount: 1 });
+      creditsRefunded = true;
+      return res.status(500).json({ error: 'Falha ao persistir geração' });
+    }
+
+    await recordMetric({
+      userId,
+      endpoint: 'generate',
+      model: modelName,
+      success: true,
+      latencyMs: Date.now() - startedAt,
+      inputBytes: imageBase64.length,
+      outputBytes: generatedBase64.length,
+      creditsUsed: 1,
+      estimatedCostUsd: null
+    });
+
+    return res.status(200).json({
+      result: generatedImageUrl,
+      credits_remaining: creditsRemaining ?? profile.credits_remaining,
+      is_compressed: isCompressed,
+      storage_path: storagePath ?? undefined
+    });
+
   } catch (error: any) {
-    console.error("[API] Critical Error:", error);
+    console.error("Generation API Error:", error);
+    if (userId) {
+      await recordMetric({
+        userId,
+        endpoint: 'generate',
+        model: 'imagen-3.0-generate-001',
+        success: false,
+        errorMessage: error.message || 'Erro desconhecido',
+        latencyMs: Date.now() - startedAt,
+        inputBytes: req.body?.imageBase64?.length ?? null,
+        creditsUsed: creditsReserved ? 1 : 0,
+        estimatedCostUsd: null
+      });
+    }
+    if (supabaseAdmin && creditsReserved && !creditsRefunded) {
+      await supabaseAdmin.rpc('increment_credits', { p_user_id: userId, p_amount: 1 });
+    }
     return res.status(500).json({ 
-        error: error.message || 'Failed to generate design',
-        details: process.env.NODE_ENV === 'development' ? error.stack : undefined 
+        error: 'Falha interna na geração', 
+        message: error.message || 'Erro desconhecido ao processar imagem' 
     });
   }
 }

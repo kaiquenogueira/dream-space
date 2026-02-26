@@ -1,19 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
-import type { UserProfile } from '../hooks/useAuth';
+import { adminService, AdminUser } from '../services/adminService';
 
 interface AdminDashboardProps {
     onBack: () => void;
-}
-
-interface AdminUser {
-    id: string;
-    email: string;
-    full_name: string | null;
-    plan: string;
-    credits_remaining: number;
-    created_at: string;
-    is_admin: boolean;
 }
 
 const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
@@ -35,26 +24,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
         try {
             setLoading(true);
             setError(null);
-
-            const { data: { session } } = await supabase.auth.getSession();
-            if (!session) throw new Error('Não autenticado');
-
-            const res = await fetch('/api/admin/users', {
-                headers: {
-                    'Authorization': `Bearer ${session.access_token}`
-                }
-            });
-
-            if (!res.ok) {
-                const data = await res.json();
-                throw new Error(data.error || 'Falha ao buscar usuários');
-            }
-
-            const data = await res.json();
+            const data = await adminService.fetchUsers();
             setUsers(data);
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error("Error fetching users:", err);
-            setError(err.message);
+            setError(err instanceof Error ? err.message : 'Falha desconhecida');
         } finally {
             setLoading(false);
         }
@@ -67,178 +41,131 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
         try {
             setIsSubmitting(true);
             setError(null);
-
-            const { data: { session } } = await supabase.auth.getSession();
-            if (!session) throw new Error('Não autenticado');
-
-            const res = await fetch('/api/admin/credits', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${session.access_token}`
-                },
-                body: JSON.stringify({
-                    targetUserId: editingUser.id,
-                    creditsToAdd: creditsToChange
-                })
-            });
-
-            if (!res.ok) {
-                const data = await res.json();
-                throw new Error(data.error || 'Falha ao atualizar créditos');
-            }
-
-            const data = await res.json();
-
-            // Update local state
-            setUsers(users.map(u =>
-                u.id === editingUser.id
-                    ? { ...u, credits_remaining: data.newCredits }
-                    : u
-            ));
-
+            await adminService.updateCredits(editingUser.id, creditsToChange);
+            
+            // Success
             setEditingUser(null);
             setCreditsToChange(0);
-
-        } catch (err: any) {
+            fetchUsers(); // Refresh list
+        } catch (err: unknown) {
             console.error("Error updating credits:", err);
-            // Don't close modal on error so they can read it
-            alert(`Erro ao atualizar créditos: ${err.message}`);
+            setError(err instanceof Error ? err.message : 'Falha ao atualizar créditos');
         } finally {
             setIsSubmitting(false);
         }
     };
 
-    const filteredUsers = users.filter(u =>
-        u.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (u.full_name && u.full_name.toLowerCase().includes(searchTerm.toLowerCase()))
+    const openEditModal = (user: AdminUser) => {
+        setEditingUser(user);
+        setCreditsToChange(0); // Default to 0 change
+    };
+
+    const filteredUsers = users.filter(user => 
+        user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (user.full_name && user.full_name.toLowerCase().includes(searchTerm.toLowerCase()))
     );
 
     return (
-        <div className="flex-1 bg-surface-dark p-6 overflow-y-auto">
-            <div className="max-w-6xl mx-auto">
-
+        <div className="min-h-screen bg-surface-dark text-text-main p-6">
+            <div className="max-w-6xl mx-auto space-y-6">
                 {/* Header */}
-                <div className="flex items-center justify-between mb-8">
-                    <div>
-                        <div className="flex items-center gap-3">
-                            <button
-                                onClick={onBack}
-                                className="p-2 bg-surface border border-glass-border rounded-sm text-text-muted hover:text-white hover:bg-surface-light transition-colors"
-                                title="Voltar"
-                            >
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <path d="m15 18-6-6 6-6" />
-                                </svg>
-                            </button>
-                            <h1 className="text-2xl font-bold font-heading text-text-main">Painel Administrativo</h1>
-                        </div>
-                        <p className="text-text-muted text-sm mt-1 ml-12">Gerencie usuários e conceda créditos.</p>
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                        <button 
+                            onClick={onBack}
+                            className="p-2 hover:bg-surface rounded-full transition-colors"
+                        >
+                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                            </svg>
+                        </button>
+                        <h1 className="text-2xl font-bold">Painel Administrativo</h1>
                     </div>
-
-                    <div className="relative">
-                        <svg className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <circle cx="11" cy="11" r="8" />
-                            <line x1="21" y1="21" x2="16.65" y2="16.65" />
-                        </svg>
-                        <input
-                            type="text"
-                            placeholder="Buscar por email ou nome..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="pl-10 pr-4 py-2 bg-surface border border-glass-border rounded-sm text-text-main placeholder-text-muted focus:outline-none focus:ring-1 focus:ring-secondary focus:border-secondary min-w-[300px]"
-                        />
+                    <div className="text-sm text-text-muted">
+                        {users.length} usuários encontrados
                     </div>
                 </div>
 
-                {/* Error State */}
+                {/* Error Banner */}
                 {error && (
-                    <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-sm text-red-400 text-sm flex items-center justify-between">
+                    <div className="bg-red-500/10 border border-red-500/20 text-red-200 p-4 rounded-lg flex items-center justify-between">
                         <span>{error}</span>
-                        <button onClick={fetchUsers} className="underline hover:text-red-300">Tentar Novamente</button>
+                        <button onClick={() => setError(null)} className="hover:text-white">✕</button>
                     </div>
                 )}
 
-                {/* Data Table */}
-                <div className="bg-surface/50 border border-glass-border rounded-sm overflow-hidden backdrop-blur-sm">
+                {/* Search */}
+                <div className="relative">
+                    <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                    <input 
+                        type="text"
+                        placeholder="Buscar por email ou nome..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="w-full bg-surface border border-glass-border rounded-lg pl-10 pr-4 py-3 focus:ring-2 focus:ring-primary/50 outline-none"
+                    />
+                </div>
+
+                {/* Users Table */}
+                <div className="bg-surface border border-glass-border rounded-lg overflow-hidden">
                     <div className="overflow-x-auto">
-                        <table className="w-full text-left text-sm text-text-muted">
-                            <thead className="bg-surface text-text-main border-b border-glass-border">
+                        <table className="w-full text-left text-sm">
+                            <thead className="bg-surface-dark/50 border-b border-glass-border">
                                 <tr>
-                                    <th className="px-6 py-4 font-bold font-heading uppercase tracking-wider text-xs">Usuário</th>
-                                    <th className="px-6 py-4 font-bold font-heading uppercase tracking-wider text-xs">Plano</th>
-                                    <th className="px-6 py-4 font-bold font-heading uppercase tracking-wider text-xs">Créditos</th>
-                                    <th className="px-6 py-4 font-bold font-heading uppercase tracking-wider text-xs">Data de Cadastro</th>
-                                    <th className="px-6 py-4 font-bold font-heading uppercase tracking-wider text-xs text-right">Ações</th>
+                                    <th className="p-4 font-medium text-text-muted">Usuário</th>
+                                    <th className="p-4 font-medium text-text-muted">Plano</th>
+                                    <th className="p-4 font-medium text-text-muted">Créditos</th>
+                                    <th className="p-4 font-medium text-text-muted">Cadastro</th>
+                                    <th className="p-4 font-medium text-text-muted text-right">Ações</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-glass-border">
                                 {loading ? (
                                     <tr>
-                                        <td colSpan={5} className="px-6 py-12 text-center text-text-muted">
-                                            <div className="flex flex-col items-center justify-center gap-3">
-                                                <svg className="animate-spin w-6 h-6 text-secondary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                    <path d="M21 12a9 9 0 1 1-6.219-8.56" />
-                                                </svg>
-                                                Carregando usuários...
-                                            </div>
+                                        <td colSpan={5} className="p-8 text-center text-text-muted animate-pulse">
+                                            Carregando usuários...
                                         </td>
                                     </tr>
                                 ) : filteredUsers.length === 0 ? (
                                     <tr>
-                                        <td colSpan={5} className="px-6 py-12 text-center text-text-muted">
+                                        <td colSpan={5} className="p-8 text-center text-text-muted">
                                             Nenhum usuário encontrado.
                                         </td>
                                     </tr>
                                 ) : (
-                                    filteredUsers.map((user) => (
-                                        <tr key={user.id} className="hover:bg-surface-light/30 transition-colors">
-                                            <td className="px-6 py-4">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="w-8 h-8 rounded-full bg-surface border border-glass-border flex items-center justify-center text-text-muted font-bold uppercase text-xs flex-shrink-0">
-                                                        {(user.full_name || user.email)[0]}
-                                                    </div>
-                                                    <div className="flex flex-col min-w-0">
-                                                        <span className="text-text-main font-medium truncate">{user.full_name || 'Sem nome'}</span>
-                                                        <span className="text-text-muted text-xs truncate flex items-center gap-2">
-                                                            {user.email}
-                                                            {user.is_admin && (
-                                                                <span className="bg-secondary/20 text-secondary text-[10px] px-1.5 py-0.5 rounded uppercase font-bold tracking-wider">
-                                                                    Admin
-                                                                </span>
-                                                            )}
-                                                        </span>
-                                                    </div>
-                                                </div>
+                                    filteredUsers.map(user => (
+                                        <tr key={user.id} className="hover:bg-surface-dark/30 transition-colors">
+                                            <td className="p-4">
+                                                <div className="font-medium text-white">{user.full_name || 'Sem nome'}</div>
+                                                <div className="text-text-muted text-xs">{user.email}</div>
+                                                {user.is_admin && (
+                                                    <span className="inline-block mt-1 px-1.5 py-0.5 bg-secondary/20 text-secondary text-[10px] font-bold rounded uppercase">Admin</span>
+                                                )}
                                             </td>
-                                            <td className="px-6 py-4">
-                                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize border ${user.plan === 'free'
-                                                    ? 'bg-surface-light text-text-muted border-glass-border'
-                                                    : user.plan === 'pro'
-                                                        ? 'bg-purple-900/20 text-purple-400 border-purple-500/20'
-                                                        : 'bg-secondary/10 text-secondary border-secondary/20'
-                                                    }`}>
+                                            <td className="p-4">
+                                                <span className={`px-2 py-1 rounded text-xs font-medium capitalize
+                                                    ${user.plan === 'pro' ? 'bg-purple-500/20 text-purple-300' : 
+                                                      user.plan === 'starter' ? 'bg-amber-500/20 text-amber-300' : 
+                                                      'bg-zinc-700/30 text-zinc-400'
+                                                    }
+                                                `}>
                                                     {user.plan}
                                                 </span>
                                             </td>
-                                            <td className="px-6 py-4">
-                                                <div className="flex items-center gap-2">
-                                                    <span className="font-semibold text-text-main">{user.credits_remaining}</span>
-                                                    <span className="text-xs text-text-muted">créditos</span>
-                                                </div>
+                                            <td className="p-4 font-mono text-white">
+                                                {user.credits_remaining}
                                             </td>
-                                            <td className="px-6 py-4 text-text-muted">
-                                                {new Date(user.created_at).toLocaleDateString('pt-BR')}
+                                            <td className="p-4 text-text-muted">
+                                                {new Date(user.created_at).toLocaleDateString()}
                                             </td>
-                                            <td className="px-6 py-4 text-right">
-                                                <button
-                                                    onClick={() => {
-                                                        setEditingUser(user);
-                                                        setCreditsToChange(0);
-                                                    }}
-                                                    className="px-3 py-1.5 bg-surface-light hover:bg-surface text-text-muted hover:text-white rounded-sm text-xs font-medium transition-colors border border-glass-border focus-visible:ring-2 focus-visible:ring-secondary"
+                                            <td className="p-4 text-right">
+                                                <button 
+                                                    onClick={() => openEditModal(user)}
+                                                    className="text-primary hover:text-primary/80 text-xs font-medium px-3 py-1.5 border border-primary/30 rounded hover:bg-primary/10 transition-colors"
                                                 >
-                                                    Modificar Créditos
+                                                    Gerenciar Créditos
                                                 </button>
                                             </td>
                                         </tr>
@@ -250,86 +177,78 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
                 </div>
             </div>
 
-            {/* Edit Credits Modal */}
+            {/* Edit Modal */}
             {editingUser && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-                    <div className="bg-surface border border-glass-border rounded-sm shadow-2xl max-w-md w-full overflow-hidden animate-slide-up">
-                        <div className="px-6 py-4 border-b border-glass-border flex items-center justify-between">
-                            <h3 className="text-lg font-bold font-heading text-text-main">Modificar Créditos</h3>
-                            <button
-                                onClick={() => setEditingUser(null)}
-                                className="text-text-muted hover:text-white transition-colors"
-                                disabled={isSubmitting}
-                            >
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <path d="M18 6 6 18M6 6l12 12" />
-                                </svg>
-                            </button>
+                    <div className="bg-surface border border-glass-border rounded-xl w-full max-w-md p-6 space-y-4 shadow-2xl">
+                        <h3 className="text-lg font-bold text-white">Gerenciar Créditos</h3>
+                        <div className="text-sm text-text-muted">
+                            Usuário: <span className="text-white">{editingUser.email}</span>
+                            <br />
+                            Atual: <span className="text-white">{editingUser.credits_remaining} créditos</span>
                         </div>
 
-                        <form onSubmit={handleUpdateCredits} className="p-6">
-                            <div className="mb-6">
-                                <p className="text-sm text-text-muted mb-4">
-                                    Ajustando créditos para o usuário: <br />
-                                    <strong className="text-text-main">{editingUser.email}</strong>
-                                </p>
-
-                                <div className="flex items-center justify-between bg-surface-dark p-4 rounded-sm border border-glass-border mb-6">
-                                    <span className="text-text-muted text-sm">Créditos atuais</span>
-                                    <span className="text-xl font-bold text-text-main">{editingUser.credits_remaining}</span>
-                                </div>
-
-                                <label className="block text-sm font-medium text-text-main mb-2">
-                                    Adicionar (ou remover) créditos
+                        <form onSubmit={handleUpdateCredits} className="space-y-4">
+                            <div>
+                                <label className="block text-xs font-bold text-text-muted uppercase mb-2">
+                                    Adicionar / Remover Créditos
                                 </label>
-                                <div className="flex items-center gap-3">
-                                    <button
+                                <div className="flex items-center gap-2">
+                                    <button 
                                         type="button"
                                         onClick={() => setCreditsToChange(prev => prev - 10)}
-                                        className="p-3 bg-surface-light rounded-sm text-text-muted hover:text-white hover:bg-surface transition"
+                                        className="p-2 bg-surface-dark border border-glass-border rounded hover:bg-white/5"
                                     >
                                         -10
                                     </button>
-                                    <input
-                                        type="number"
+                                    <button 
+                                        type="button"
+                                        onClick={() => setCreditsToChange(prev => prev - 1)}
+                                        className="p-2 bg-surface-dark border border-glass-border rounded hover:bg-white/5"
+                                    >
+                                        -1
+                                    </button>
+                                    <input 
+                                        type="number" 
                                         value={creditsToChange}
                                         onChange={(e) => setCreditsToChange(parseInt(e.target.value) || 0)}
-                                        className="flex-1 text-center py-3 bg-surface-dark border border-glass-border rounded-sm text-text-main font-bold text-lg focus:outline-none focus:border-secondary"
+                                        className="flex-1 bg-surface-dark border border-glass-border rounded p-2 text-center font-mono"
                                     />
-                                    <button
+                                    <button 
+                                        type="button"
+                                        onClick={() => setCreditsToChange(prev => prev + 1)}
+                                        className="p-2 bg-surface-dark border border-glass-border rounded hover:bg-white/5"
+                                    >
+                                        +1
+                                    </button>
+                                    <button 
                                         type="button"
                                         onClick={() => setCreditsToChange(prev => prev + 10)}
-                                        className="p-3 bg-surface-light rounded-sm text-text-muted hover:text-white hover:bg-surface transition"
+                                        className="p-2 bg-surface-dark border border-glass-border rounded hover:bg-white/5"
                                     >
                                         +10
                                     </button>
                                 </div>
-                                <p className="text-xs text-text-muted mt-2 text-center">
-                                    Novo total será: <strong className={editingUser.credits_remaining + creditsToChange < 0 ? "text-red-400" : "text-secondary"}>
-                                        {Math.max(0, editingUser.credits_remaining + creditsToChange)}
-                                    </strong>
-                                </p>
+                                <div className="mt-2 text-xs text-center text-text-muted">
+                                    Novo saldo: <span className="text-primary font-bold">{editingUser.credits_remaining + creditsToChange}</span>
+                                </div>
                             </div>
 
-                            <div className="flex gap-3">
-                                <button
+                            <div className="flex items-center gap-3 pt-2">
+                                <button 
                                     type="button"
                                     onClick={() => setEditingUser(null)}
+                                    className="flex-1 px-4 py-2 border border-glass-border rounded hover:bg-white/5 transition-colors text-sm"
                                     disabled={isSubmitting}
-                                    className="flex-1 py-2.5 px-4 bg-surface-light hover:bg-surface text-white rounded-sm font-medium transition-colors uppercase tracking-wide text-xs"
                                 >
                                     Cancelar
                                 </button>
-                                <button
+                                <button 
                                     type="submit"
-                                    disabled={isSubmitting || creditsToChange === 0}
-                                    className="flex-1 py-2.5 px-4 bg-secondary hover:bg-secondary-dark text-black rounded-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 uppercase tracking-wide text-xs font-bold"
+                                    className="flex-1 px-4 py-2 bg-primary text-white rounded hover:bg-primary/90 transition-colors text-sm font-medium disabled:opacity-50"
+                                    disabled={isSubmitting}
                                 >
-                                    {isSubmitting ? (
-                                        <><svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12a9 9 0 1 1-6.219-8.56" /></svg> Salvando...</>
-                                    ) : (
-                                        'Confirmar'
-                                    )}
+                                    {isSubmitting ? 'Salvando...' : 'Confirmar'}
                                 </button>
                             </div>
                         </form>

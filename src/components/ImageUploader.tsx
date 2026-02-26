@@ -29,18 +29,13 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ onImagesSelected, current
       if (!file.type.startsWith('image/')) continue;
 
       try {
-        console.log(`Original size: ${(file.size / 1024 / 1024).toFixed(2)} MB`);
         const { base64, preview } = await compressImage(file);
-        console.log(`Compressed size: ${(base64.length * 0.75 / 1024 / 1024).toFixed(2)} MB`);
-
-        const base64Content = base64;
-        const result = preview;
 
         processedImages.push({
-          id: Math.random().toString(36).substring(7),
+          id: crypto.randomUUID(),
           file: file,
-          previewUrl: result,
-          base64: base64Content,
+          previewUrl: preview,
+          base64: base64,
           selected: true
         });
       } catch (e) {
@@ -72,7 +67,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ onImagesSelected, current
     e.preventDefault();
     setIsDragging(false);
     if (isLimitReached) return;
-    const files = Array.from(e.dataTransfer.files).filter((f: any) => f.type?.startsWith('image/')) as File[];
+    const files = Array.from<File>(e.dataTransfer.files).filter(f => f.type?.startsWith('image/'));
     if (files.length > 0) await processFiles(files);
   };
 
@@ -104,6 +99,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ onImagesSelected, current
         multiple
         accept="image/*"
         className="hidden"
+        data-testid="image-uploader-input"
         ref={fileInputRef}
         onChange={handleFileChange}
         disabled={isLimitReached}
@@ -130,7 +126,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ onImagesSelected, current
           <div className="flex items-center gap-3">
             <button
               type="button"
-              onClick={(e) => { e.stopPropagation(); !isLimitReached && fileInputRef.current?.click(); }}
+              onClick={(e) => { e.stopPropagation(); if (!isLimitReached) fileInputRef.current?.click(); }}
               className="flex flex-col items-center gap-1 group outline-none"
             >
               <div className="p-2 rounded-full bg-white/5 text-text-muted border border-white/5 group-hover:text-secondary group-hover:bg-secondary/10 group-hover:border-secondary/20 transition-all duration-300 group-focus-visible:ring-1 group-focus-visible:ring-secondary shadow-inner hover:shadow-[0_0_15px_rgba(211,156,118,0.15)] flex items-center justify-center">
@@ -143,7 +139,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ onImagesSelected, current
 
             <button
               type="button"
-              onClick={(e) => { e.stopPropagation(); !isLimitReached && cameraInputRef.current?.click(); }}
+              onClick={(e) => { e.stopPropagation(); if (!isLimitReached) cameraInputRef.current?.click(); }}
               className="flex flex-col items-center gap-1 group outline-none"
             >
               <div className="p-2 rounded-full bg-white/5 text-text-muted border border-white/5 group-hover:text-secondary group-hover:bg-secondary/10 group-hover:border-secondary/20 transition-all duration-300 group-focus-visible:ring-1 group-focus-visible:ring-secondary shadow-inner hover:shadow-[0_0_15px_rgba(211,156,118,0.15)] flex items-center justify-center">

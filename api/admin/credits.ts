@@ -5,6 +5,10 @@ export default async function handler(req: any, res: any) {
         return res.status(405).json({ error: 'Method Not Allowed' });
     }
 
+    if (!supabaseAdmin) {
+        return res.status(500).json({ error: 'Erro de configuração do servidor: Credenciais do Supabase ausentes' });
+    }
+
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
         return res.status(401).json({ error: 'Unauthorized: Missing or invalid token' });
@@ -29,9 +33,12 @@ export default async function handler(req: any, res: any) {
             return res.status(403).json({ error: 'Forbidden: Admin access required' });
         }
 
-        const { targetUserId, creditsToAdd } = req.body;
+        const { targetUserId, creditsToAdd, userId, credits } = req.body;
 
-        if (!targetUserId || typeof creditsToAdd !== 'number') {
+        const resolvedTargetUserId = targetUserId ?? userId;
+        const resolvedCreditsToAdd = typeof creditsToAdd === 'number' ? creditsToAdd : credits;
+
+        if (!resolvedTargetUserId || typeof resolvedCreditsToAdd !== 'number') {
             return res.status(400).json({ error: 'Missing targetUserId or creditsToAdd' });
         }
 
@@ -39,20 +46,20 @@ export default async function handler(req: any, res: any) {
         const { data: targetProfile, error: targetError } = await supabaseAdmin
             .from('profiles')
             .select('credits_remaining, email')
-            .eq('id', targetUserId)
+            .eq('id', resolvedTargetUserId)
             .single();
 
         if (targetError || !targetProfile) {
             return res.status(404).json({ error: 'Target user not found' });
         }
 
-        const newCredits = Math.max(0, targetProfile.credits_remaining + creditsToAdd);
+        const newCredits = Math.max(0, targetProfile.credits_remaining + resolvedCreditsToAdd);
 
         // Update credits
         const { error: updateError } = await supabaseAdmin
             .from('profiles')
             .update({ credits_remaining: newCredits, updated_at: new Date().toISOString() })
-            .eq('id', targetUserId);
+            .eq('id', resolvedTargetUserId);
 
         if (updateError) {
             throw updateError;

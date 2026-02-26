@@ -7,19 +7,34 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, '.', '');
   return {
     server: {
-      port: 3000,
       host: '0.0.0.0',
-      hmr: {
-        clientPort: 3000
-      }
     },
     plugins: [
-      react(),
+      react({
+        include: "**/*.tsx",
+      }),
       tailwindcss()
     ],
+    assetsInclude: ['**/*.html'],
     resolve: {
       alias: {
         '@': path.resolve(__dirname, './src'),
+      }
+    },
+    build: {
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            if (id.includes('node_modules')) {
+              if (id.includes('react')) return 'react';
+              if (id.includes('@supabase')) return 'supabase';
+              if (id.includes('@google')) return 'google';
+              if (id.includes('jszip') || id.includes('file-saver')) return 'downloads';
+              if (id.includes('tailwindcss') || id.includes('postcss') || id.includes('autoprefixer')) return 'styles';
+              return 'vendor';
+            }
+          }
+        }
       }
     }
   };

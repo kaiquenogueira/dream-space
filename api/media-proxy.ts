@@ -1,45 +1,37 @@
 import { supabaseAdmin } from './lib/supabaseAdmin.js';
+import type { VercelRequest, VercelResponse } from './types.js';
 
-export default async function handler(req: any, res: any) {
+export default async function handler(req: VercelRequest, res: VercelResponse) {
     // --- Auth Check via Supabase ---
+    if (!supabaseAdmin) {
+        return res.status(500).json({ error: 'Erro de configuração do servidor: Credenciais do Supabase ausentes' });
+    }
+
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        // Allow if a temporary token is provided in query (optional, for direct browser downloads)
-        // But for now, let's stick to strict auth if the frontend can handle it.
-        // If the frontend uses <a href="..."> it won't send headers.
-        // So we might need to allow a query param token.
-        const { token } = req.query;
-        if (!token) {
-             return res.status(401).json({ error: 'Unauthorized: Missing token' });
-        }
-        
-        // Verify token from query
-        const { data: { user }, error } = await supabaseAdmin.auth.getUser(token);
-        if (error || !user) {
-            return res.status(401).json({ error: 'Unauthorized: Invalid token' });
-        }
-    } else {
-        const token = authHeader.split(' ')[1];
-        const { data: { user }, error } = await supabaseAdmin.auth.getUser(token);
-        if (error || !user) {
-            return res.status(401).json({ error: 'Unauthorized: Invalid token' });
-        }
+        return res.status(401).json({ error: 'Não autorizado: Token ausente' });
+    }
+
+    const token = authHeader.split(' ')[1];
+    const { data: { user }, error } = await supabaseAdmin.auth.getUser(token);
+    if (error || !user) {
+        return res.status(401).json({ error: 'Não autorizado: Token inválido' });
     }
 
     if (req.method !== 'GET') {
-        return res.status(405).json({ error: 'Method Not Allowed' });
+        return res.status(405).json({ error: 'Método não permitido' });
     }
 
     const { uri, type, filename } = req.query;
 
     if (!uri || typeof uri !== 'string' || !uri.startsWith('https://generativelanguage.googleapis.com')) {
-        return res.status(400).json({ error: 'Invalid or restricted URI' });
+        return res.status(400).json({ error: 'URI inválida ou restrita' });
     }
 
     try {
         const apiKey = process.env.GEMINI_API_KEY;
         if (!apiKey) {
-            return res.status(500).json({ error: 'Server configuration error' });
+            return res.status(500).json({ error: 'Erro de configuração do servidor: Chave da API ausente' });
         }
 
         const headers: any = {
@@ -50,11 +42,11 @@ export default async function handler(req: any, res: any) {
 
         if (!response.ok) {
             console.error("Upstream error:", response.status, response.statusText);
-            return res.status(response.status).json({ error: 'Failed to fetch media from upstream' });
+            return res.status(response.status).json({ error: 'Falha ao buscar mídia do servidor de origem' });
         }
 
         // Forward headers
-        const contentType = type || response.headers.get('content-type') || 'application/octet-stream';
+        const contentType = (type as string) || response.headers.get('content-type') || 'application/octet-stream';
         res.setHeader('Content-Type', contentType);
         
         if (filename) {
@@ -66,6 +58,6 @@ export default async function handler(req: any, res: any) {
 
     } catch (error: any) {
         console.error("Media Proxy Error:", error);
-        return res.status(500).json({ error: error.message || 'Internal Server Error' });
+        return res.status(500).json({ error: error.message || 'Erro interno no servidor' });
     }
 }

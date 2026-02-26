@@ -20,7 +20,6 @@ Esta aplicação permite transformar fotos de ambientes (vazios ou mobiliados) e
 - **Estilização**: Tailwind CSS v4
 - **Backend**: Vercel Serverless Functions (Node.js)
 - **IA Generativa**: Google Gemini API (`@google/genai`)
-- **Segurança**: `bcryptjs` (hash de senhas) e `jsonwebtoken` (JWT)
 
 ## 📦 Configuração e Instalação
 
@@ -49,14 +48,6 @@ VITE_SUPABASE_ANON_KEY=sua_chave_anon_supabase
 VITE_REDIRECT_URL=https://seu-dominio.com
 ```
 
-### 3. Gerar Senha de Admin
-Para gerar o hash seguro da sua senha de administrador, utilize o script incluído:
-
-```bash
-npm run generate-hash "SuaSenhaSeguraAqui"
-```
-Copie o hash gerado e cole na variável `ADMIN_PASSWORD_HASH` no seu arquivo `.env`.
-
 ## 🚀 Como Rodar Localmente
 
 Como o projeto utiliza Serverless Functions para proteger a API Key e gerenciar a autenticação, você deve usar a CLI da Vercel para simular o ambiente de produção.
@@ -75,6 +66,19 @@ npm run dev:vercel
 
 Acesse a aplicação em: `http://localhost:3000`
 
+### Notas de desenvolvimento
+- O HMR do Vite está desativado por compatibilidade com ambientes que aplicam SES/lockdown no navegador. As alterações recarregam a página inteira.
+- Se você iniciar apenas o Vite (`npm run dev`), as rotas `/api/*` não estarão disponíveis.
+
+## ✅ Testes
+```bash
+npm run test
+```
+
+Testes críticos de UI e fluxo principal:
+- `src/tests/app.test.tsx`
+- `src/tests/useImageGeneration.test.tsx`
+
 ## ☁️ Deploy na Vercel
 
 O projeto está otimizado para a Vercel.
@@ -87,21 +91,18 @@ O projeto está otimizado para a Vercel.
    ```bash
    vercel
    ```
-3. **Importante**: Configure as variáveis de ambiente (`GEMINI_API_KEY`, `ADMIN_USERNAME`, `ADMIN_PASSWORD_HASH`, `JWT_SECRET`) no painel da Vercel em **Settings > Environment Variables**.
+3. **Importante**: Configure as variáveis de ambiente (`GEMINI_API_KEY`, `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`) no painel da Vercel em **Settings > Environment Variables**.
 
 ## 📂 Estrutura do Projeto
 
 - `/api`: Serverless Functions (Backend)
-  - `generate.ts`: Rota protegida para geração de imagens.
-  - `login.ts`: Autenticação e emissão de JWT.
-  - `verify.ts`: Verificação de token.
+  - `generate.ts`: Geração de imagens.
+  - `generate-drone-tour.ts`: Geração de vídeo (Drone Tour).
+  - `check-operation.ts`: Polling do status de operações de vídeo.
+  - `media-proxy.ts`: Proxy autenticado de mídia.
+  - `verify.ts`: Validação de token via Supabase.
+  - `admin/users.ts` e `admin/credits.ts`: Gestão administrativa de usuários e créditos.
 - `/components`: Componentes React (Login, Upload, Seletores).
 - `/services`: Lógica de integração com o backend.
-- `/scripts`: Utilitários (gerador de hash de senha).
+- `geminiService.ts`: Chamadas às APIs e persistência de metadados de geração.
 - `App.tsx`: Componente principal da aplicação.
-
-## 📚 Documentação de Design e UX
-
-Foi realizada uma análise completa de usabilidade e UX da aplicação. O relatório detalhado, incluindo descobertas, recomendações e plano de ação, pode ser encontrado em:
-
-- [📄 Relatório de UX/UI e Acessibilidade](./UX_REPORT.md)

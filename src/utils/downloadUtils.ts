@@ -119,18 +119,28 @@ export const downloadAllImages = async (images: UploadedImage[]): Promise<void> 
     for (const [index, img] of generatedImages.entries()) {
       if (img.generatedUrl) {
         const url = img.generatedUrl;
-        const arr = url.split(',');
-        const mimeMatch = arr[0].match(/:(.*?);/);
-        const mime = mimeMatch ? mimeMatch[1] : 'image/png';
-        const bstr = atob(arr[1]);
-        let n = bstr.length;
-        const u8arr = new Uint8Array(n);
-        while (n--) {
-          u8arr[n] = bstr.charCodeAt(n);
+        if (url.startsWith('data:')) {
+          const arr = url.split(',');
+          const mimeMatch = arr[0].match(/:(.*?);/);
+          const mime = mimeMatch ? mimeMatch[1] : 'image/png';
+          const bstr = atob(arr[1]);
+          let n = bstr.length;
+          const u8arr = new Uint8Array(n);
+          while (n--) {
+            u8arr[n] = bstr.charCodeAt(n);
+          }
+          const blob = new Blob([u8arr], { type: mime });
+          const extension = mime.split('/')[1] || 'png';
+          folder.file(`design-${index + 1}.${extension}`, blob);
+        } else {
+          const response = await fetch(url);
+          if (!response.ok) {
+            throw new Error(`Failed to fetch image: ${response.statusText}`);
+          }
+          const blob = await response.blob();
+          const extension = blob.type?.split('/')[1] || 'png';
+          folder.file(`design-${index + 1}.${extension}`, blob);
         }
-        const blob = new Blob([u8arr], { type: mime });
-        const extension = mime.split('/')[1] || 'png';
-        folder.file(`design-${index + 1}.${extension}`, blob);
       }
 
       if (img.videoUrl) {

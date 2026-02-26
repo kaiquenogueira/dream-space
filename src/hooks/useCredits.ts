@@ -1,5 +1,3 @@
-import { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
 import type { UserProfile } from './useAuth';
 
 export const useCredits = (profile: UserProfile | null, refreshProfile: () => Promise<void>) => {

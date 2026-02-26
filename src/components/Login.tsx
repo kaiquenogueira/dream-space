@@ -2,9 +2,9 @@ import React, { useState } from 'react';
 import { SparkleIcon, UserIcon, LockIcon } from './Icons';
 
 interface LoginProps {
-  onSignIn: (email: string, password: string) => Promise<void>;
-  onSignUp: (email: string, password: string, fullName: string) => Promise<void>;
-  onGoogleSignIn: () => Promise<void>;
+  onSignIn: (email: string, password: string) => Promise<any>;
+  onSignUp: (email: string, password: string, fullName: string) => Promise<any>;
+  onGoogleSignIn: () => Promise<any>;
 }
 
 const Login: React.FC<LoginProps> = ({ onSignIn, onSignUp, onGoogleSignIn }) => {
@@ -24,14 +24,19 @@ const Login: React.FC<LoginProps> = ({ onSignIn, onSignUp, onGoogleSignIn }) => 
 
     try {
       if (mode === 'signin') {
-        await onSignIn(email, password);
+        const { error } = await onSignIn(email, password);
+        if (error) throw error;
       } else {
         if (!fullName.trim()) {
           throw new Error('Por favor, insira seu nome completo');
         }
-        await onSignUp(email, password, fullName);
-        setSuccess('Conta criada! Verifique seu email para confirmação ou faça login se a confirmação por email estiver desativada.');
-        setMode('signin');
+        const { data, error } = await onSignUp(email, password, fullName);
+        if (error) throw error;
+
+        if (data?.user || data?.session) {
+          setSuccess('Conta criada! Verifique seu email para confirmação ou faça login se a confirmação por email estiver desativada.');
+          setMode('signin');
+        }
       }
     } catch (err: any) {
       console.error('[Login] Error:', err);
@@ -44,7 +49,12 @@ const Login: React.FC<LoginProps> = ({ onSignIn, onSignUp, onGoogleSignIn }) => 
   const handleGoogleSignIn = async () => {
     setError('');
     try {
-      await onGoogleSignIn();
+      const { data, error } = await onGoogleSignIn();
+      if (error) throw error;
+
+      if (data?.url) {
+        // Redirecionamento iniciado com sucesso
+      }
     } catch (err: any) {
       console.error('[Login] Google Sign In Error:', err);
       setError(err.message || 'Falha no login com Google.');
@@ -192,6 +202,7 @@ const Login: React.FC<LoginProps> = ({ onSignIn, onSignUp, onGoogleSignIn }) => 
                   className="input-field pl-11 focus:ring-secondary focus:border-secondary"
                   placeholder="email@exemplo.com"
                   required
+                  autoComplete="email"
                 />
               </div>
             </div>
@@ -210,6 +221,7 @@ const Login: React.FC<LoginProps> = ({ onSignIn, onSignUp, onGoogleSignIn }) => 
                   placeholder={mode === 'signup' ? 'Mínimo de 6 caracteres' : 'Sua senha'}
                   minLength={mode === 'signup' ? 6 : undefined}
                   required
+                  autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
                 />
               </div>
             </div>

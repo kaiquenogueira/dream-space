@@ -52,33 +52,27 @@ describe('Authentication Flow', () => {
       />
     );
     
-    expect(screen.getByPlaceholderText(/voce@exemplo.com/i)).toBeInTheDocument();
-    // Check for both the tab button and the submit button
-    const entrarButtons = screen.getAllByText('Entrar');
-    expect(entrarButtons.length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByPlaceholderText(/email@exemplo.com/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Acessar/i })).toBeInTheDocument();
   });
 
   it('handles sign in correctly', async () => {
-    const onSignIn = vi.fn().mockResolvedValue(undefined);
+    const onSignIn = vi.fn().mockResolvedValue({ data: {}, error: null });
     render(
       <Login 
         onSignIn={onSignIn} 
-        onSignUp={vi.fn()} 
-        onGoogleSignIn={vi.fn()} 
+        onSignUp={vi.fn().mockResolvedValue({ data: {}, error: null })} 
+        onGoogleSignIn={vi.fn().mockResolvedValue({ data: {}, error: null })} 
       />
     );
     
-    const emailInput = screen.getByPlaceholderText(/voce@exemplo.com/i);
-    const passwordInput = screen.getByPlaceholderText(/Insira a senha/i);
+    const emailInput = screen.getByPlaceholderText(/email@exemplo.com/i);
+    const passwordInput = screen.getByPlaceholderText(/Sua senha/i);
     
     fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
     fireEvent.change(passwordInput, { target: { value: 'password123' } });
     
-    // Since there are multiple buttons with "Entrar" (tab and submit), we need to be more specific.
-    // The submit button is the one inside the form or has type submit.
-    const submitBtn = screen.getAllByRole('button', { name: 'Entrar' }).find(btn => btn.getAttribute('type') === 'submit');
-    
-    if (!submitBtn) throw new Error('Submit button not found');
+    const submitBtn = screen.getByRole('button', { name: /Acessar/i });
     fireEvent.click(submitBtn);
     
     await waitFor(() => {
@@ -87,24 +81,22 @@ describe('Authentication Flow', () => {
   });
 
   it('displays error on sign in failure', async () => {
-    const onSignIn = vi.fn().mockRejectedValue(new Error('Invalid credentials'));
+    const onSignIn = vi.fn().mockResolvedValue({ error: { message: 'Invalid credentials' }, data: null });
     render(
       <Login 
         onSignIn={onSignIn} 
-        onSignUp={vi.fn()} 
-        onGoogleSignIn={vi.fn()} 
+        onSignUp={vi.fn().mockResolvedValue({ data: {}, error: null })} 
+        onGoogleSignIn={vi.fn().mockResolvedValue({ data: {}, error: null })} 
       />
     );
     
-    const emailInput = screen.getByPlaceholderText(/voce@exemplo.com/i);
-    const passwordInput = screen.getByPlaceholderText(/Insira a senha/i);
+    const emailInput = screen.getByPlaceholderText(/email@exemplo.com/i);
+    const passwordInput = screen.getByPlaceholderText(/Sua senha/i);
     
     fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
     fireEvent.change(passwordInput, { target: { value: 'wrongpassword' } });
     
-    const submitBtn = screen.getAllByRole('button', { name: 'Entrar' }).find(btn => btn.getAttribute('type') === 'submit');
-    
-    if (!submitBtn) throw new Error('Submit button not found');
+    const submitBtn = screen.getByRole('button', { name: /Acessar/i });
     fireEvent.click(submitBtn);
     
     await waitFor(() => {

@@ -1,9 +1,19 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
+import type React from 'react';
 import { Property, UploadedImage } from '../types';
+import {
+  createPropertyRecord,
+  deleteImageAssets,
+  hydrateStoredProjects,
+  loadRemoteProjects,
+  persistProjects,
+  clearPersistedProjects,
+  uploadOriginalImages
+} from '../services/projectService';
 
 const MAX_IMAGES = 5;
 
-export const useProject = () => {
+export const useProject = (userId?: string | null) => {
   const [properties, setProperties] = useState<Property[]>([]);
   const [activePropertyId, setActivePropertyId] = useState<string | null>(null);
   const [selectedImageId, setSelectedImageId] = useState<string | null>(null);
@@ -12,11 +22,53 @@ export const useProject = () => {
   const images = activeProperty ? activeProperty.images : [];
 
   useEffect(() => {
-    // If no image is selected but we have some, select the first one
     if (!selectedImageId && images.length > 0) {
       setSelectedImageId(images[0].id);
     }
   }, [images, selectedImageId]);
+
+  useEffect(() => {
+    if (!userId) return;
+    let isActive = true;
+
+    const loadRemote = async () => {
+      const mappedProperties = await loadRemoteProjects(userId);
+
+      if (isActive) {
+        setProperties(mappedProperties);
+        if (!activePropertyId && mappedProperties.length > 0) {
+          setActivePropertyId(mappedProperties[0].id);
+        }
+        if (!selectedImageId && mappedProperties[0]?.images?.length) {
+          setSelectedImageId(mappedProperties[0].images[0].id);
+        }
+      }
+    };
+
+    loadRemote();
+
+    return () => {
+      isActive = false;
+    };
+  }, [userId]);
+
+  useEffect(() => {
+    const stored = hydrateStoredProjects(userId);
+    if (!stored) return;
+    setProperties(stored.properties);
+    setActivePropertyId(stored.activePropertyId ?? null);
+    setSelectedImageId(stored.selectedImageId ?? null);
+  }, [userId]);
+
+  useEffect(() => {
+    persistProjects(properties, activePropertyId, selectedImageId, userId);
+  }, [properties, activePropertyId, selectedImageId, userId]);
+
+  useEffect(() => {
+    if (!userId) {
+      clearPersistedProjects();
+    }
+  }, [userId]);
 
   const setImages = (action: React.SetStateAction<UploadedImage[]>) => {
     if (!activePropertyId) return;
@@ -32,21 +84,16 @@ export const useProject = () => {
     }));
   };
 
-  const handleCreateProperty = (e: React.FormEvent, name: string) => {
+  const handleCreateProperty = async (e: React.FormEvent, name: string) => {
     e.preventDefault();
     if (!name.trim()) return;
 
-    const newProp: Property = {
-      id: crypto.randomUUID(),
-      name: name,
-      images: [],
-      createdAt: Date.now()
-    };
+    const newProp = await createPropertyRecord(userId, name);
     setProperties(prev => [...prev, newProp]);
     setActivePropertyId(newProp.id);
   };
 
-  const handleImagesSelected = (newImages: UploadedImage[]) => {
+  const handleImagesSelected = async (newImages: UploadedImage[]) => {
     // Ensure all new images have selected: true
     const withSelection = newImages.map(img => ({ ...img, selected: true }));
     setImages(prev => {
@@ -60,13 +107,43 @@ export const useProject = () => {
     if (!selectedImageId && newImages.length > 0) {
       setSelectedImageId(newImages[0].id);
     }
+
+    const uploadResults = await uploadOriginalImages({
+      userId,
+      activePropertyId,
+      images: newImages
+    });
+
+    if (uploadResults.length === 0) return;
+
+    setImages(prev => prev.map(img => {
+      const result = uploadResults.find(entry => entry.id === img.id);
+      if (!result) return img;
+      if (result.error) {
+        return { ...img, error: result.error };
+      }
+      if (result.originalPath) {
+        return { ...img, originalPath: result.originalPath, error: undefined };
+      }
+      return img;
+    }));
   };
 
-  const removeImage = (id: string, e: React.MouseEvent) => {
+  const removeImage = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
+    const imageToRemove = images.find(img => img.id === id);
     setImages(prev => prev.filter(img => img.id !== id));
     if (selectedImageId === id) {
       setSelectedImageId(null);
+    }
+
+    if (!userId || !imageToRemove) return;
+
+    try {
+      await deleteImageAssets({ userId, image: imageToRemove });
+    } catch (error) {
+      console.error("Failed to delete image resources:", error);
+      // Optionally revert UI state here if critical
     }
   };
 

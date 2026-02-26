@@ -43,6 +43,13 @@ const PreviewArea: React.FC<PreviewAreaProps> = ({
   const [isGeneratingTour, setIsGeneratingTour] = useState(false);
   const [tourImageUrl, setTourImageUrl] = useState<string | null>(null);
   const [tourVideoOpName, setTourVideoOpName] = useState<string | undefined>(undefined);
+  const [showTourModal, setShowTourModal] = useState(false);
+  const [tourPrompt, setTourPrompt] = useState('');
+
+  const handleOpenTourModal = () => {
+    setShowTourModal(true);
+    setTourPrompt('');
+  };
 
   const handleCreateTour = async () => {
     const targetUrl = activeImage?.generatedUrl || activeImage?.previewUrl;
@@ -55,12 +62,15 @@ const PreviewArea: React.FC<PreviewAreaProps> = ({
     }
 
     setIsGeneratingTour(true);
+    setShowTourModal(false); // Close modal
+
     try {
-      const { videoOperationName } = await generateDroneTourScript(targetUrl, true);
+      const { videoOperationName } = await generateDroneTourScript(targetUrl, true, tourPrompt);
       setTourImageUrl(targetUrl);
       setTourVideoOpName(videoOperationName);
-    } catch (err: any) {
-      alert(err.message || 'Erro ao gerar o Drone Tour');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Erro ao gerar o Drone Tour';
+      alert(message);
     } finally {
       setIsGeneratingTour(false);
     }
@@ -156,7 +166,13 @@ const PreviewArea: React.FC<PreviewAreaProps> = ({
           {/* Drone Tour Button */}
           {activeImage.generatedUrl && (
             <button
-              onClick={handleCreateTour}
+              onClick={() => {
+                if (activeImage.videoUrl) {
+                  setTourImageUrl(activeImage.generatedUrl || activeImage.previewUrl);
+                } else {
+                  handleOpenTourModal();
+                }
+              }}
               disabled={isGeneratingTour}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-sm transition-all shadow-lg text-xs font-bold uppercase tracking-wide ${isGeneratingTour ? 'bg-surface text-text-muted cursor-not-allowed' : 'bg-gradient-to-r from-secondary to-secondary-dark hover:from-secondary-light hover:to-secondary text-black shadow-secondary/20 hover:-translate-y-0.5'}`}
               title="Cinematic Drone Tour (2 Créditos)"
@@ -257,16 +273,58 @@ const PreviewArea: React.FC<PreviewAreaProps> = ({
           </>
         )}
       </div>
-      {tourImageUrl && (tourVideoOpName || activeImage?.videoUrl) && (
+      {/* Drone Tour Modal */}
+      {showTourModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in">
+          <div className="glass-card w-full max-w-md p-6 rounded-xl border border-glass-border shadow-2xl animate-scale-in">
+            <h3 className="text-xl font-bold text-white mb-2">Cinematic Drone Tour</h3>
+            <p className="text-text-muted text-sm mb-4">
+              Crie um vídeo cinematográfico do seu ambiente. Personalize o movimento e estilo da câmera abaixo.
+              <span className="block mt-1 text-secondary font-medium">Custo: 2 Créditos</span>
+            </p>
+
+            <div className="space-y-3 mb-6">
+              <label className="block text-xs font-bold text-text-muted uppercase tracking-wider">
+                Instruções de Câmera (Opcional)
+              </label>
+              <textarea
+                value={tourPrompt}
+                onChange={(e) => setTourPrompt(e.target.value)}
+                placeholder="Ex: Zoom lento em direção à janela, iluminação suave de entardecer..."
+                className="w-full bg-surface-dark/50 border border-glass-border rounded-lg p-3 text-sm text-text-main placeholder-text-muted/50 focus:ring-2 focus:ring-secondary/30 focus:border-secondary/30 outline-none transition-all resize-none h-24"
+              />
+            </div>
+
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setShowTourModal(false)}
+                className="px-4 py-2 rounded-lg text-sm font-medium text-text-muted hover:text-white hover:bg-white/5 transition-all"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleCreateTour}
+                className="px-4 py-2 rounded-lg text-sm font-bold bg-secondary text-black hover:bg-secondary-light transition-all shadow-lg shadow-secondary/20"
+              >
+                Gerar Vídeo
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Drone Tour Player */}
+      {tourImageUrl && (
         <DroneTourPlayer
           imageUrl={tourImageUrl}
           videoOperationName={tourVideoOpName}
-          initialVideoUrl={activeImage?.videoUrl}
-          onVideoGenerated={onVideoGenerated}
-          onClose={() => {
-            setTourImageUrl(null);
+          initialVideoUrl={activeImage.videoUrl}
+          onVideoGenerated={(url) => {
+            onVideoGenerated(url);
+            // Clear operation name to stop polling if we have the URL
             setTourVideoOpName(undefined);
           }}
+          onClose={() => setTourImageUrl(null)}
         />
       )}
     </section>

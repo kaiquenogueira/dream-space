@@ -11,19 +11,26 @@ export interface Property {
   logo?: string; // Base64 or URL
 }
 
-export interface UploadedImage {
+export interface ImageAsset {
   id: string;
-  file: File;
+  file: File | null;
   previewUrl: string;
   base64: string;
+  originalPath?: string;
+  generatedPath?: string;
   generatedUrl?: string;
-  videoUrl?: string; // Generated video URL
-  videoOperationName?: string; // For resuming polling
-  isGenerating?: boolean;
+  videoUrl?: string;
+  videoOperationName?: string;
+}
+
+export interface ImageState {
+  isGenerating: boolean;
   error?: string;
   selected: boolean;
-  generationMode?: GenerationMode; // Optional per image override or global
+  generationMode?: GenerationMode;
 }
+
+export type UploadedImage = ImageAsset & ImageState;
 
 export interface GenerationResult {
   originalImageId: string;
