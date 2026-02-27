@@ -15,7 +15,6 @@ export default defineConfig(({ mode }) => {
       }),
       tailwindcss()
     ],
-    assetsInclude: ['**/*.html'],
     resolve: {
       alias: {
         '@': path.resolve(__dirname, './src'),
