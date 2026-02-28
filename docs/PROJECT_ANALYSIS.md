@@ -45,9 +45,9 @@ O projeto apresenta uma base funcional e moderna (React + Vercel Functions + Sup
 
 | ID | Severidade | Área | Evidência | Impacto | Status |
 |---|---|---|---|---|---|
-| SEC-01 | **Médio** | Segurança/API | [verify.ts](file:///Users/kaique/Workspace/dream-space/api/verify.ts#L1-L26) | `supabaseAdmin` pode ser `null` e causar erro em runtime. | **Resolvido** |
+| SEC-01 | **Médio** | Segurança/API | [verify.ts](file:///Users/kaique/Workspace/dream-space/api/verify.ts#L1-L26) | `supabaseAdmin` pode ser `null` e causar erro em runtime. | **Resolvido (Removido)** |
 | SEC-02 | **Médio** | Segurança/API | [generate-drone-tour.ts](file:///Users/kaique/Workspace/dream-space/api/generate-drone-tour.ts#L141-L257) | `customPrompt` não tem limite nem sanitização. | **Resolvido** |
-| SEC-03 | **Baixo** | Segurança/API | [health.ts](file:///Users/kaique/Workspace/dream-space/api/health.ts#L1-L15) | Exposição pública do estado de variáveis de ambiente. | Pendente |
+| SEC-03 | **Baixo** | Segurança/API | [health.ts](file:///Users/kaique/Workspace/dream-space/api/health.ts#L1-L15) | Exposição pública do estado de variáveis de ambiente. | **Resolvido (Removido)** |
 | ARCH-01 | **Alto** | Arquitetura/Frontend | [App.tsx](file:///Users/kaique/Workspace/dream-space/src/App.tsx#L21-L457) | Componente central acumula lógica de fluxo, estado e UI. | Pendente |
 | ARCH-02 | **Médio** | Arquitetura/Backend | [generate.ts](file:///Users/kaique/Workspace/dream-space/api/generate.ts#L239-L290) | Fluxo de geração é compensado, mas não transacional; storage pode ficar órfão em falhas de DB. | **Resolvido** |
 | ARCH-03 | **Médio** | Arquitetura/API | [generate-drone-tour.ts](file:///Users/kaique/Workspace/dream-space/api/generate-drone-tour.ts#L141-L327) | `includeVideo` é ignorado e fluxo não persiste `video_url`. | **Resolvido** |
