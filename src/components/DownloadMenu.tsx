@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { DownloadIcon, ImageIcon, ColumnsIcon } from './Icons';
 import { UploadedImage } from '../types';
@@ -26,8 +25,6 @@ const DownloadMenu: React.FC<DownloadMenuProps> = ({
 }) => {
   const [showDownloadMenu, setShowDownloadMenu] = useState(false);
 
-  if (!activeImage.generatedUrl && !hasGeneratedImages && !activeImage.videoUrl) return null;
-
   return (
     <div className="relative">
       <button
@@ -47,8 +44,24 @@ const DownloadMenu: React.FC<DownloadMenuProps> = ({
       {/* Dropdown Menu */}
       {showDownloadMenu && (
         <div className="absolute right-0 top-full mt-2 w-56 bg-zinc-900/95 backdrop-blur-xl border border-zinc-700/50 rounded-xl shadow-2xl shadow-black/40 z-50 py-1.5 animate-scale-in">
+          {/* Original Photo */}
+          <button
+            onClick={() => {
+              onDownloadSingle(activeImage.previewUrl, `original-${imageIndex + 1}`);
+              setShowDownloadMenu(false);
+            }}
+            className="w-full text-left px-4 py-2.5 text-sm text-zinc-200 hover:bg-zinc-800/60 hover:text-white transition-colors flex items-center gap-3"
+          >
+            <ImageIcon className="w-4 h-4 text-blue-400" />
+            <div>
+              <span className="block font-medium text-xs">Foto Original</span>
+              <span className="block text-xs text-zinc-500">Baixar foto sem alterações</span>
+            </div>
+          </button>
+
           {activeImage.generatedUrl && (
             <>
+              {/* Generated Design */}
               <button
                 onClick={() => {
                   onDownloadSingle(activeImage.generatedUrl!, `design-${imageIndex + 1}`);
@@ -58,10 +71,14 @@ const DownloadMenu: React.FC<DownloadMenuProps> = ({
               >
                 <ImageIcon className="w-4 h-4 text-emerald-400" />
                 <div>
-                  <span className="block font-medium text-xs">Apenas o Resultado</span>
+                  <span className="block font-medium text-xs">Novo Design</span>
                   <span className="block text-xs text-zinc-500">Baixar design de IA</span>
                 </div>
               </button>
+
+              <div className="border-t border-zinc-800/60 my-1.5" />
+
+              {/* Before & After Comparison */}
               <button
                 onClick={() => {
                   onDownloadComparison(activeImage.previewUrl, activeImage.generatedUrl!);
@@ -79,21 +96,21 @@ const DownloadMenu: React.FC<DownloadMenuProps> = ({
           )}
 
           {activeImage.videoUrl && (
-             <button
-                onClick={() => {
-                  onDownloadVideo(activeImage.videoUrl!);
-                  setShowDownloadMenu(false);
-                }}
-                className="w-full text-left px-4 py-2.5 text-sm text-zinc-200 hover:bg-zinc-800/60 hover:text-white transition-colors flex items-center gap-3"
-              >
-                <div className="w-4 h-4 flex items-center justify-center">
-                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-amber-400"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
-                </div>
-                <div>
-                  <span className="block font-medium text-xs">Baixar Vídeo</span>
-                  <span className="block text-xs text-zinc-500">Drone Tour MP4</span>
-                </div>
-              </button>
+            <button
+              onClick={() => {
+                onDownloadVideo(activeImage.videoUrl!);
+                setShowDownloadMenu(false);
+              }}
+              className="w-full text-left px-4 py-2.5 text-sm text-zinc-200 hover:bg-zinc-800/60 hover:text-white transition-colors flex items-center gap-3"
+            >
+              <div className="w-4 h-4 flex items-center justify-center">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-amber-400"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+              </div>
+              <div>
+                <span className="block font-medium text-xs">Baixar Vídeo</span>
+                <span className="block text-xs text-zinc-500">Drone Tour MP4</span>
+              </div>
+            </button>
           )}
 
           {hasGeneratedImages && (
@@ -102,7 +119,6 @@ const DownloadMenu: React.FC<DownloadMenuProps> = ({
               <button
                 onClick={() => {
                   if (!isDownloadingZip) onDownloadAll();
-                  // Don't close menu immediately to show feedback
                 }}
                 disabled={isDownloadingZip}
                 className={`w-full text-left px-4 py-2.5 text-sm text-zinc-200 transition-colors flex items-center gap-3 ${isDownloadingZip ? 'opacity-70 cursor-not-allowed' : 'hover:bg-zinc-800/60 hover:text-white'
@@ -118,7 +134,7 @@ const DownloadMenu: React.FC<DownloadMenuProps> = ({
                     {isDownloadingZip ? 'Criando ZIP...' : 'Baixar Tudo (ZIP)'}
                   </span>
                   <span className="block text-xs text-zinc-500">
-                    {isDownloadingZip ? 'Por favor, aguarde' : 'Todos os designs gerados'}
+                    {isDownloadingZip ? 'Por favor, aguarde' : 'Originais + designs + comparações'}
                   </span>
                 </div>
               </button>

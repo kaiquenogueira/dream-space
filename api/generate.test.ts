@@ -33,20 +33,23 @@ vi.mock('./lib/promptBuilder', () => ({
 }));
 
 // Mock global do GoogleGenerativeAI
-const { mockGenerateContent } = vi.hoisted(() => ({
+const { mockGenerateContent, mockGenerateImages } = vi.hoisted(() => ({
   mockGenerateContent: vi.fn(),
+  mockGenerateImages: vi.fn(),
 }));
 
 vi.mock('@google/genai', () => {
   return {
     GoogleGenAI: class {
-      constructor() {}
+      constructor() { }
       models = {
-        generateContent: mockGenerateContent
+        generateContent: mockGenerateContent,
+        generateImages: mockGenerateImages,
       };
       getGenerativeModel() {
         return {
-          generateContent: mockGenerateContent
+          generateContent: mockGenerateContent,
+          generateImages: mockGenerateImages,
         };
       }
     }
@@ -60,7 +63,7 @@ describe('API Generate Handler', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     process.env.GEMINI_API_KEY = 'test-key';
-    
+
     req = {
       method: 'POST',
       headers: {
@@ -110,6 +113,15 @@ describe('API Generate Handler', () => {
         usageMetadata: { totalTokenCount: 10 }
       }
     });
+    mockGenerateImages.mockResolvedValue({
+      generatedImages: [
+        {
+          image: {
+            imageBytes: 'generated-image-base64'
+          }
+        }
+      ]
+    });
   });
 
   it('deve retornar 405 se método não for POST', async () => {
@@ -132,9 +144,11 @@ describe('API Generate Handler', () => {
 
   it('deve processar geração com sucesso', async () => {
     await handler(req, res);
-    
+
     expect(supabaseAdmin.rpc).toHaveBeenCalledWith('decrement_credits', expect.anything());
-    expect(mockGenerateContent).toHaveBeenCalled();
+    expect(mockGenerateContent).toHaveBeenCalledWith(expect.objectContaining({
+      model: 'gemini-2.5-flash-image'
+    }));
     expect(res.status).toHaveBeenCalledWith(200);
     expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
       result: 'http://signed-url',
@@ -144,9 +158,9 @@ describe('API Generate Handler', () => {
 
   it('deve retornar 403 se sem créditos', async () => {
     (supabaseAdmin.rpc as any).mockRejectedValue({ message: 'insufficient_credits' });
-    
+
     await handler(req, res);
-    
+
     expect(res.status).toHaveBeenCalledWith(403);
     expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
       error: 'Sem créditos restantes'

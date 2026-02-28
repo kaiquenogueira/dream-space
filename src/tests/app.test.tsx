@@ -65,7 +65,7 @@ const baseProject = {
   removeImage: vi.fn(),
   toggleImageSelection: vi.fn(),
   toggleSelectAll: vi.fn(),
-  MAX_IMAGES: 5,
+  MAX_IMAGES: 10,
 };
 
 const baseGeneration = {

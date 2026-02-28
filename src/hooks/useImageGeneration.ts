@@ -115,7 +115,16 @@ export const useImageGeneration = ({
 
     setImagesGenerating(imagesToGenerate.map(img => img.id), true);
 
-    await Promise.all(imagesToGenerate.map(img => generateForImage(img, customPrompt)));
+    // Process images sequentially with a delay between each request
+    // to avoid hitting the server rate limit (5 req/60s) and Gemini API limits.
+    const DELAY_BETWEEN_REQUESTS_MS = 3000;
+
+    for (let i = 0; i < imagesToGenerate.length; i++) {
+      if (i > 0) {
+        await new Promise(resolve => setTimeout(resolve, DELAY_BETWEEN_REQUESTS_MS));
+      }
+      await generateForImage(imagesToGenerate[i], customPrompt);
+    }
 
     setIsGenerating(false);
   };

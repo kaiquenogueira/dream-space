@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import App from '../App';
 import userEvent from '@testing-library/user-event';
 
@@ -62,7 +62,7 @@ describe('Fluxo de Integração E2E (Simulado)', () => {
       removeImage: vi.fn(),
       toggleImageSelection: vi.fn(),
       toggleSelectAll: vi.fn(),
-      MAX_IMAGES: 5,
+      MAX_IMAGES: 10,
     });
 
     useImageGenerationMock.mockReturnValue({
@@ -83,6 +83,8 @@ describe('Fluxo de Integração E2E (Simulado)', () => {
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await userEvent.upload(uploader as HTMLElement, file);
-    expect(handleImagesSelected).toHaveBeenCalled();
+    await waitFor(() => {
+      expect(handleImagesSelected).toHaveBeenCalled();
+    });
   });
 });

@@ -14,7 +14,7 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = ({ activeProperty, setActivePropertyId, handleLogout, profile, onAdminClick, isAdminView }) => {
   const creditPercent = profile
-    ? (profile.credits_remaining / (profile.plan === 'free' ? 5 : profile.plan === 'starter' ? 50 : 200)) * 100
+    ? (profile.credits_remaining / (profile.plan === 'free' ? 15 : profile.plan === 'starter' ? 100 : 400)) * 100
     : 0;
 
   return (

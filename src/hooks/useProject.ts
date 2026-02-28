@@ -12,7 +12,7 @@ import {
   uploadOriginalImages 
 } from '../services/projectService';
 
-const MAX_IMAGES = 5;
+const MAX_IMAGES = 10;
 
 export const useProject = (userId?: string | null) => {
   const queryClient = useQueryClient();

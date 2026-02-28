@@ -4,7 +4,7 @@ import { buildPrompt, GenerationMode, ArchitecturalStyle } from './promptBuilder
 describe('buildPrompt', () => {
     it('should include mandatory structural preservation rules in all modes', () => {
         const modes = [GenerationMode.REDESIGN, GenerationMode.VIRTUAL_STAGING, GenerationMode.PAINT_ONLY];
-        
+
         modes.forEach(mode => {
             const prompt = buildPrompt({
                 generationMode: mode,
@@ -39,7 +39,7 @@ describe('buildPrompt', () => {
         });
 
         expect(prompt).toContain('TASK: Interior Redesign (Renovation)');
-        expect(prompt).toContain('completely redesign the interior style');
+        expect(prompt).toContain('Completely redesign the interior style');
         expect(prompt).toContain('You MAY update: wall colors');
     });
 

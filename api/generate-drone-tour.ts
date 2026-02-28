@@ -198,7 +198,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         try {
             const { data, error } = await supabaseAdmin.rpc('decrement_credits', {
                 p_user_id: userId,
-                p_amount: 2
+                p_amount: 50
             });
             if (error) {
                 throw error;
@@ -211,7 +211,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 return res.status(403).json({
                     error: 'Créditos insuficientes',
                     credits_remaining: profile.credits_remaining,
-                    message: 'O Cinematic Drone Tour custa 2 créditos. Faça upgrade do seu plano.',
+                    message: 'O Cinematic Drone Tour custa 50 créditos. Faça upgrade do seu plano.',
                 });
             }
             console.error("Failed to reserve credits:", creditError);
@@ -220,7 +220,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
         const apiKey = process.env.GEMINI_API_KEY;
         if (!apiKey) {
-            await supabaseAdmin.rpc('increment_credits', { p_user_id: userId, p_amount: 2 });
+            await supabaseAdmin.rpc('increment_credits', { p_user_id: userId, p_amount: 50 });
             creditsRefunded = true;
             return res.status(500).json({ error: 'Erro de configuração: Chave da API ausente' });
         }
@@ -234,11 +234,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         let videoOperationName = null;
 
         try {
-            // Enhanced prompt for luxury real estate drone shot
-            const basePrompt = "Cinematic FPV drone shot flying smoothly through this luxury interior in the room. High-end real estate video, 4k, soft natural lighting, slow motion, photorealistic, architectural digest style.";
+            // Enhanced prompt for luxury real estate drone shot with structural preservation instructions
+            const basePrompt = "Cinematic FPV drone shot flying smoothly through THIS EXACT room. Keep all walls, windows, and furniture layout exactly as in the image. Do not change the room structure. High-end real estate video, 4k, soft natural lighting, slow motion, photorealistic, architectural digest style.";
             
             // Concatenate user custom prompt if provided
-            const videoPrompt = sanitizedPrompt ? `${basePrompt} ${sanitizedPrompt}` : basePrompt;
+            const videoPrompt = sanitizedPrompt ? `${basePrompt} ${sanitizedPrompt} (MAINTAIN STRUCTURAL CONSISTENCY)` : basePrompt;
 
             const videoOp = await (ai.models as any).generateVideos({
                 model: modelName,
@@ -255,7 +255,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     mimeType: mimeType
                 },
                 config: {
-                    durationSeconds: 8
+                    durationSeconds: 5 // Reduced to 5s as per credit model (50 credits = 5s video) and stability
                 }
             });
 
@@ -274,7 +274,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         } catch (videoError: any) {
             console.error("Failed to start video generation:", videoError);
             if (!creditsRefunded) {
-                await supabaseAdmin.rpc('increment_credits', { p_user_id: userId, p_amount: 2 });
+                await supabaseAdmin.rpc('increment_credits', { p_user_id: userId, p_amount: 50 });
                 creditsRefunded = true;
             }
             await recordMetric({
@@ -286,7 +286,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 latencyMs: Date.now() - startedAt,
                 inputBytes: imageBase64?.length ?? null,
                 outputBytes: null,
-                creditsUsed: creditsReserved ? 2 : 0,
+                creditsUsed: creditsReserved ? 50 : 0,
                 estimatedCostUsd: null
             });
             return res.status(500).json({ error: videoError.message || 'Falha ao iniciar geração de vídeo' });
@@ -305,7 +305,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         } catch (dbErr) {
             console.error("Failed to save generation record:", dbErr);
             if (!creditsRefunded) {
-                await supabaseAdmin.rpc('increment_credits', { p_user_id: userId, p_amount: 2 });
+                await supabaseAdmin.rpc('increment_credits', { p_user_id: userId, p_amount: 50 });
                 creditsRefunded = true;
             }
             return res.status(500).json({ error: 'Falha ao persistir geração' });
@@ -319,7 +319,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             latencyMs: Date.now() - startedAt,
             inputBytes: imageBase64?.length ?? null,
             outputBytes: 0,
-            creditsUsed: 2,
+            creditsUsed: 50,
             estimatedCostUsd: null
         });
 
@@ -331,7 +331,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     } catch (error: any) {
         console.error("Drone Tour API Error:", error);
         if (creditsReserved && !creditsRefunded) {
-            await supabaseAdmin.rpc('increment_credits', { p_user_id: userId, p_amount: 2 });
+            await supabaseAdmin.rpc('increment_credits', { p_user_id: userId, p_amount: 50 });
         }
         if (typeof userId === 'string') {
             await recordMetric({
@@ -342,7 +342,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 errorMessage: error.message || 'Erro interno no servidor',
                 latencyMs: Date.now() - startedAt,
                 inputBytes: null,
-                creditsUsed: creditsReserved ? 2 : 0,
+                creditsUsed: creditsReserved ? 50 : 0,
                 estimatedCostUsd: null
             });
         }

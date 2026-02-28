@@ -5,7 +5,7 @@ export const useCredits = (profile: UserProfile | null, refreshProfile: () => Pr
     const plan = profile?.plan ?? 'free';
     const hasCredits = credits > 0;
 
-    const maxCredits = plan === 'free' ? 8 : plan === 'starter' ? 50 : plan === 'pro' ? 200 : Infinity;
+    const maxCredits = plan === 'free' ? 15 : plan === 'starter' ? 100 : plan === 'pro' ? 400 : Infinity;
 
     const refreshCredits = async () => {
         await refreshProfile();

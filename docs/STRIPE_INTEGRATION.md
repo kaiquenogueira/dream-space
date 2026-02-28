@@ -16,13 +16,28 @@ STRIPE_WEBHOOK_SECRET=whsec_...
 VITE_STRIPE_PUBLISHABLE_KEY=pk_test_...
 ```
 
-## Planos Sugeridos
+## Planos Sugeridos (Baseado em Custo Real - Fev/2026)
 
-| Plano | Créditos/mês | Preço | Stripe Price ID |
-|---|---|---|---|
-| Free | 5 | R$ 0 | — |
-| Starter | 50 | R$ 49/mês | `price_starter_xxx` |
-| Pro | 200 | R$ 149/mês | `price_pro_xxx` |
+> **Base de Custo:**
+> - Imagem (Imagen 3/Gemini Flash): ~$0.04 USD/img
+> - Vídeo (Veo - 5s): ~$1.75 USD/vídeo (Alto custo!)
+> - Cotação Dólar: ~R$ 5.80
+
+| Plano | Preço (R$) | Créditos | Custo Aprox. (USD) | Margem Estimada |
+|---|---|---|---|---|
+| **Free** | R$ 0 | 15 | $0.60 | Investimento (CAC) |
+| **Starter** | R$ 49 | 100 | $4.00 | ~53% |
+| **Pro** | R$ 149 | 400 | $16.00 | ~38% |
+| **Enterprise**| Sob Consulta | Ilimitado* | Variável | N/A |
+
+## Sistema de Consumo de Créditos
+
+| Ação | Custo em Créditos | Custo Real Est. (USD) |
+|---|---|---|
+| Gerar Imagem (Standard) | 1 Crédito | $0.04 |
+| Gerar Imagem (High Res) | 2 Créditos | $0.08 |
+| Gerar Vídeo (5s) | 50 Créditos | $1.75 - $2.00 |
+| Upscale / Edit | 1 Crédito | $0.04 |
 
 ## Arquitetura
 
@@ -91,8 +106,8 @@ import { supabaseAdmin } from '../lib/supabaseAdmin';
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
 const PLAN_CREDITS: Record<string, number> = {
-  starter: 50,
-  pro: 200,
+  starter: 100,
+  pro: 400,
 };
 
 export default async function handler(req: any, res: any) {

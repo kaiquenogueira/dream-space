@@ -66,7 +66,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   let creditsRemaining: number | null = null;
   let creditsReserved = false;
   let creditsRefunded = false;
-  
+
   try {
     const requestSize = req.headers['content-length'] ? parseInt(req.headers['content-length']) : 0;
     console.log(`[API] Incoming request size: ${(requestSize / 1024 / 1024).toFixed(2)} MB`);
@@ -115,12 +115,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const rateLimitKey = `generate:${userId}:${getClientIp(req)}`;
     const rateLimitResult = await checkRateLimit(rateLimitKey);
-    
+
     if (!rateLimitResult.success) {
       await recordMetric({
         userId,
         endpoint: 'generate',
-        model: 'imagen-3.0-generate-001',
+        model: 'gemini-2.5-flash-image',
         success: false,
         errorMessage: 'Rate limit',
         latencyMs: Date.now() - startedAt,
@@ -131,8 +131,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     if (!req.body) {
-       console.error("[API] Missing request body");
-       return res.status(400).json({ error: 'Corpo da requisição ausente' });
+      console.error("[API] Missing request body");
+      return res.status(400).json({ error: 'Corpo da requisição ausente' });
     }
 
     const GenerateSchema = z.object({
@@ -147,8 +147,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const validation = GenerateSchema.safeParse(req.body);
 
     if (!validation.success) {
-        const errorMsg = validation.error.issues.map(e => `${e.path.join('.')}: ${e.message}`).join(', ');
-        return res.status(400).json({ error: `Dados inválidos: ${errorMsg}` });
+      const errorMsg = validation.error.issues.map(e => `${e.path.join('.')}: ${e.message}`).join(', ');
+      return res.status(400).json({ error: `Dados inválidos: ${errorMsg}` });
     }
 
     const { imageBase64, customPrompt, prompt: legacyPrompt, style, generationMode } = validation.data;
@@ -157,14 +157,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // Validate imageBase64 size roughly
     if (imageBase64.length > 14 * 1024 * 1024) {
-        return res.status(400).json({ error: 'Imagem muito grande (máx 10MB)' });
+      return res.status(400).json({ error: 'Imagem muito grande (máx 10MB)' });
     }
 
     // Build the prompt securely on the server
     const finalPrompt = buildPrompt({
-        generationMode: generationMode || 'Redesign',
-        selectedStyle: style || null,
-        customPrompt: userInstruction
+      generationMode: generationMode || 'Redesign',
+      selectedStyle: style || null,
+      customPrompt: userInstruction
     });
 
     try {
@@ -200,78 +200,61 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     const ai = new GoogleGenAI({ apiKey });
+    // Use Gemini 2.5 Flash Image for image editing (text-and-image-to-image).
+    // Unlike Imagen 4 (text-to-image only), this model receives the original photo
+    // as input and edits it while preserving structural layout (windows, doors, walls).
     const modelName = 'gemini-2.5-flash-image';
     console.log(`[API] Using model: ${modelName}`);
 
     let generatedBase64 = null;
 
-    if (modelName.includes('gemini') || modelName.includes('flash')) {
-        // Use generateContent for Gemini Flash models (multimodal)
-        const matches = imageBase64.match(/^data:(image\/([a-zA-Z]+));base64,(.+)$/);
-        let mimeType = 'image/jpeg';
-        let imageData = imageBase64;
+    // Parse input image data
+    const matches = imageBase64.match(/^data:(image\/([a-zA-Z]+));base64,(.+)$/);
+    let mimeType = 'image/jpeg';
+    let imageData = imageBase64;
 
-        if (matches && matches.length === 4) {
-            mimeType = matches[1];
-            imageData = matches[3];
-        } else {
-            imageData = imageBase64.replace(/^data:image\/\w+;base64,/, '');
-        }
-
-        const result = await ai.models.generateContent({
-            model: modelName,
-            contents: [{
-                role: 'user',
-                parts: [
-                    { text: finalPrompt },
-                    { inlineData: { mimeType, data: imageData } }
-                ]
-            }]
-        });
-
-        // @ts-expect-error - credits_remaining is injected by the trigger - Response type handling
-        const response = result.response || result;
-        
-        if (response.candidates && response.candidates.length > 0) {
-            const parts = response.candidates[0].content.parts;
-            const imagePart = parts.find((p: any) => p.inlineData && p.inlineData.mimeType.startsWith('image/'));
-            if (imagePart && imagePart.inlineData) {
-                generatedBase64 = imagePart.inlineData.data;
-            }
-        }
-        
-        if (!generatedBase64) {
-             console.warn("[API] Gemini Flash returned no image. Response candidates:", JSON.stringify(response.candidates));
-        }
-
+    if (matches && matches.length === 4) {
+      mimeType = matches[1];
+      imageData = matches[3];
     } else {
-        // Fallback: Using Imagen 3 for image generation via generateImages (predict)
-        const imagenResponse = await (ai.models as any).generateImages({
-            model: modelName,
-            prompt: finalPrompt,
-            image: {
-                imageBytes: imageBase64.replace(/^data:image\/\w+;base64,/, ''),
-                mimeType: 'image/jpeg' // or png
-            },
-            config: {
-                numberOfImages: 1,
-                aspectRatio: '1:1' // Optional, maybe infer from input?
-            }
-        });
+      imageData = imageBase64.replace(/^data:image\/\w+;base64,/, '');
+    }
 
-        // Parse result from generateImages
-        // Usually returns { generatedImages: [ { image: { imageBytes: '...' } } ] }
-        if (imagenResponse.generatedImages && imagenResponse.generatedImages.length > 0) {
-            generatedBase64 = imagenResponse.generatedImages[0].image.imageBytes;
-        } else if (imagenResponse.images && imagenResponse.images.length > 0) { // Fallback for some SDK versions
-            generatedBase64 = imagenResponse.images[0];
-        }
+    // Use generateContent with the original image as input for true image editing.
+    // The model analyzes the original photo's structure and applies only style changes.
+    const result = await ai.models.generateContent({
+      model: modelName,
+      contents: [{
+        role: 'user',
+        parts: [
+          { text: finalPrompt },
+          { inlineData: { mimeType, data: imageData } }
+        ]
+      }],
+      config: {
+        responseModalities: ['TEXT', 'IMAGE'],
+      }
+    });
+
+    // @ts-expect-error - Response type handling for SDK variations
+    const response = result.response || result;
+
+    if (response.candidates && response.candidates.length > 0) {
+      const parts = response.candidates[0].content.parts;
+      const imagePart = parts.find((p: any) => p.inlineData && p.inlineData.mimeType?.startsWith('image/'));
+      if (imagePart && imagePart.inlineData) {
+        generatedBase64 = imagePart.inlineData.data;
+      }
     }
-    
+
     if (!generatedBase64) {
-        throw new Error('Nenhuma imagem gerada pelo modelo.');
+      console.warn("[API] Gemini returned no image. Response candidates:", JSON.stringify(response.candidates));
     }
-    
+
+    if (!generatedBase64) {
+      throw new Error('Nenhuma imagem gerada pelo modelo.');
+    }
+
     // --- Determine storage strategy based on plan ---
     const isPremium = profile.plan !== 'free';
     let generatedImageUrl: string | null = null;
@@ -294,27 +277,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (uploadError) {
         throw uploadError;
       }
-      
+
       // 2. Upload Original Image (for audit)
       try {
         const matches = imageBase64.match(/^data:(image\/([a-zA-Z]+));base64,(.+)$/);
         if (matches && matches.length === 4) {
-            const mimeType = matches[1];
-            const ext = matches[2] === 'jpeg' ? 'jpg' : matches[2];
-            const data = matches[3];
-            const inputBuffer = Buffer.from(data, 'base64');
-            
-            originalStoragePath = `${userId}/${Date.now()}_input.${ext}`;
-            
-            const { error: originalUploadError } = await supabaseAdmin.storage
-                .from(ORIGINALS_BUCKET)
-                .upload(originalStoragePath, inputBuffer, { contentType: mimeType, upsert: false });
-                
-            if (originalUploadError) {
-                console.warn("Failed to upload original image:", originalUploadError);
-                // Fallback to null, effectively
-                originalStoragePath = null;
-            }
+          const mimeType = matches[1];
+          const ext = matches[2] === 'jpeg' ? 'jpg' : matches[2];
+          const data = matches[3];
+          const inputBuffer = Buffer.from(data, 'base64');
+
+          originalStoragePath = `${userId}/${Date.now()}_input.${ext}`;
+
+          const { error: originalUploadError } = await supabaseAdmin.storage
+            .from(ORIGINALS_BUCKET)
+            .upload(originalStoragePath, inputBuffer, { contentType: mimeType, upsert: false });
+
+          if (originalUploadError) {
+            console.warn("Failed to upload original image:", originalUploadError);
+            // Fallback to null, effectively
+            originalStoragePath = null;
+          }
         }
       } catch (origErr) {
         console.warn("Error processing original image upload:", origErr);
@@ -334,7 +317,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       // Cleanup if one succeeded but other failed or general error
       if (storagePath) await supabaseAdmin.storage.from(GENERATIONS_BUCKET).remove([storagePath]);
       if (originalStoragePath) await supabaseAdmin.storage.from(ORIGINALS_BUCKET).remove([originalStoragePath]);
-      
+
       await supabaseAdmin.rpc('increment_credits', { p_user_id: userId, p_amount: 1 });
       creditsRefunded = true;
       return res.status(500).json({ error: 'Falha ao salvar imagem no storage' });
@@ -351,7 +334,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
     } catch (dbError) {
       console.error("Generation metadata insert failed:", dbError);
-      
+
       // Compensating Transaction: Cleanup Storage
       if (storagePath) await supabaseAdmin.storage.from(GENERATIONS_BUCKET).remove([storagePath]);
       if (originalStoragePath) await supabaseAdmin.storage.from(ORIGINALS_BUCKET).remove([originalStoragePath]);
@@ -386,7 +369,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       await recordMetric({
         userId,
         endpoint: 'generate',
-        model: 'imagen-3.0-generate-001',
+        model: 'gemini-2.5-flash-image',
         success: false,
         errorMessage: error.message || 'Erro desconhecido',
         latencyMs: Date.now() - startedAt,
@@ -398,9 +381,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (supabaseAdmin && creditsReserved && !creditsRefunded) {
       await supabaseAdmin.rpc('increment_credits', { p_user_id: userId, p_amount: 1 });
     }
-    return res.status(500).json({ 
-        error: 'Falha interna na geração', 
-        message: error.message || 'Erro desconhecido ao processar imagem' 
+    return res.status(500).json({
+      error: 'Falha interna na geração',
+      message: error.message || 'Erro desconhecido ao processar imagem'
     });
   }
 }

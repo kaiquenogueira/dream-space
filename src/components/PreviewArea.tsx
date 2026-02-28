@@ -175,7 +175,7 @@ const PreviewArea: React.FC<PreviewAreaProps> = ({
               }}
               disabled={isGeneratingTour}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-sm transition-all shadow-lg text-xs font-bold uppercase tracking-wide ${isGeneratingTour ? 'bg-surface text-text-muted cursor-not-allowed' : 'bg-gradient-to-r from-secondary to-secondary-dark hover:from-secondary-light hover:to-secondary text-black shadow-secondary/20 hover:-translate-y-0.5'}`}
-              title="Cinematic Drone Tour (2 Créditos)"
+              title="Cinematic Drone Tour (50 Créditos)"
             >
               {isGeneratingTour ? (
                 <div className="w-3.5 h-3.5 rounded-full border-2 border-text-muted/30 border-t-text-muted animate-spin" />
@@ -280,7 +280,7 @@ const PreviewArea: React.FC<PreviewAreaProps> = ({
             <h3 className="text-xl font-bold text-white mb-2">Cinematic Drone Tour</h3>
             <p className="text-text-muted text-sm mb-4">
               Crie um vídeo cinematográfico do seu ambiente. Personalize o movimento e estilo da câmera abaixo.
-              <span className="block mt-1 text-secondary font-medium">Custo: 2 Créditos</span>
+              <span className="block mt-1 text-secondary font-medium">Custo: 50 Créditos</span>
             </p>
 
             <div className="space-y-3 mb-6">
