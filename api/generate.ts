@@ -229,7 +229,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             }]
         });
 
-        // @ts-ignore - Response type handling
+        // @ts-expect-error - credits_remaining is injected by the trigger - Response type handling
         const response = result.response || result;
         
         if (response.candidates && response.candidates.length > 0) {

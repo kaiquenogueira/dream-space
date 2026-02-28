@@ -216,50 +216,60 @@ const MobileEditor: React.FC<MobileEditorProps> = ({
           {/* Mode Selector */}
           <div>
             <label className="text-[10px] font-bold text-text-muted uppercase tracking-widest mb-2 block">Modo</label>
-            <div className="flex bg-surface/60 p-1 rounded-sm border border-glass-border">
-              {Object.values(GenerationMode).map(mode => (
-                <button
-                  key={mode}
-                  onClick={() => setGenerationMode(mode)}
-                  className={`flex-1 py-2.5 text-xs font-medium rounded-sm transition-all duration-300 uppercase tracking-wide ${generationMode === mode
-                    ? 'bg-surface-light text-white shadow-sm ring-1 ring-white/10'
-                    : 'text-text-muted'
-                    }`}
-                >
-                  {mode === GenerationMode.REDESIGN ? '🎨 Redesign' : '🪑 Mobiliar'}
-                </button>
-              ))}
+            <div className="flex bg-surface/60 p-1 rounded-sm border border-glass-border overflow-x-auto">
+              {Object.values(GenerationMode).map(mode => {
+                let label = '🎨 Redesign';
+                if (mode === GenerationMode.VIRTUAL_STAGING) label = '🪑 Mobiliar';
+                if (mode === GenerationMode.PAINT_ONLY) label = '🖌️ Pintura';
+                
+                return (
+                  <button
+                    key={mode}
+                    onClick={() => setGenerationMode(mode)}
+                    className={`flex-1 min-w-[80px] py-2.5 text-xs font-medium rounded-sm transition-all duration-300 uppercase tracking-wide whitespace-nowrap ${generationMode === mode
+                      ? 'bg-surface-light text-white shadow-sm ring-1 ring-white/10'
+                      : 'text-text-muted'
+                      }`}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
-          {/* Style Selector */}
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <label className="text-[10px] font-bold text-text-muted uppercase tracking-widest block">Estilo</label>
-              {selectedStyle && (
-                <span className="text-[10px] text-secondary font-bold bg-secondary/10 px-2 py-0.5 rounded-sm border border-secondary/20 uppercase tracking-wide">{selectedStyle}</span>
-              )}
+          {/* Style Selector - Hidden for Paint Only */}
+          {generationMode !== GenerationMode.PAINT_ONLY && (
+            <div className="animate-fade-in">
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-[10px] font-bold text-text-muted uppercase tracking-widest block">Estilo</label>
+                {selectedStyle && (
+                  <span className="text-[10px] text-secondary font-bold bg-secondary/10 px-2 py-0.5 rounded-sm border border-secondary/20 uppercase tracking-wide">{selectedStyle}</span>
+                )}
+              </div>
+              <StyleSelector selectedStyle={selectedStyle} onSelectStyle={setSelectedStyle} />
             </div>
-            <StyleSelector selectedStyle={selectedStyle} onSelectStyle={setSelectedStyle} />
-          </div>
+          )}
 
-          {/* Custom Prompt Accordion */}
+          {/* Custom Prompt Accordion - Always visible for Paint Only */}
           <div className="border border-glass-border rounded-sm overflow-hidden bg-surface/40">
             <button
               onClick={() => setShowPrompt(!showPrompt)}
               className="w-full flex items-center justify-between p-4 text-left focus-visible:ring-2 focus-visible:ring-secondary focus-visible:ring-inset"
-              aria-expanded={showPrompt}
+              aria-expanded={showPrompt || generationMode === GenerationMode.PAINT_ONLY}
             >
-              <span className="text-xs font-bold text-text-main uppercase tracking-wide">Instruções Adicionais</span>
-              <ChevronDownIcon className={`transition-transform duration-300 text-text-muted ${showPrompt ? 'rotate-180' : ''}`} />
+              <span className="text-xs font-bold text-text-main uppercase tracking-wide">
+                {generationMode === GenerationMode.PAINT_ONLY ? 'Cor / Textura da Parede' : 'Instruções Adicionais'}
+              </span>
+              <ChevronDownIcon className={`transition-transform duration-300 text-text-muted ${showPrompt || generationMode === GenerationMode.PAINT_ONLY ? 'rotate-180' : ''}`} />
             </button>
 
-            <div className={`overflow-hidden transition-all duration-300 ${showPrompt ? 'max-h-48' : 'max-h-0'}`}>
+            <div className={`overflow-hidden transition-all duration-300 ${showPrompt || generationMode === GenerationMode.PAINT_ONLY ? 'max-h-48' : 'max-h-0'}`}>
               <div className="p-4 pt-0">
                 <textarea
                   value={customPrompt}
                   onChange={(e) => setCustomPrompt(e.target.value)}
-                  placeholder="ex. Adicionar sofá de couro, paredes azuis..."
+                  placeholder={generationMode === GenerationMode.PAINT_ONLY ? "Ex: Azul marinho fosco, Bege areia, Textura de cimento queimado..." : "ex. Adicionar sofá de couro, paredes azuis..."}
                   className="input-field h-24 resize-none"
                 />
               </div>
@@ -284,10 +294,10 @@ const MobileEditor: React.FC<MobileEditorProps> = ({
           )}
           <button
             onClick={onGenerate}
-            disabled={isGenerating || !selectedStyle}
+            disabled={isGenerating || (generationMode !== GenerationMode.PAINT_ONLY && !selectedStyle)}
             className={`
               flex-1 py-3.5 rounded-sm font-bold text-sm flex items-center justify-center gap-2.5 shadow-lg transition-all transform active:scale-[0.98] relative overflow-hidden group uppercase tracking-wider font-heading
-              ${isGenerating || !selectedStyle
+              ${isGenerating || (generationMode !== GenerationMode.PAINT_ONLY && !selectedStyle)
                 ? 'bg-surface/60 text-text-muted cursor-not-allowed border border-glass-border'
                 : 'bg-gradient-to-r from-secondary to-secondary-light text-black shadow-secondary/25 hover:from-secondary-dark hover:to-secondary'
               }

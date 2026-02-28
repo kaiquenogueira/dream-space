@@ -1,6 +1,7 @@
 export enum GenerationMode {
   REDESIGN = 'Redesign',
-  VIRTUAL_STAGING = 'Virtual Staging (Mobiliar)'
+  VIRTUAL_STAGING = 'Virtual Staging (Mobiliar)',
+  PAINT_ONLY = 'Paint Only (Apenas Pintura)'
 }
 
 export interface Property {

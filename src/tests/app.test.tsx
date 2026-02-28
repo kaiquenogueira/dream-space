@@ -12,6 +12,11 @@ vi.mock('../hooks/useAuth', () => ({
   useAuth: () => useAuthMock(),
 }));
 
+vi.mock('../contexts/AuthContext', () => ({
+  AuthProvider: ({ children }: any) => <div>{children}</div>,
+  useAuth: () => useAuthMock(),
+}));
+
 vi.mock('../hooks/useCredits', () => ({
   useCredits: () => useCreditsMock(),
 }));

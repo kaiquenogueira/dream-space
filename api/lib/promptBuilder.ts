@@ -1,6 +1,7 @@
 export enum GenerationMode {
   REDESIGN = 'Redesign',
-  VIRTUAL_STAGING = 'Virtual Staging (Mobiliar)'
+  VIRTUAL_STAGING = 'Virtual Staging (Mobiliar)',
+  PAINT_ONLY = 'Paint Only (Apenas Pintura)'
 }
 
 export enum ArchitecturalStyle {
@@ -49,10 +50,12 @@ export const buildPrompt = ({
 }: PromptOptions): string => {
     // Enhanced base analysis with stricter rules for structural preservation
     const structuralRules = `
-    CRITICAL STRUCTURAL PRESERVATION RULES:
-    1. ABSOLUTELY FORBIDDEN to move, resize, remove, or alter any existing windows, doors, or structural openings. The geometry of the room must remain exactly the same.
-    2. Maintain the exact perspective, camera angle, and field of view of the original image.
-    3. Keep the original ceiling height, beam structures, and floor plan layout intact.
+    CRITICAL STRUCTURAL PRESERVATION RULES (MANDATORY):
+    1. ABSOLUTELY FORBIDDEN to move, resize, remove, or alter any existing walls, windows, doors, ceilings, or structural openings.
+    2. The geometry of the room and general layout MUST remain exactly the same.
+    3. Maintain the exact perspective, camera angle, and field of view of the original image.
+    4. Keep the original ceiling height, beam structures, and floor plan layout intact.
+    5. Structural integrity is PARAMOUNT; do not hallucinate new exits or close existing ones.
     `;
 
     const environmentalAnalysis = `
@@ -83,6 +86,22 @@ export const buildPrompt = ({
         - DO NOT change the flooring material or wall paint unless explicitly asked.
         - Ensure all added furniture casts realistic shadows and matches the lighting of the room.
         - The result must be photorealistic, high-resolution architectural visualization.
+        `;
+    } else if (generationMode === GenerationMode.PAINT_ONLY) {
+        // Paint Only: Focus on wall painting, no furniture changes
+        finalPrompt = `
+        TASK: Wall Painting Only (No Furniture Changes).
+        ${structuralRules}
+        ${environmentalAnalysis}
+        
+        INSTRUCTIONS:
+        - Your ONLY task is to change the wall paint color/texture.
+        - If a style is provided (${styleInstruction}), interpret it as a color palette/texture guide for the walls.
+        - DO NOT ADD, REMOVE, OR CHANGE ANY FURNITURE.
+        - DO NOT CHANGE FLOORING OR CEILING (unless specifically asked in custom prompt).
+        - Existing furniture must remain exactly where it is, with the same design.
+        - Focus purely on the wall surfaces.
+        - The result must be photorealistic.
         `;
     } else {
         // Redesign: Change materials/style but keep structure

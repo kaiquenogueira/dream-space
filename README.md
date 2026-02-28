@@ -4,6 +4,18 @@ DreamSpace AI Architect é uma ferramenta poderosa de design de interiores impul
 
 Esta aplicação permite transformar fotos de ambientes (vazios ou mobiliados) em visualizações arquitetônicas impressionantes, ajudando a vender o potencial de um imóvel antes mesmo da visita física.
 
+## 💡 Motivação
+
+O mercado imobiliário enfrenta um desafio constante: **vender o potencial de um imóvel**, não apenas o seu estado atual.
+
+- **Imóveis vazios** parecem menores e frios, dificultando a conexão emocional do comprador.
+- **Imóveis desatualizados** ou bagunçados afastam interessados que não conseguem visualizar uma reforma.
+- **Home Staging físico** é caro, logisticamente complexo e demorado.
+
+A hipótese do **DreamSpace AI** é simples e poderosa: **Melhorar visualmente a apresentação dos imóveis aumenta a conversão e velocidade de venda/locação.**
+
+Ao utilizar Inteligência Artificial para mobiliar e decorar ambientes virtualmente, democratizamos o acesso a visualizações arquitetônicas de alto nível, permitindo que corretores e imobiliárias apresentem todo o potencial de cada espaço por uma fração do custo e tempo tradicionais.
+
 ## 🚀 Funcionalidades Principais
 
 - **🔐 Autenticação Segura**: Gerenciada via Supabase Auth (Google & Email).

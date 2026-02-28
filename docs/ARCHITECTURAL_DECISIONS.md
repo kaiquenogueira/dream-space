@@ -41,5 +41,17 @@
 - **Solução Proposta:** Implementar `@upstash/ratelimit` com Redis.
 - **Motivação:** Proteger a API contra abusos e custos excessivos do Gemini.
 
+## 7. Gerenciamento de Estado (React Query)
+- **Decisão:** Adotar **TanStack React Query** para gerenciamento de estado do servidor (propriedades, imagens).
+- **Problema Atual:** O hook `useProject` original acumulava muita lógica de sincronização, fetch manual e persistência no localStorage, causando complexidade e bugs.
+- **Solução:**
+  - `usePropertiesQuery`: Hook para buscar dados do Supabase com cache automático.
+  - `useCreatePropertyMutation`, `useUploadImagesMutation`: Hooks para operações de escrita com update otimista.
+  - O hook `useProject` foi mantido como "Facade" para compatibilidade, delegando as operações para o React Query.
+- **Benefícios:**
+  - Código mais limpo e declarativo.
+  - Cache robusto e invalidação automática.
+  - Updates otimistas para melhor UX.
+
 ---
-*Atualizado em: 25/02/2026*
+*Atualizado em: 27/02/2026*

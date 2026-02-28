@@ -101,18 +101,24 @@ const GenerationToolbar: React.FC<GenerationToolbarProps> = ({
   <div className="flex-shrink-0 border-b border-glass-border px-5 py-3 bg-surface-dark/40 backdrop-blur-sm">
     <div className="flex items-center gap-4 flex-wrap">
       <div className="flex items-center bg-surface/60 p-0.5 rounded-lg border border-glass-border">
-        {Object.values(GenerationMode).map((mode) => (
-          <button
-            key={mode}
-            onClick={() => setGenerationMode(mode)}
-            className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-200 ${generationMode === mode
-              ? 'text-white bg-surface shadow-sm ring-1 ring-white/10'
-              : 'text-text-muted hover:text-text-main'
-              }`}
-          >
-            {mode === GenerationMode.REDESIGN ? '🎨 Redesign' : '🪑 Mobiliar'}
-          </button>
-        ))}
+        {Object.values(GenerationMode).map((mode) => {
+          let label = '🎨 Redesign';
+          if (mode === GenerationMode.VIRTUAL_STAGING) label = '🪑 Mobiliar';
+          if (mode === GenerationMode.PAINT_ONLY) label = '🖌️ Pintura';
+          
+          return (
+            <button
+              key={mode}
+              onClick={() => setGenerationMode(mode)}
+              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-200 ${generationMode === mode
+                ? 'text-white bg-surface shadow-sm ring-1 ring-white/10'
+                : 'text-text-muted hover:text-text-main'
+                }`}
+            >
+              {label}
+            </button>
+          );
+        })}
       </div>
       <button
         onClick={() => setShowControls(!showControls)}
@@ -121,7 +127,7 @@ const GenerationToolbar: React.FC<GenerationToolbarProps> = ({
           : 'bg-surface/60 border-glass-border text-text-muted hover:text-text-main hover:border-text-muted'
           }`}
       >
-        {selectedStyle ? (
+        {selectedStyle && generationMode !== GenerationMode.PAINT_ONLY ? (
           <>
             <span>✓ {selectedStyle}</span>
             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -130,7 +136,7 @@ const GenerationToolbar: React.FC<GenerationToolbarProps> = ({
           </>
         ) : (
           <>
-            Selecionar Estilo
+            {generationMode === GenerationMode.PAINT_ONLY ? 'Cor / Textura' : 'Selecionar Estilo'}
             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d={showControls ? "M18 15l-6-6-6 6" : "M6 9l6 6 6-6"} />
             </svg>

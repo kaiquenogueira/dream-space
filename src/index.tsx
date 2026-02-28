@@ -20,11 +20,16 @@ const renderError = (title: string, message: string) => {
   );
 };
 
+import { QueryClientProvider } from '@tanstack/react-query';
+import { queryClient } from './lib/react-query';
+
 import('./App')
   .then(({ default: App }) => {
     root.render(
       <React.StrictMode>
-        <App />
+        <QueryClientProvider client={queryClient}>
+          <App />
+        </QueryClientProvider>
       </React.StrictMode>
     );
   })
