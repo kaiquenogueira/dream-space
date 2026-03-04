@@ -1,8 +1,6 @@
-import React, { Suspense, lazy, useState } from 'react';
+import React, { Suspense, lazy, useState, useEffect } from 'react';
+import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import Header from './Header';
-import Sidebar from './Sidebar';
-import DesignStudio from './DesignStudio';
-import PreviewArea from './PreviewArea';
 import PropertyCreation from './PropertyCreation';
 import { RefreshIcon } from './Icons';
 import { ArchitecturalStyle, GenerationMode, UploadedImage } from '../types';
@@ -12,9 +10,30 @@ import { useProject } from '../hooks/useProject';
 import { useImageGeneration } from '../hooks/useImageGeneration';
 import { downloadComparison, downloadSingle, downloadAllImages } from '../utils/downloadUtils';
 import type { UserProfile } from '../hooks/useAuth';
+import { AnimatePresence } from 'framer-motion';
 
+const Sidebar = lazy(() => import('./Sidebar'));
+const DesignStudio = lazy(() => import('./DesignStudio'));
+const PreviewArea = lazy(() => import('./PreviewArea'));
 const MobileEditor = lazy(() => import('./MobileEditor'));
 const AdminDashboard = lazy(() => import('./AdminDashboard'));
+
+// Hook to detect screen size
+const useMedia = (query: string) => {
+  const [matches, setMatches] = useState(window.matchMedia(query).matches);
+
+  useEffect(() => {
+    const media = window.matchMedia(query);
+    if (media.matches !== matches) {
+      setMatches(media.matches);
+    }
+    const listener = () => setMatches(media.matches);
+    media.addEventListener('change', listener);
+    return () => media.removeEventListener('change', listener);
+  }, [matches, query]);
+
+  return matches;
+};
 
 type AuthenticatedAppProps = {
   profile: UserProfile | null;
@@ -105,7 +124,7 @@ const GenerationToolbar: React.FC<GenerationToolbarProps> = ({
           let label = '🎨 Redesign';
           if (mode === GenerationMode.VIRTUAL_STAGING) label = '🪑 Mobiliar';
           if (mode === GenerationMode.PAINT_ONLY) label = '🖌️ Pintura';
-          
+
           return (
             <button
               key={mode}
@@ -206,17 +225,23 @@ const DesktopLayout: React.FC<DesktopLayoutProps> = ({
 }) => (
   <main className="hidden lg:flex flex-1 overflow-hidden">
     <aside className="w-72 xl:w-80 flex-shrink-0 border-r border-glass-border overflow-y-auto p-4 custom-scrollbar">
-      <Sidebar {...sidebarProps} />
+      <Suspense fallback={<div className="p-4 text-text-muted">Carregando sidebar...</div>}>
+        <Sidebar {...sidebarProps} />
+      </Suspense>
     </aside>
     <section className="flex-1 min-w-0 flex flex-col overflow-hidden">
       <GenerationToolbar {...generationToolbarProps} />
       {showControls && (
         <div className="flex-shrink-0 border-b border-glass-border px-5 py-2 bg-surface/30 animate-slide-down overflow-y-auto max-h-[220px] custom-scrollbar">
-          <DesignStudio {...designStudioProps} />
+          <Suspense fallback={<div className="p-4 text-text-muted">Carregando estúdio...</div>}>
+            <DesignStudio {...designStudioProps} />
+          </Suspense>
         </div>
       )}
       <div className="flex-1 min-h-0 p-4 overflow-y-auto custom-scrollbar">
-        <PreviewArea {...previewAreaProps} />
+        <Suspense fallback={<div className="p-4 text-text-muted">Carregando preview...</div>}>
+          <PreviewArea {...previewAreaProps} />
+        </Suspense>
       </div>
     </section>
   </main>
@@ -231,11 +256,13 @@ type MobileLayoutProps = {
 const MobileLayout: React.FC<MobileLayoutProps> = ({ sidebarProps, mobileEditorProps, mobileView }) => (
   <main className="lg:hidden flex-1 overflow-hidden">
     {mobileView === 'gallery' ? (
-      <div className="p-4 h-full overflow-y-auto">
-        <Sidebar {...sidebarProps} />
+      <div className="p-4 h-full overflow-hidden flex flex-col">
+        <Suspense fallback={<div className="h-full flex items-center justify-center text-text-muted">Carregando galeria...</div>}>
+          <Sidebar {...sidebarProps} />
+        </Suspense>
       </div>
     ) : (
-      <Suspense fallback={<div className="h-full flex items-center justify-center text-text-muted">Carregando...</div>}>
+      <Suspense fallback={<div className="h-full flex items-center justify-center text-text-muted">Carregando editor...</div>}>
         <MobileEditor {...mobileEditorProps} />
       </Suspense>
     )}
@@ -268,6 +295,8 @@ const AdminView: React.FC<AdminViewProps> = ({ activeProperty, setActiveProperty
 
 export const AuthenticatedApp: React.FC<AuthenticatedAppProps> = ({ profile, refreshProfile, signOut }) => {
   const { credits, hasCredits, plan } = useCredits(profile, refreshProfile);
+  const navigate = useNavigate();
+  const location = useLocation();
 
   const {
     properties,
@@ -294,9 +323,13 @@ export const AuthenticatedApp: React.FC<AuthenticatedAppProps> = ({ profile, ref
   const [customPrompt, setCustomPrompt] = useState('');
   const [isDownloadingZip, setIsDownloadingZip] = useState(false);
   const [viewMode, setViewMode] = useState<'original' | 'generated' | 'split'>('split');
-  const [appView, setAppView] = useState<'app' | 'admin'>('app');
-  const [mobileView, setMobileView] = useState<'gallery' | 'editor'>('gallery');
   const [showControls, setShowControls] = useState(true);
+
+  // Detect desktop view
+  const isDesktop = useMedia('(min-width: 1024px)');
+
+  // Sync mobileView with URL
+  const mobileView = location.pathname.includes('/editor') ? 'editor' : 'gallery';
 
   const {
     isGenerating,
@@ -321,12 +354,12 @@ export const AuthenticatedApp: React.FC<AuthenticatedAppProps> = ({ profile, ref
 
   const onImagesSelected = (newImages: UploadedImage[]) => {
     handleImagesSelected(newImages);
-    setMobileView('editor');
+    if (!isDesktop) navigate('/editor');
   };
 
   const handleMobileImageSelect = (id: string) => {
     setSelectedImageId(id);
-    setMobileView('editor');
+    navigate('/editor');
   };
 
   const handleNextImage = () => {
@@ -399,18 +432,6 @@ export const AuthenticatedApp: React.FC<AuthenticatedAppProps> = ({ profile, ref
         properties={properties}
         setActivePropertyId={setActivePropertyId}
         handleCreateProperty={handleCreateProperty}
-      />
-    );
-  }
-
-  if (appView === 'admin' && profile?.is_admin) {
-    return (
-      <AdminView
-        activeProperty={activeProperty}
-        setActivePropertyId={setActivePropertyId}
-        signOut={signOut}
-        profile={profile}
-        onBack={() => setAppView('app')}
       />
     );
   }
@@ -490,7 +511,7 @@ export const AuthenticatedApp: React.FC<AuthenticatedAppProps> = ({ profile, ref
   const mobileEditorProps: React.ComponentProps<typeof MobileEditor> = {
     activeImage,
     onRegenerateSingle: handleRegenerateSingleWrapper,
-    onBack: () => setMobileView('gallery'),
+    onBack: () => navigate('/'),
     isGenerating,
     onGenerate: handleGenerateWrapper,
     generationMode,
@@ -508,8 +529,8 @@ export const AuthenticatedApp: React.FC<AuthenticatedAppProps> = ({ profile, ref
         setActivePropertyId={setActivePropertyId}
         handleLogout={signOut}
         profile={profile}
-        onAdminClick={() => setAppView('admin')}
-        isAdminView={false}
+        onAdminClick={() => navigate('/admin')}
+        isAdminView={location.pathname === '/admin'}
       />
       {noCreditsError && (
         <NoCreditsBanner
@@ -521,18 +542,42 @@ export const AuthenticatedApp: React.FC<AuthenticatedAppProps> = ({ profile, ref
         />
       )}
       {plan === 'free' && images.some(img => img.generatedUrl) && <FreePlanNotice />}
-      <MobileLayout
-        sidebarProps={mobileSidebarProps}
-        mobileEditorProps={mobileEditorProps}
-        mobileView={mobileView}
-      />
-      <DesktopLayout
-        sidebarProps={desktopSidebarProps}
-        generationToolbarProps={generationToolbarProps}
-        designStudioProps={designStudioProps}
-        previewAreaProps={previewAreaProps}
-        showControls={showControls}
-      />
+
+      <AnimatePresence mode="wait">
+        <div key={location.pathname} className="flex-1 flex flex-col overflow-hidden relative">
+          <Routes location={location}>
+            {/* Mobile Routes */}
+            {!isDesktop && (
+              <>
+                <Route path="/" element={<MobileLayout sidebarProps={mobileSidebarProps} mobileEditorProps={mobileEditorProps} mobileView="gallery" />} />
+                <Route path="/editor" element={<MobileLayout sidebarProps={mobileSidebarProps} mobileEditorProps={mobileEditorProps} mobileView="editor" />} />
+              </>
+            )}
+
+            {/* Desktop Routes */}
+            {isDesktop && (
+              <Route path="/" element={
+                <DesktopLayout
+                  sidebarProps={desktopSidebarProps}
+                  generationToolbarProps={generationToolbarProps}
+                  designStudioProps={designStudioProps}
+                  previewAreaProps={previewAreaProps}
+                  showControls={showControls}
+                />
+              } />
+            )}
+
+            {/* Common Routes */}
+            {profile?.is_admin && (
+              <Route path="/admin" element={
+                <Suspense fallback={<div className="flex-1 flex items-center justify-center text-text-muted">Carregando Admin...</div>}>
+                  <AdminDashboard onBack={() => navigate('/')} />
+                </Suspense>
+              } />
+            )}
+          </Routes>
+        </div>
+      </AnimatePresence>
     </div>
   );
 };

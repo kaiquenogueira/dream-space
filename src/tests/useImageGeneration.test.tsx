@@ -4,12 +4,22 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { useImageGeneration } from '../hooks/useImageGeneration';
 import { UploadedImage, GenerationMode, ArchitecturalStyle } from '../types';
 import * as geminiService from '../services/geminiService';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 // Mock services
 vi.mock('../services/geminiService', () => ({
   generateRoomDesign: vi.fn(),
   updateGeneratedImageMetadata: vi.fn(),
 }));
+
+// Create a client
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: false,
+    },
+  },
+});
 
 const TestComponent = ({ 
   initialImages, 
@@ -43,6 +53,12 @@ const TestComponent = ({
   );
 };
 
+const Wrapper = ({ children }: { children: React.ReactNode }) => (
+  <QueryClientProvider client={queryClient}>
+    {children}
+  </QueryClientProvider>
+);
+
 describe('useImageGeneration', () => {
   const mockImage: UploadedImage = {
     id: 'img1',
@@ -55,10 +71,15 @@ describe('useImageGeneration', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    queryClient.clear();
   });
 
   it('should not generate if no credits', async () => {
-    render(<TestComponent initialImages={[mockImage]} credits={0} hasCredits={false} />);
+    render(
+      <Wrapper>
+        <TestComponent initialImages={[mockImage]} credits={0} hasCredits={false} />
+      </Wrapper>
+    );
     
     fireEvent.click(screen.getByText('Generate'));
     
@@ -71,7 +92,11 @@ describe('useImageGeneration', () => {
       { ...mockImage, id: '1' },
       { ...mockImage, id: '2' }
     ];
-    render(<TestComponent initialImages={images} credits={1} hasCredits={true} />);
+    render(
+      <Wrapper>
+        <TestComponent initialImages={images} credits={1} hasCredits={true} />
+      </Wrapper>
+    );
     
     fireEvent.click(screen.getByText('Generate'));
     
@@ -86,7 +111,11 @@ describe('useImageGeneration', () => {
       is_compressed: false
     });
 
-    render(<TestComponent initialImages={[mockImage]} credits={10} hasCredits={true} />);
+    render(
+      <Wrapper>
+        <TestComponent initialImages={[mockImage]} credits={10} hasCredits={true} />
+      </Wrapper>
+    );
     
     fireEvent.click(screen.getByText('Generate'));
     

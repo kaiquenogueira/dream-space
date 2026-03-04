@@ -1,4 +1,5 @@
 import React from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Login from './components/Login';
 import { useAuth } from './hooks/useAuth';
 import { AuthenticatedApp } from './components/AuthenticatedApp';
@@ -6,17 +7,13 @@ import { LoadingScreen } from './components/LoadingScreen';
 import { ProfileErrorScreen } from './components/ProfileErrorScreen';
 import { AuthProvider } from './contexts/AuthContext';
 
-const AppContent: React.FC = () => {
+const PrivateRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const {
     isAuthenticated,
     isCheckingAuth,
     isProfileLoading,
     profileError,
-    signInWithEmail,
-    signUpWithEmail,
-    signInWithGoogle,
     signOut,
-    profile,
     refreshProfile,
   } = useAuth();
 
@@ -25,13 +22,7 @@ const AppContent: React.FC = () => {
   }
 
   if (!isAuthenticated) {
-    return (
-      <Login
-        onSignIn={signInWithEmail}
-        onSignUp={signUpWithEmail}
-        onGoogleSignIn={signInWithGoogle}
-      />
-    );
+    return <Navigate to="/login" replace />;
   }
 
   if (profileError) {
@@ -44,20 +35,70 @@ const AppContent: React.FC = () => {
     );
   }
 
+  return <>{children}</>;
+};
+
+const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { isAuthenticated, isCheckingAuth } = useAuth();
+
+  if (isCheckingAuth) {
+    return <LoadingScreen />;
+  }
+
+  if (isAuthenticated) {
+    return <Navigate to="/" replace />;
+  }
+
+  return <>{children}</>;
+};
+
+const AppContent: React.FC = () => {
+  const {
+    signInWithEmail,
+    signUpWithEmail,
+    signInWithGoogle,
+    signOut,
+    profile,
+    refreshProfile,
+  } = useAuth();
+
   return (
-    <AuthenticatedApp
-      profile={profile}
-      refreshProfile={refreshProfile}
-      signOut={signOut}
-    />
+    <Routes>
+      <Route
+        path="/login"
+        element={
+          <PublicRoute>
+            <Login
+              onSignIn={signInWithEmail}
+              onSignUp={signUpWithEmail}
+              onGoogleSignIn={signInWithGoogle}
+            />
+          </PublicRoute>
+        }
+      />
+      <Route
+        path="/*"
+        element={
+          <PrivateRoute>
+            <AuthenticatedApp
+              profile={profile}
+              refreshProfile={refreshProfile}
+              signOut={signOut}
+            />
+          </PrivateRoute>
+        }
+      />
+    </Routes>
   );
 };
 
 const App: React.FC = () => {
   return (
-    <AuthProvider>
-      <AppContent />
-    </AuthProvider>
+    <BrowserRouter>
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
+    </BrowserRouter>
   );
 };
 

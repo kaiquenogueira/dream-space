@@ -1,7 +1,8 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { UploadedImage, ArchitecturalStyle, GenerationMode } from '../types';
 import StyleSelector from './StyleSelector';
 import { RefreshIcon, MagicWandIcon, ChevronDownIcon } from './Icons';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface MobileEditorProps {
   activeImage: UploadedImage;
@@ -20,13 +21,18 @@ interface MobileEditorProps {
 /** Inline mobile comparison slider for before/after */
 const MobileComparisonSlider: React.FC<{ originalUrl: string; generatedUrl: string }> = ({ originalUrl, generatedUrl }) => {
   const [sliderPosition, setSliderPosition] = useState(50);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const handleSliderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSliderPosition(Number(e.target.value));
+    if (navigator.vibrate) {
+       // Micro haptic feedback on significant points
+       if (Math.abs(Number(e.target.value) - 50) < 2) navigator.vibrate(5);
+    }
   };
 
   return (
-    <div className="relative w-full h-full bg-surface-dark overflow-hidden select-none">
+    <div ref={containerRef} className="relative w-full h-full bg-surface-dark overflow-hidden select-none">
       {/* Generated (full, behind) */}
       <img src={generatedUrl} alt="Generated design" className="absolute inset-0 w-full h-full object-contain pointer-events-none" />
 
@@ -95,9 +101,10 @@ const MobileEditor: React.FC<MobileEditorProps> = ({
   const isSwiping = useRef(false);
 
   // Auto-switch to generated view when generation completes
-  React.useEffect(() => {
+  useEffect(() => {
     if (activeImage.generatedUrl) {
       setViewMode('compare');
+      if (navigator.vibrate) navigator.vibrate([50, 50, 50]); // Success vibration
     } else {
       setViewMode('original');
     }
@@ -123,9 +130,11 @@ const MobileEditor: React.FC<MobileEditorProps> = ({
       if (deltaX < 0 && currentIdx < views.length - 1) {
         // Swipe left → next view
         setViewMode(views[currentIdx + 1]);
+        if (navigator.vibrate) navigator.vibrate(10);
       } else if (deltaX > 0 && currentIdx > 0) {
         // Swipe right → previous view
         setViewMode(views[currentIdx - 1]);
+        if (navigator.vibrate) navigator.vibrate(10);
       }
     }
   }, [activeImage.generatedUrl, viewMode]);
@@ -135,7 +144,13 @@ const MobileEditor: React.FC<MobileEditorProps> = ({
     : activeImage.previewUrl;
 
   return (
-    <div className="fixed inset-0 z-50 bg-surface-dark flex flex-col h-full overflow-hidden">
+    <motion.div 
+      initial={{ x: '100%' }}
+      animate={{ x: 0 }}
+      exit={{ x: '100%' }}
+      transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+      className="fixed inset-0 z-50 bg-surface-dark flex flex-col h-full overflow-hidden"
+    >
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 bg-surface-dark/80 backdrop-blur-xl border-b border-glass-border shrink-0">
         <button
@@ -170,11 +185,18 @@ const MobileEditor: React.FC<MobileEditorProps> = ({
               generatedUrl={activeImage.generatedUrl}
             />
           ) : (
-            <img
-              src={currentImageUrl}
-              alt="Preview"
-              className="w-full h-full object-contain transition-opacity duration-300"
-            />
+            <AnimatePresence mode='wait'>
+                <motion.img
+                key={currentImageUrl}
+                src={currentImageUrl}
+                alt="Preview"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.3 }}
+                className="w-full h-full object-contain"
+                />
+            </AnimatePresence>
           )}
 
           {/* View Mode Tabs */}
@@ -279,12 +301,21 @@ const MobileEditor: React.FC<MobileEditorProps> = ({
       </div>
 
       {/* Floating Action Bar — with safe area */}
-      <div className="fixed bottom-0 left-0 right-0 p-4 bg-surface-dark/80 backdrop-blur-2xl border-t border-glass-border z-50" style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}>
+      <motion.div 
+        initial={{ y: 100 }}
+        animate={{ y: 0 }}
+        transition={{ delay: 0.2, type: 'spring' }}
+        className="fixed bottom-0 left-0 right-0 p-4 bg-surface-dark/80 backdrop-blur-2xl border-t border-glass-border z-50" 
+        style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}
+      >
         <div className="flex gap-2">
           {/* Regenerate button (shown when image already has a result) */}
           {activeImage.generatedUrl && !isGenerating && (
             <button
-              onClick={() => onRegenerateSingle(activeImage.id)}
+              onClick={() => {
+                if(navigator.vibrate) navigator.vibrate(10);
+                onRegenerateSingle(activeImage.id);
+              }}
               className="py-3.5 px-5 rounded-sm font-bold text-sm flex items-center justify-center gap-2 shadow-lg transition-all transform active:scale-[0.98] bg-surface-light text-text-muted border border-glass-border hover:bg-surface hover:text-white focus-visible:ring-2 focus-visible:ring-secondary uppercase tracking-wide"
               aria-label="Gerar design novamente"
             >
@@ -293,7 +324,10 @@ const MobileEditor: React.FC<MobileEditorProps> = ({
             </button>
           )}
           <button
-            onClick={onGenerate}
+            onClick={() => {
+              if(navigator.vibrate) navigator.vibrate(10);
+              onGenerate();
+            }}
             disabled={isGenerating || (generationMode !== GenerationMode.PAINT_ONLY && !selectedStyle)}
             className={`
               flex-1 py-3.5 rounded-sm font-bold text-sm flex items-center justify-center gap-2.5 shadow-lg transition-all transform active:scale-[0.98] relative overflow-hidden group uppercase tracking-wider font-heading
@@ -321,8 +355,8 @@ const MobileEditor: React.FC<MobileEditorProps> = ({
             )}
           </button>
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 };
 

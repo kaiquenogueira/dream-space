@@ -23,30 +23,30 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">51.64% </span>
+                <span class="strong">54.54% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>47/91</span>
+                <span class='fraction'>54/99</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">66.12% </span>
+                <span class="strong">60% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>41/62</span>
+                <span class='fraction'>42/70</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">77.77% </span>
+                <span class="strong">72.72% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>7/9</span>
+                <span class='fraction'>8/11</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">51.72% </span>
+                <span class="strong">54.83% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>45/87</span>
+                <span class='fraction'>51/93</span>
             </div>
         
             
@@ -296,7 +296,13 @@
 <a name='L231'></a><a href='#L231'>231</a>
 <a name='L232'></a><a href='#L232'>232</a>
 <a name='L233'></a><a href='#L233'>233</a>
-<a name='L234'></a><a href='#L234'>234</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L234'></a><a href='#L234'>234</a>
+<a name='L235'></a><a href='#L235'>235</a>
+<a name='L236'></a><a href='#L236'>236</a>
+<a name='L237'></a><a href='#L237'>237</a>
+<a name='L238'></a><a href='#L238'>238</a>
+<a name='L239'></a><a href='#L239'>239</a>
+<a name='L240'></a><a href='#L240'>240</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -308,15 +314,23 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-yes">5x</span>
 <span class="cline-any cline-yes">5x</span>
 <span class="cline-any cline-yes">5x</span>
 <span class="cline-any cline-yes">5x</span>
 <span class="cline-any cline-yes">5x</span>
+<span class="cline-any cline-yes">5x</span>
+<span class="cline-any cline-yes">5x</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">5x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">5x</span>
@@ -374,8 +388,6 @@
 <span class="cline-any cline-yes">5x</span>
 <span class="cline-any cline-yes">5x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">3x</span>
 <span class="cline-any cline-yes">3x</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -428,7 +440,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -551,6 +563,14 @@ const DroneTourPlayer: React.FC&lt;DroneTourPlayerProps&gt; = ({ imageUrl, video
     const retryCountRef = useRef(0);
     const isFetchingRef = useRef(false);
     const blobUrlRef = useRef&lt;string | null&gt;(null);
+    const getApiUrl = (path: string) =&gt; {
+        const base = import.meta.env.VITE_API_BASE_URL;
+        <span class="missing-if-branch" title="else path not taken" >E</span>if (!base) return path;
+        const normalizedBase = <span class="cstat-no" title="statement not covered" >base.endsWith('/') ? base.slice(0, -1) : base;</span>
+        const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+        return `${normalizedBase}${normalizedPath}`;
+    };
+    const resolveApiUrl = <span class="fstat-no" title="function not covered" >(p</span>ath: string) =&gt; (<span class="cstat-no" title="statement not covered" >path.startsWith('/api/') ? getApiUrl(path) : path);</span>
 &nbsp;
     const fetchVideoBlob = <span class="fstat-no" title="function not covered" >async (s</span>ourceUrl: string) =&gt; {
 <span class="cstat-no" title="statement not covered" >        if (isFetchingRef.current) <span class="cstat-no" title="statement not covered" >return;</span></span>
@@ -563,7 +583,7 @@ const DroneTourPlayer: React.FC&lt;DroneTourPlayerProps&gt; = ({ imageUrl, video
 <span class="cstat-no" title="statement not covered" >                return;</span>
             }
 &nbsp;
-            const res = <span class="cstat-no" title="statement not covered" >await fetch(sourceUrl, {</span>
+            const res = <span class="cstat-no" title="statement not covered" >await fetch(resolveApiUrl(sourceUrl), {</span>
                 headers: {
                     'Authorization': `Bearer ${session.access_token}`
                 }
@@ -607,8 +627,6 @@ const DroneTourPlayer: React.FC&lt;DroneTourPlayerProps&gt; = ({ imageUrl, video
     useEffect(() =&gt; {
         if (!videoOperationName || videoUrl || error) return;
 &nbsp;
-        let pollInterval: NodeJS.Timeout;
-&nbsp;
         const checkStatus = async () =&gt; {
             <span class="missing-if-branch" title="if path not taken" >I</span>if (retryCountRef.current &gt;= MAX_RETRIES) {
 <span class="cstat-no" title="statement not covered" >                setError("O tempo limite de geração foi excedido. Por favor, tente novamente.");</span>
@@ -625,16 +643,16 @@ const DroneTourPlayer: React.FC&lt;DroneTourPlayerProps&gt; = ({ imageUrl, video
 <span class="cstat-no" title="statement not covered" >                    return;</span>
                 }
 &nbsp;
-                const res = await fetch(`/api/check-operation?operationName=${encodeURIComponent(videoOperationName)}`, {
+                const res = await fetch(getApiUrl(`/api/check-operation?operationName=${encodeURIComponent(videoOperationName)}`), {
                     headers: {
                         'Authorization': `Bearer ${session.access_token}`
                     }
                 });
-                
+&nbsp;
                 if (res.ok) {
                     const op = await res.json();
                     console.log(`Polling video status (${retryCountRef.current}/${MAX_RETRIES}):`, op.done ? "Done" : "Pending");
-                    
+&nbsp;
                     if (op.error) {
                         console.error("Video generation failed:", op.error);
                         setError(`Falha na geração: ${op.error.message || <span class="branch-1 cbranch-no" title="branch not covered" >'Erro desconhecido'}</span>`);
@@ -642,26 +660,26 @@ const DroneTourPlayer: React.FC&lt;DroneTourPlayerProps&gt; = ({ imageUrl, video
                     } else if (op.done) {
                         const result = op.result || <span class="branch-1 cbranch-no" title="branch not covered" >op.response;</span>
                         if (result &amp;&amp; result.generatedVideos &amp;&amp; result.generatedVideos.length &gt; 0) {
-                             const video = result.generatedVideos[0];
-                             const finalUrl = video.video?.uri || (<span class="branch-1 cbranch-no" title="branch not covered" >video as any).videoUri;</span>
-                             
-                             if (finalUrl) {
+                            const video = result.generatedVideos[0];
+                            const finalUrl = video.video?.uri || <span class="branch-1 cbranch-no" title="branch not covered" >video.videoUri;</span>
+&nbsp;
+                            if (finalUrl) {
                                 setVideoUrl(finalUrl);
                                 setIsVideoProcessing(false);
                                 onVideoGenerated?.(finalUrl);
-                             } else <span class="missing-if-branch" title="else path not taken" >E</span>{
+                            } else <span class="missing-if-branch" title="else path not taken" >E</span>{
 <span class="cstat-no" title="statement not covered" >                                setError("Vídeo gerado mas URL não encontrada.");</span>
 <span class="cstat-no" title="statement not covered" >                                setIsVideoProcessing(false);</span>
-                             }
+                            }
                         } else <span class="missing-if-branch" title="else path not taken" >E</span>{
-                             // Sometimes done but empty result means filtered or error
-<span class="cstat-no" title="statement not covered" >                             setError("A geração foi concluída sem resultados (possível filtro de conteúdo).");</span>
-<span class="cstat-no" title="statement not covered" >                             setIsVideoProcessing(false);</span>
+                            // Sometimes done but empty result means filtered or error
+<span class="cstat-no" title="statement not covered" >                            setError("A geração foi concluída sem resultados (possível filtro de conteúdo).");</span>
+<span class="cstat-no" title="statement not covered" >                            setIsVideoProcessing(false);</span>
                         }
                     }
                 } else <span class="missing-if-branch" title="else path not taken" >E</span>{
                     // Transient error, keep retrying until max
-<span class="cstat-no" title="statement not covered" >                    console.warn("Polling request failed:", res.status);</span>
+&nbsp;
                 }
             } catch (e) {
 <span class="cstat-no" title="statement not covered" >                console.error("Error polling video:", e);</span>
@@ -670,7 +688,7 @@ const DroneTourPlayer: React.FC&lt;DroneTourPlayerProps&gt; = ({ imageUrl, video
         };
 &nbsp;
         // Poll every 3 seconds for faster updates
-        pollInterval = setInterval(checkStatus, POLL_INTERVAL_MS);
+        const pollInterval: NodeJS.Timeout = setInterval(checkStatus, POLL_INTERVAL_MS);
         checkStatus(); // Initial check
 &nbsp;
         return () =&gt; clearInterval(pollInterval);
@@ -722,7 +740,7 @@ const DroneTourPlayer: React.FC&lt;DroneTourPlayerProps&gt; = ({ imageUrl, video
                         &lt;p className="text-sm text-white/50 mt-2"&gt;Isso pode levar de 1 a 2 minutos&lt;/p&gt;
                     &lt;/div&gt;
                 )}
-                
+&nbsp;
                 {error &amp;&amp; (
                     &lt;div className="absolute inset-0 flex flex-col items-center justify-center text-white z-10 bg-black/80"&gt;
                         &lt;div className="text-red-500 mb-4"&gt;
@@ -733,7 +751,7 @@ const DroneTourPlayer: React.FC&lt;DroneTourPlayerProps&gt; = ({ imageUrl, video
                             &lt;/svg&gt;
                         &lt;/div&gt;
                         &lt;p className="text-lg text-center px-4"&gt;{error}&lt;/p&gt;
-                        &lt;button 
+                        &lt;button
                             onClick={onClose}
                             className="mt-6 px-6 py-2 bg-white/10 hover:bg-white/20 rounded-full text-sm transition-all"
                         &gt;
@@ -743,18 +761,18 @@ const DroneTourPlayer: React.FC&lt;DroneTourPlayerProps&gt; = ({ imageUrl, video
                 )}
 &nbsp;
                 {videoUrl &amp;&amp; (
-                    &lt;video 
-                        src={videoUrl} 
+                    &lt;video
+                        src={videoUrl}
                         className="w-full h-full object-contain"
-                        controls 
-                        autoPlay 
+                        controls
+                        autoPlay
                         loop
                         playsInline
                     /&gt;
                 )}
-                
+&nbsp;
                 {!videoUrl &amp;&amp; !isVideoProcessing &amp;&amp; !error &amp;&amp; (
-<span class="branch-3 cbranch-no" title="branch not covered" >                   &lt;img src={imageUrl} className="w-full h-full object-contain opacity-50" alt="Original" /&gt;</span>
+<span class="branch-3 cbranch-no" title="branch not covered" >                    &lt;img src={imageUrl} className="w-full h-full object-contain opacity-50" alt="Original" /&gt;</span>
                 )}
             &lt;/div&gt;
         &lt;/div&gt;
@@ -769,7 +787,7 @@ export default DroneTourPlayer;
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-02-25T02:51:19.357Z
+                at 2026-03-03T02:45:53.886Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

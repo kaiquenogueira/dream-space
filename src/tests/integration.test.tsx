@@ -29,10 +29,41 @@ vi.mock('browser-image-compression', () => {
   return { default: mockCompression };
 });
 
+// Mock ResizeObserver
+global.ResizeObserver = class ResizeObserver {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+};
+
+vi.mock('../components/Sidebar', () => ({
+  default: ({ handleImagesSelected }: any) => (
+    <div>
+      <input 
+        data-testid="image-uploader-input" 
+        type="file" 
+        onChange={(e) => {
+          if (e.target.files?.length) {
+            handleImagesSelected([new File([], 'test.png')]);
+          }
+        }} 
+      />
+    </div>
+  )
+}));
+
 describe('Fluxo de Integração E2E (Simulado)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     handleImagesSelected = vi.fn();
+
+    // Mock window size for virtualized list
+    Object.defineProperty(HTMLElement.prototype, 'contentRect', {
+      configurable: true,
+      get: function() {
+        return { width: 800, height: 600 };
+      }
+    });
 
     useAuthMock.mockReturnValue({
       isAuthenticated: true,
@@ -77,12 +108,16 @@ describe('Fluxo de Integração E2E (Simulado)', () => {
   it('deve permitir upload de imagem e solicitar geração', async () => {
     render(<App />);
 
-    const file = new File(['(⌐□_□)'], 'room.png', { type: 'image/png' });
-    const uploader = screen.getAllByTestId('image-uploader-input')[0];
-    expect(uploader).toBeInTheDocument();
+    // Wait for Sidebar to load (it is lazy loaded)
+    await waitFor(() => {
+      expect(screen.getByTestId('image-uploader-input')).toBeInTheDocument();
+    });
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await userEvent.upload(uploader as HTMLElement, file);
+    const file = new File(['(⌐□_□)'], 'room.png', { type: 'image/png' });
+    const uploader = screen.getByTestId('image-uploader-input');
+    
+    await userEvent.upload(uploader, file);
+    
     await waitFor(() => {
       expect(handleImagesSelected).toHaveBeenCalled();
     });
