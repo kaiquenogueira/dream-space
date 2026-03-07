@@ -241,12 +241,7 @@ const LandingPage: React.FC = () => {
                     <div className="grid lg:grid-cols-2 gap-16 items-center">
                         {/* Left: Copy */}
                         <div className="text-center lg:text-left">
-                            <Reveal>
-                                <div className="inline-flex items-center gap-2 bg-secondary/10 border border-secondary/20 rounded-full px-4 py-1.5 mb-8">
-                                    <div className="w-2 h-2 rounded-full bg-secondary animate-pulse" />
-                                    <span className="text-xs font-semibold text-secondary uppercase tracking-widest">Powered by Google Gemini</span>
-                                </div>
-                            </Reveal>
+
 
                             <Reveal delay={100}>
                                 <h1 className="text-4xl sm:text-5xl lg:text-6xl font-heading font-bold leading-[1.1] tracking-tight mb-6">
@@ -311,7 +306,7 @@ const LandingPage: React.FC = () => {
                                 <div className="absolute inset-0 bg-gradient-to-t from-primary-dark/60 via-transparent to-transparent" />
                                 <div className="absolute bottom-4 left-4 right-4 flex justify-between items-end">
                                     <span className="bg-primary-dark/80 backdrop-blur-sm px-3 py-1.5 rounded-lg text-xs text-text-muted border border-glass-border">
-                                        IA Generativa · Google Gemini
+                                        IA Generativa
                                     </span>
                                 </div>
                             </div>
