@@ -21,7 +21,6 @@
     "@google/genai": "^1.41.0",
     "@supabase/supabase-js": "^2.97.0",
     "@tanstack/react-query": "^5.90.21",
-    "@types/react-window": "1.8.8",
     "@upstash/ratelimit": "^2.0.8",
     "@upstash/redis": "^1.36.2",
     "browser-image-compression": "^2.0.2",
@@ -31,9 +30,7 @@
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "react-router-dom": "^7.13.1",
-    "react-virtualized-auto-sizer": "^2.0.3",
-    "react-window": "1.8.10",
-    "react-window-infinite-loader": "^2.0.1",
+    "react-window": "^2.2.6",
     "stripe": "^20.4.0",
     "zod": "^4.3.6"
   },
