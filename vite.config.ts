@@ -95,7 +95,7 @@ export default defineConfig(({ mode }) => {
         output: {
           manualChunks(id) {
             if (id.includes('node_modules')) {
-              if (id.includes('react-dom') || id.includes('/react/')) return 'react';
+              if (id.includes('react')) return 'react';
               if (id.includes('@supabase')) return 'supabase';
               if (id.includes('@google')) return 'google';
               if (id.includes('jszip') || id.includes('file-saver')) return 'downloads';

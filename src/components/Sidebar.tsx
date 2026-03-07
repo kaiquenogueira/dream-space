@@ -2,7 +2,7 @@ import React, { memo, useRef, useState, useEffect } from 'react';
 import ImageUploader from './ImageUploader';
 import { RefreshIcon, XIcon } from './Icons';
 import { UploadedImage, Property } from '../types';
-import { Grid } from 'react-window';
+import { FixedSizeGrid as Grid } from 'react-window';
 
 // Hook to track container size
 const useContainerSize = (ref: React.RefObject<HTMLDivElement>) => {
@@ -188,16 +188,16 @@ const Sidebar: React.FC<SidebarProps> = ({
   const itemWidth = Math.floor(gridWidth / columnCount);
   const itemHeight = Math.floor(itemWidth * (9 / 16)) + gutter;
 
-  const Cell = ({ columnIndex, rowIndex, style }: { ariaAttributes: { 'aria-colindex': number; role: 'gridcell' }; columnIndex: number; rowIndex: number; style: React.CSSProperties }) => {
+  const Cell = ({ columnIndex, rowIndex, style }: any) => {
     const index = rowIndex * columnCount + columnIndex;
 
     // Adjust style for gutter
     const cellStyle = {
       ...style,
-      left: (style.left as number) + gutter / 2,
-      top: (style.top as number) + gutter / 2,
-      width: (style.width as number) - gutter,
-      height: (style.height as number) - gutter,
+      left: style.left + gutter / 2,
+      top: style.top + gutter / 2,
+      width: style.width - gutter,
+      height: style.height - gutter,
     };
 
     if (index === 0) {
@@ -347,9 +347,9 @@ const Sidebar: React.FC<SidebarProps> = ({
                 rowHeight={itemHeight}
                 width={width}
                 className="custom-scrollbar"
-                cellComponent={Cell}
-                cellProps={{}}
-              />
+              >
+                {Cell}
+              </Grid>
             )}
           </div>
         )}
