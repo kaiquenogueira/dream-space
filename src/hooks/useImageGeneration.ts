@@ -3,7 +3,7 @@ import type React from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { UploadedImage, ArchitecturalStyle, GenerationMode } from '../types';
 import { generateRoomDesign, updateGeneratedImageMetadata } from '../services/geminiService';
-import { resolveImageBase64 } from '../utils/imageUtils';
+import { resolveIterationBase64 } from '../utils/imageUtils';
 
 interface UseImageGenerationProps {
   images: UploadedImage[];
@@ -41,7 +41,7 @@ export const useImageGeneration = ({
   const setImageSuccess = (imageId: string, payload: { result: string; storage_path?: string; is_compressed?: boolean }) => {
     setImages(current => current.map(image => (
       image.id === imageId
-        ? { ...image, generatedUrl: payload.result, generatedPath: payload.storage_path, isCompressed: payload.is_compressed, isGenerating: false, selected: false }
+        ? { ...image, generatedUrl: payload.result, generatedPath: payload.storage_path, isCompressed: payload.is_compressed, isGenerating: false, selected: false, iterateFromGenerated: false }
         : image
     )));
   };
@@ -65,13 +65,15 @@ export const useImageGeneration = ({
 
   const generationMutation = useMutation({
     mutationFn: async ({ img, prompt }: { img: UploadedImage, prompt: string }) => {
-      const base64 = await resolveImageBase64(img);
+      const isIteration = !!img.iterateFromGenerated;
+      const base64 = await resolveIterationBase64(img);
       return await generateRoomDesign(
         base64,
         prompt,
         activePropertyId || undefined,
         selectedStyle || undefined,
         generationMode,
+        isIteration,
       );
     },
     onSuccess: async (response, { img }) => {
@@ -109,9 +111,17 @@ export const useImageGeneration = ({
     return true;
   };
 
-  const handleGenerate = async () => {
-    const selectedImages = images.filter(img => img.selected && !img.isGenerating);
-    
+  const handleGenerate = async (fallbackImageId?: string) => {
+    let selectedImages = images.filter(img => img.selected && !img.isGenerating);
+
+    // If no images are selected, fall back to the active/viewed image
+    if (selectedImages.length === 0 && fallbackImageId) {
+      const fallbackImg = images.find(img => img.id === fallbackImageId && !img.isGenerating);
+      if (fallbackImg) {
+        selectedImages = [fallbackImg];
+      }
+    }
+
     if (selectedImages.length === 0) return;
 
     if (!hasCredits || selectedImages.length > credits) {
@@ -123,7 +133,7 @@ export const useImageGeneration = ({
     setImagesGenerating(selectedImages.map(img => img.id), true);
 
     const prompt = customPrompt.trim();
-    
+
     // Process images sequentially or in parallel? 
     // For now parallel to speed up, but with a small delay to avoid hitting rate limits too hard
     selectedImages.forEach((img, index) => {

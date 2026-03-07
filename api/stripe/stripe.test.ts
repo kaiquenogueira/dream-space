@@ -34,11 +34,14 @@ vi.mock('stripe', () => {
       },
     },
     subscriptions: {
-      retrieve: vi.fn().mockResolvedValue({ metadata: { userId: 'user123', plan: 'pro' } }),
+      retrieve: vi.fn().mockResolvedValue({
+        metadata: { userId: 'user123', plan: 'pro' },
+        current_period_end: 1740000000
+      }),
     }
   };
   return {
-    default: vi.fn(function() { return stripeInstance; }),
+    default: vi.fn(function () { return stripeInstance; }),
   };
 });
 
@@ -90,10 +93,10 @@ describe('Stripe Integration', () => {
   let portalHandler: any;
 
   beforeAll(async () => {
-      // Dynamic import to ensure env vars are set
-      checkoutHandler = (await import('./checkout.js')).default;
-      webhookHandler = (await import('./webhook.js')).default;
-      portalHandler = (await import('./portal.js')).default;
+    // Dynamic import to ensure env vars are set
+    checkoutHandler = (await import('./checkout.js')).default;
+    webhookHandler = (await import('./webhook.js')).default;
+    portalHandler = (await import('./portal.js')).default;
   });
 
   beforeEach(() => {
@@ -103,7 +106,7 @@ describe('Stripe Integration', () => {
   describe('Checkout', () => {
     it('should create a checkout session', async () => {
       const { req, res } = createMockReqRes('POST', { plan: 'starter' }, { authorization: 'Bearer token' });
-      
+
       (supabaseAdmin!.auth.getUser as any).mockResolvedValue({
         data: { user: { id: 'user123', email: 'test@example.com' } },
         error: null,
@@ -146,7 +149,7 @@ describe('Stripe Integration', () => {
 
     it('should create a portal session', async () => {
       const { req, res } = createMockReqRes('POST', {}, { authorization: 'Bearer token' });
-      
+
       (supabaseAdmin!.auth.getUser as any).mockResolvedValue({
         data: { user: { id: 'user123', email: 'test@example.com' } },
         error: null,
@@ -160,7 +163,7 @@ describe('Stripe Integration', () => {
 
     it('should return 404 if no customer found', async () => {
       const { req, res } = createMockReqRes('POST', {}, { authorization: 'Bearer token' });
-      
+
       (supabaseAdmin!.auth.getUser as any).mockResolvedValue({
         data: { user: { id: 'user123', email: 'test@example.com' } },
         error: null,
@@ -191,7 +194,7 @@ describe('Stripe Integration', () => {
 
     it('should handle checkout.session.completed', async () => {
       const { req, res } = createMockReqRes('POST', {}, { 'stripe-signature': 'sig' });
-      
+
       // Mock event type
       const stripeMock = (await import('stripe')).default as any;
       stripeMock().webhooks.constructEvent.mockReturnValueOnce({
@@ -199,8 +202,14 @@ describe('Stripe Integration', () => {
         data: {
           object: {
             metadata: { userId: 'user123', plan: 'starter' },
+            subscription: 'sub_123'
           },
         },
+      });
+
+      stripeMock().subscriptions.retrieve.mockResolvedValueOnce({
+        metadata: { userId: 'user123', plan: 'starter' },
+        current_period_end: 1740000000
       });
 
       await webhookHandler(req, res);
@@ -208,13 +217,14 @@ describe('Stripe Integration', () => {
       expect(res.status).toHaveBeenCalledWith(200);
       expect(supabaseAdmin!.from('profiles').update).toHaveBeenCalledWith(expect.objectContaining({
         plan: 'starter',
-        credits_remaining: 100
+        credits_remaining: 100,
+        credits_reset_at: new Date(1740000000 * 1000).toISOString()
       }));
     });
 
     it('should handle invoice.paid (renewal)', async () => {
       const { req, res } = createMockReqRes('POST', {}, { 'stripe-signature': 'sig' });
-      
+
       const stripeMock = (await import('stripe')).default as any;
       stripeMock().webhooks.constructEvent.mockReturnValueOnce({
         type: 'invoice.paid',
@@ -227,20 +237,22 @@ describe('Stripe Integration', () => {
 
       // Mock subscription retrieve
       stripeMock().subscriptions.retrieve.mockResolvedValueOnce({
-        metadata: { userId: 'user123', plan: 'pro' }
+        metadata: { userId: 'user123', plan: 'pro' },
+        current_period_end: 1740000000
       });
 
       await webhookHandler(req, res);
 
       expect(res.status).toHaveBeenCalledWith(200);
       expect(supabaseAdmin!.from('profiles').update).toHaveBeenCalledWith(expect.objectContaining({
-        credits_remaining: 400
+        credits_remaining: 400,
+        credits_reset_at: new Date(1740000000 * 1000).toISOString()
       }));
     });
 
     it('should handle customer.subscription.deleted', async () => {
       const { req, res } = createMockReqRes('POST', {}, { 'stripe-signature': 'sig' });
-      
+
       const stripeMock = (await import('stripe')).default as any;
       stripeMock().webhooks.constructEvent.mockReturnValueOnce({
         type: 'customer.subscription.deleted',
@@ -260,9 +272,34 @@ describe('Stripe Integration', () => {
       }));
     });
 
+    it('should handle customer.subscription.updated', async () => {
+      const { req, res } = createMockReqRes('POST', {}, { 'stripe-signature': 'sig' });
+
+      const stripeMock = (await import('stripe')).default as any;
+      stripeMock().webhooks.constructEvent.mockReturnValueOnce({
+        type: 'customer.subscription.updated',
+        data: {
+          object: {
+            metadata: { userId: 'user123', plan: 'starter' },
+            status: 'active',
+            current_period_end: 1750000000
+          },
+        },
+      });
+
+      await webhookHandler(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(supabaseAdmin!.from('profiles').update).toHaveBeenCalledWith(expect.objectContaining({
+        plan: 'starter',
+        credits_remaining: 100,
+        credits_reset_at: new Date(1750000000 * 1000).toISOString()
+      }));
+    });
+
     it('should return 400 on signature error', async () => {
       const { req, res } = createMockReqRes('POST', {}, { 'stripe-signature': 'sig' });
-      
+
       const stripeMock = (await import('stripe')).default as any;
       stripeMock().webhooks.constructEvent.mockImplementationOnce(() => {
         throw new Error('Invalid signature');
@@ -274,7 +311,7 @@ describe('Stripe Integration', () => {
     });
     it('should warn if metadata is missing in checkout.session.completed', async () => {
       const { req, res } = createMockReqRes('POST', {}, { 'stripe-signature': 'sig' });
-      
+
       const stripeMock = (await import('stripe')).default as any;
       stripeMock().webhooks.constructEvent.mockReturnValueOnce({
         type: 'checkout.session.completed',
@@ -287,14 +324,14 @@ describe('Stripe Integration', () => {
 
       const consoleSpy = vi.spyOn(console, 'warn');
       await webhookHandler(req, res);
-      
+
       expect(consoleSpy).toHaveBeenCalledWith('Missing userId or plan in session metadata');
       expect(res.status).toHaveBeenCalledWith(200);
     });
 
     it('should handle invoice.paid (fallback)', async () => {
       const { req, res } = createMockReqRes('POST', {}, { 'stripe-signature': 'sig' });
-      
+
       const stripeMock = (await import('stripe')).default as any;
       stripeMock().webhooks.constructEvent.mockReturnValueOnce({
         type: 'invoice.paid',
@@ -308,7 +345,7 @@ describe('Stripe Integration', () => {
 
       // Mock subscription retrieve WITHOUT metadata
       stripeMock().subscriptions.retrieve.mockResolvedValueOnce({
-        metadata: {} 
+        metadata: {}
       });
 
       // Mock customer retrieve
@@ -325,7 +362,7 @@ describe('Stripe Integration', () => {
 
       const consoleSpy = vi.spyOn(console, 'warn');
       await webhookHandler(req, res);
-      
+
       expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Metadata missing on subscription'));
       expect(res.status).toHaveBeenCalledWith(200);
     });

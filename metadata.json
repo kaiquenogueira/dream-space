@@ -1,6 +1,6 @@
 {
-  "name": "DreamSpace AI Architect",
-  "description": "Transform your home interiors using AI. Upload photos, select architectural styles, and visualize new furniture and wall colors while preserving your room's layout.",
+  "name": "IOLIA AI",
+  "description": "Transforme espaços com inteligência artificial. A IOLIA cria visualizações arquitetônicas impressionantes para profissionais do mercado imobiliário.",
   "requestFramePermissions": [
     "camera"
   ]

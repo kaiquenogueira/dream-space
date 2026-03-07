@@ -1,35 +1,36 @@
 /* ─── Typography ─── */
-@import url('https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Lato:wght@300;400;700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap');
 
 @import "tailwindcss";
 
 /* ─── Design Tokens ─── */
 @theme {
-  --color-primary: #14161A;
+  --color-primary: #111318;
   --color-primary-dark: #0A0B0D;
 
-  --color-secondary: #D39C76;
-  --color-secondary-dark: #B8825C;
-  --color-secondary-light: #E2A676;
+  --color-secondary: #C9956C;
+  --color-secondary-dark: #A87A52;
+  --color-secondary-light: #DEB08A;
 
-  --color-surface: #1F2229;
-  --color-surface-dark: #14161A;
-  --color-surface-light: #2A2E38;
+  --color-surface: #1B1E25;
+  --color-surface-dark: #111318;
+  --color-surface-light: #262A34;
 
   --color-text-main: #F0EDE8;
   --color-text-muted: #9DA3AF;
-  --color-text-accent: #D39C76;
+  --color-text-accent: #C9956C;
 
   --font-sans: "Lato", sans-serif;
   --font-heading: "Playfair Display", serif;
+  --font-brand: "Cormorant Garamond", serif;
 
-  --color-glass: rgba(20, 22, 26, 0.9);
-  --color-glass-border: rgba(211, 156, 118, 0.2);
-  --color-glass-hover: rgba(211, 156, 118, 0.1);
+  --color-glass: rgba(17, 19, 24, 0.92);
+  --color-glass-border: rgba(201, 149, 108, 0.18);
+  --color-glass-hover: rgba(201, 149, 108, 0.08);
 
-  --color-accent-glow: rgba(211, 156, 118, 0.4);
-  --color-accent-gradient-start: #D39C76;
-  --color-accent-gradient-end: #E2A676;
+  --color-accent-glow: rgba(201, 149, 108, 0.4);
+  --color-accent-gradient-start: #C9956C;
+  --color-accent-gradient-end: #DEB08A;
 }
 
 /* ─── Keyframe Animations ─── */

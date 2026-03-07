@@ -28,7 +28,7 @@ vi.mock('./lib/rateLimit', () => ({
 
 vi.mock('./lib/promptBuilder', () => ({
   buildPrompt: vi.fn().mockReturnValue('mocked prompt'),
-  GenerationMode: { REDESIGN: 'Redesign' },
+  GenerationMode: { VIRTUAL_STAGING: 'Virtual Staging (Mobiliar)' },
   ArchitecturalStyle: { MODERN: 'Modern' }
 }));
 
@@ -72,7 +72,7 @@ describe('API Generate Handler', () => {
       },
       body: {
         imageBase64: 'base64data',
-        generationMode: 'Redesign'
+        generationMode: 'Virtual Staging (Mobiliar)'
       },
       socket: { remoteAddress: '127.0.0.1' }
     };

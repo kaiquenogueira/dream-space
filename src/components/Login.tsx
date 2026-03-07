@@ -95,13 +95,11 @@ const Login: React.FC<LoginProps> = ({ onSignIn, onSignUp, onGoogleSignIn }) => 
         <div className="glass-card p-8 md:p-10 rounded-sm border-glass-border">
           {/* Branding */}
           <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-14 h-14 rounded-sm bg-gradient-to-br from-secondary to-secondary-light mb-5 shadow-lg shadow-secondary/25 animate-glow-pulse">
-              <SparkleIcon className="w-7 h-7 text-black" />
-            </div>
-            <h1 className="text-4xl font-heading font-bold text-gradient mb-2 tracking-wide uppercase">
-              Etherea
+            <img src="/favicon.png" alt="IOLIA" className="w-14 h-14 rounded-sm shadow-lg shadow-secondary/25 animate-glow-pulse mb-5" />
+            <h1 className="text-4xl font-brand font-semibold text-gradient mb-2 tracking-[0.35em] uppercase">
+              IOLIA
             </h1>
-            <p className="text-text-main text-sm tracking-widest uppercase font-medium opacity-80">Luxury AI Interior Design</p>
+            <p className="text-text-main text-sm tracking-widest uppercase font-medium opacity-80">AI Architecture & Design</p>
           </div>
 
           {/* Mode Tabs */}
@@ -252,7 +250,7 @@ const Login: React.FC<LoginProps> = ({ onSignIn, onSignUp, onGoogleSignIn }) => 
           <div className="mt-8 pt-6 border-t border-glass-border">
             <p className="text-center text-[10px] text-text-main font-medium uppercase tracking-widest flex items-center justify-center gap-1.5 opacity-50">
               <SparkleIcon className="w-3 h-3" />
-              Etherea AI Architecture
+              IOLIA AI
             </p>
           </div>
         </div>

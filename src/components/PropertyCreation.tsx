@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { LayoutIcon, SparkleIcon, MapPinIcon, FolderIcon, ChevronRightIcon } from './Icons';
+import { SparkleIcon, MapPinIcon, FolderIcon, ChevronRightIcon } from './Icons';
 import { Property } from '../types';
 
 interface PropertyCreationProps {
@@ -50,14 +50,12 @@ const PropertyCreation: React.FC<PropertyCreationProps> = ({ properties, setActi
       <div className="relative z-10 w-full max-w-md opacity-0 animate-fade-slide-in">
         {/* Branding */}
         <div className="text-center mb-10 flex flex-col items-center">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-secondary/10 mb-6 border border-secondary/20 shadow-[0_0_30px_rgba(211,156,118,0.15)] animate-glow-pulse">
-            <LayoutIcon className="w-6 h-6 text-secondary" />
-          </div>
-          <h1 className="text-3xl font-bold font-heading text-text-main mb-3 tracking-wide">
-            Etherea
+          <img src="/favicon.png" alt="IOLIA" className="w-14 h-14 rounded-full shadow-[0_0_30px_rgba(201,149,108,0.15)] animate-glow-pulse mb-6" />
+          <h1 className="text-3xl font-semibold font-brand text-text-main mb-3 tracking-[0.35em] uppercase">
+            IOLIA
           </h1>
           <p className="text-text-muted text-center max-w-sm mx-auto text-[11px] uppercase tracking-[0.2em] font-medium">
-            Luxury AI Interior Design
+            AI Architecture & Design
           </p>
         </div>
 

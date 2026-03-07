@@ -14,6 +14,7 @@ export const generateRoomDesign = async (
   propertyId?: string,
   style?: string,
   generationMode?: string,
+  isIteration?: boolean,
 ): Promise<{ result: string; credits_remaining: number; is_compressed: boolean; storage_path?: string }> => {
   try {
     const { data: { session } } = await supabase.auth.getSession();
@@ -33,6 +34,7 @@ export const generateRoomDesign = async (
         propertyId,
         style,
         generationMode,
+        isIteration,
       }),
     });
 

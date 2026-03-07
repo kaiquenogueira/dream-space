@@ -1,4 +1,4 @@
-# Relatório Técnico Estratégico e Roadmap de Evolução - DreamSpace AI
+# Relatório Técnico Estratégico e Roadmap de Evolução - IOLIA AI
 
 **Data:** 27/02/2026
 **Autor:** AI Assistant

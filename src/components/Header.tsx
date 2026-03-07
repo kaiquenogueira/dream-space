@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutIcon, SparkleIcon, LogOutIcon } from './Icons';
+import { SparkleIcon, LogOutIcon } from './Icons';
 import { Property } from '../types';
 import type { UserProfile } from '../hooks/useAuth';
 
@@ -10,9 +10,10 @@ interface HeaderProps {
   profile: UserProfile | null;
   onAdminClick?: () => void;
   isAdminView?: boolean;
+  onPricingClick?: () => void;
 }
 
-const Header: React.FC<HeaderProps> = ({ activeProperty, setActivePropertyId, handleLogout, profile, onAdminClick, isAdminView }) => {
+const Header: React.FC<HeaderProps> = ({ activeProperty, setActivePropertyId, handleLogout, profile, onAdminClick, isAdminView, onPricingClick }) => {
   const creditPercent = profile
     ? (profile.credits_remaining / (profile.plan === 'free' ? 15 : profile.plan === 'starter' ? 100 : 400)) * 100
     : 0;
@@ -27,11 +28,9 @@ const Header: React.FC<HeaderProps> = ({ activeProperty, setActivePropertyId, ha
             onClick={() => setActivePropertyId(null)}
             className="flex items-center gap-3 group focus:outline-none focus-visible:ring-2 focus-visible:ring-secondary rounded-sm"
           >
-            <div className="w-9 h-9 bg-gradient-to-br from-secondary to-secondary-light rounded-sm flex items-center justify-center text-black shadow-lg shadow-secondary/30 group-hover:shadow-secondary/40 transition-all group-hover:scale-105">
-              <LayoutIcon className="w-5 h-5" />
-            </div>
-            <h1 className="text-xl font-bold text-gradient hidden sm:block tracking-wide font-heading uppercase">
-              Etherea
+            <img src="/favicon.png" alt="IOLIA" className="w-9 h-9 rounded-sm shadow-lg shadow-secondary/30 group-hover:shadow-secondary/40 transition-all group-hover:scale-105" />
+            <h1 className="text-xl font-semibold text-gradient hidden sm:block tracking-[0.35em] font-brand uppercase">
+              IOLIA
             </h1>
           </button>
 
@@ -57,7 +56,11 @@ const Header: React.FC<HeaderProps> = ({ activeProperty, setActivePropertyId, ha
         <div className="flex items-center gap-3">
           {/* Credits Badge */}
           {profile && (
-            <div className="hidden md:flex items-center gap-2 bg-surface/60 px-3 py-1.5 rounded-xl border border-glass-border">
+            <button
+              onClick={onPricingClick}
+              className="hidden md:flex items-center gap-2 bg-surface/60 px-3 py-1.5 rounded-xl border border-glass-border hover:border-primary/30 hover:bg-surface/80 transition-all cursor-pointer group"
+              title="Ver planos e preços"
+            >
               <div className="flex flex-col items-end">
                 <span className="text-xs font-semibold text-text-main">
                   {profile.credits_remaining} créditos
@@ -83,7 +86,12 @@ const Header: React.FC<HeaderProps> = ({ activeProperty, setActivePropertyId, ha
                 </svg>
                 <SparkleIcon className="w-3.5 h-3.5 text-primary/70 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
               </div>
-            </div>
+              {profile.plan === 'free' && (
+                <span className="text-[10px] font-semibold text-secondary group-hover:text-secondary-light transition-colors uppercase tracking-wider">
+                  Upgrade
+                </span>
+              )}
+            </button>
           )}
 
           {/* User info */}

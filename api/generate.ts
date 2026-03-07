@@ -140,7 +140,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       customPrompt: z.string().max(1000, "Prompt muito longo").optional(),
       prompt: z.string().max(1000).optional(),
       style: z.nativeEnum(ArchitecturalStyle).nullable().optional(),
-      generationMode: z.nativeEnum(GenerationMode).optional().default(GenerationMode.REDESIGN),
+      generationMode: z.nativeEnum(GenerationMode).optional().default(GenerationMode.VIRTUAL_STAGING),
+      isIteration: z.boolean().optional().default(false),
       propertyId: z.string().optional(),
     });
 
@@ -151,7 +152,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ error: `Dados inválidos: ${errorMsg}` });
     }
 
-    const { imageBase64, customPrompt, prompt: legacyPrompt, style, generationMode } = validation.data;
+    const { imageBase64, customPrompt, prompt: legacyPrompt, style, generationMode, isIteration } = validation.data;
 
     const userInstruction = customPrompt || legacyPrompt || "";
 
@@ -162,9 +163,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // Build the prompt securely on the server
     const finalPrompt = buildPrompt({
-      generationMode: generationMode || 'Redesign',
+      generationMode: generationMode || GenerationMode.VIRTUAL_STAGING,
       selectedStyle: style || null,
-      customPrompt: userInstruction
+      customPrompt: userInstruction,
+      isIteration,
     });
 
     try {
@@ -329,7 +331,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         original_image_url: originalStoragePath || 'base64-upload',
         generated_image_url: storagePath || generatedImageUrl,
         prompt_used: finalPrompt,
-        generation_mode: generationMode || 'Redesign',
+        generation_mode: generationMode || GenerationMode.VIRTUAL_STAGING,
         is_compressed: isCompressed,
       });
     } catch (dbError) {

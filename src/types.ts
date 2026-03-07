@@ -1,5 +1,4 @@
 export enum GenerationMode {
-  REDESIGN = 'Redesign',
   VIRTUAL_STAGING = 'Virtual Staging (Mobiliar)',
   PAINT_ONLY = 'Paint Only (Apenas Pintura)'
 }
@@ -29,6 +28,7 @@ export interface ImageState {
   error?: string;
   selected: boolean;
   generationMode?: GenerationMode;
+  iterateFromGenerated?: boolean;
 }
 
 export type UploadedImage = ImageAsset & ImageState;

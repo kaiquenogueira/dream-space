@@ -17,6 +17,7 @@ const DesignStudio = lazy(() => import('./DesignStudio'));
 const PreviewArea = lazy(() => import('./PreviewArea'));
 const MobileEditor = lazy(() => import('./MobileEditor'));
 const AdminDashboard = lazy(() => import('./AdminDashboard'));
+const Pricing = lazy(() => import('./Pricing'));
 
 // Hook to detect screen size
 const useMedia = (query: string) => {
@@ -47,9 +48,10 @@ type NoCreditsBannerProps = {
   selectedCount: number;
   totalImages: number;
   onDismiss: () => void;
+  onUpgradeClick: () => void;
 };
 
-const NoCreditsBanner: React.FC<NoCreditsBannerProps> = ({ credits, plan, selectedCount, totalImages, onDismiss }) => (
+const NoCreditsBanner: React.FC<NoCreditsBannerProps> = ({ credits, plan, selectedCount, totalImages, onDismiss, onUpgradeClick }) => (
   <div className="bg-amber-500/10 border-b border-amber-500/20 px-4 py-3 flex items-center justify-between">
     <div className="flex items-center gap-2">
       <svg className="w-5 h-5 text-amber-400 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -64,16 +66,24 @@ const NoCreditsBanner: React.FC<NoCreditsBannerProps> = ({ credits, plan, select
         }
       </span>
     </div>
-    <button
-      onClick={onDismiss}
-      className="text-amber-400/60 hover:text-amber-300 text-sm px-2"
-    >
-      ✕
-    </button>
+    <div className="flex items-center gap-2">
+      <button
+        onClick={onUpgradeClick}
+        className="text-xs font-semibold text-amber-400 hover:text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/20 px-3 py-1 rounded-lg transition-all whitespace-nowrap"
+      >
+        Ver Planos
+      </button>
+      <button
+        onClick={onDismiss}
+        className="text-amber-400/60 hover:text-amber-300 text-sm px-2"
+      >
+        ✕
+      </button>
+    </div>
   </div>
 );
 
-const FreePlanNotice = () => (
+const FreePlanNotice: React.FC<{ onUpgradeClick: () => void }> = ({ onUpgradeClick }) => (
   <div className="bg-zinc-900/60 border-b border-zinc-800/40 px-4 py-2 flex items-center gap-2">
     <svg className="w-4 h-4 text-zinc-500 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
       <circle cx="12" cy="12" r="10" />
@@ -81,7 +91,11 @@ const FreePlanNotice = () => (
       <line x1="12" y1="8" x2="12.01" y2="8" />
     </svg>
     <span className="text-xs text-zinc-500">
-      Plano gratuito: as imagens são salvas em formato comprimido. Alguma perda de resolução pode ocorrer ao recuperar em sessões futuras. Faça o upgrade para armazenamento em resolução máxima.
+      Plano gratuito: as imagens são salvas em formato comprimido.{' '}
+      <button onClick={onUpgradeClick} className="text-primary/70 hover:text-primary underline transition-colors">
+        Faça o upgrade
+      </button>{' '}
+      para armazenamento em resolução máxima.
     </span>
   </div>
 );
@@ -319,7 +333,7 @@ export const AuthenticatedApp: React.FC<AuthenticatedAppProps> = ({ profile, ref
   const selectedCount = images.filter(img => img.selected).length;
 
   const [selectedStyle, setSelectedStyle] = useState<ArchitecturalStyle | null>(null);
-  const [generationMode, setGenerationMode] = useState<GenerationMode>(GenerationMode.REDESIGN);
+  const [generationMode, setGenerationMode] = useState<GenerationMode>(GenerationMode.VIRTUAL_STAGING);
   const [customPrompt, setCustomPrompt] = useState('');
   const [isDownloadingZip, setIsDownloadingZip] = useState(false);
   const [viewMode, setViewMode] = useState<'original' | 'generated' | 'split'>('split');
@@ -375,13 +389,20 @@ export const AuthenticatedApp: React.FC<AuthenticatedAppProps> = ({ profile, ref
   };
 
   const handleGenerateWrapper = async () => {
-    await generateImages();
+    await generateImages(activeImage?.id);
     setViewMode('split');
   };
 
   const handleRegenerateSingleWrapper = async (imageId: string) => {
     await regenerateImage(imageId);
     setViewMode('split');
+  };
+
+  const handleIterateOnGenerated = (imageId: string) => {
+    setImages(prev => prev.map(img =>
+      img.id === imageId ? { ...img, iterateFromGenerated: true, selected: true } : img
+    ));
+    setCustomPrompt('');
   };
 
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -502,6 +523,7 @@ export const AuthenticatedApp: React.FC<AuthenticatedAppProps> = ({ profile, ref
     handleDownloadSingle: downloadSingle,
     handleDownloadAll: handleDownloadAllWrapper,
     onVideoGenerated: handleVideoGeneratedWrapper,
+    onIterateOnGenerated: handleIterateOnGenerated,
     hasGeneratedImages: images.some(img => !!img.generatedUrl),
     isDownloadingZip,
     onNext: handleNextImage,
@@ -514,6 +536,7 @@ export const AuthenticatedApp: React.FC<AuthenticatedAppProps> = ({ profile, ref
     onBack: () => navigate('/'),
     isGenerating,
     onGenerate: handleGenerateWrapper,
+    onIterateOnGenerated: handleIterateOnGenerated,
     generationMode,
     setGenerationMode,
     selectedStyle,
@@ -531,6 +554,7 @@ export const AuthenticatedApp: React.FC<AuthenticatedAppProps> = ({ profile, ref
         profile={profile}
         onAdminClick={() => navigate('/admin')}
         isAdminView={location.pathname === '/admin'}
+        onPricingClick={() => navigate('/app/pricing')}
       />
       {noCreditsError && (
         <NoCreditsBanner
@@ -539,9 +563,10 @@ export const AuthenticatedApp: React.FC<AuthenticatedAppProps> = ({ profile, ref
           selectedCount={selectedCount}
           totalImages={images.length}
           onDismiss={() => setNoCreditsError(false)}
+          onUpgradeClick={() => navigate('/app/pricing')}
         />
       )}
-      {plan === 'free' && images.some(img => img.generatedUrl) && <FreePlanNotice />}
+      {plan === 'free' && images.some(img => img.generatedUrl) && <FreePlanNotice onUpgradeClick={() => navigate('/app/pricing')} />}
 
       <AnimatePresence mode="wait">
         <div key={location.pathname} className="flex-1 flex flex-col overflow-hidden relative">
@@ -575,6 +600,12 @@ export const AuthenticatedApp: React.FC<AuthenticatedAppProps> = ({ profile, ref
                 </Suspense>
               } />
             )}
+
+            <Route path="/pricing" element={
+              <Suspense fallback={<div className="flex-1 flex items-center justify-center text-text-muted">Carregando...</div>}>
+                <Pricing />
+              </Suspense>
+            } />
           </Routes>
         </div>
       </AnimatePresence>

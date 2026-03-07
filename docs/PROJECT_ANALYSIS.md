@@ -1,4 +1,4 @@
-# Análise Técnica do Projeto DreamSpace AI Architect
+# Análise Técnica do Projeto IOLIA AI
 
 **Data:** 25/02/2026  
 **Status:** Implementação de melhorias prioritárias concluída

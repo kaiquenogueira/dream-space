@@ -71,10 +71,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
         if (userId && plan) {
           console.log(`Processing checkout.session.completed for user ${userId}, plan ${plan}`);
+
+          let currentPeriodEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+
+          if (session.subscription) {
+            try {
+              const subscription = await stripe.subscriptions.retrieve(session.subscription as string);
+              currentPeriodEnd = new Date((subscription as any).current_period_end * 1000).toISOString();
+            } catch (err) {
+              console.error(`Failed to retrieve subscription ${session.subscription}`, err);
+            }
+          }
+
           await supabaseAdmin.from('profiles').update({
             plan,
             credits_remaining: PLAN_CREDITS[plan] || 15,
-            credits_reset_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+            credits_reset_at: currentPeriodEnd,
           }).eq('id', userId);
         } else {
           console.warn('Missing userId or plan in session metadata');
@@ -82,44 +94,60 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         break;
       }
       case 'invoice.paid': {
-        const invoice = event.data.object as any; // Cast to any to avoid type issues with 'subscription'
+        const invoice = event.data.object as any;
         if (invoice.subscription) {
           // Retrieve subscription to get metadata
           const subscription = await stripe.subscriptions.retrieve(invoice.subscription as string);
-          
-          const userId = subscription.metadata?.userId; 
+
+          const userId = subscription.metadata?.userId;
           const plan = subscription.metadata?.plan;
-          
+
           if (userId && plan) {
-             console.log(`Processing invoice.paid renewal for user ${userId}, plan ${plan}`);
-             await supabaseAdmin.from('profiles').update({
+            console.log(`Processing invoice.paid renewal for user ${userId}, plan ${plan}`);
+            await supabaseAdmin.from('profiles').update({
               credits_remaining: PLAN_CREDITS[plan] || 15,
-              credits_reset_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+              credits_reset_at: new Date((subscription as any).current_period_end * 1000).toISOString(),
             }).eq('id', userId);
           } else {
-             // Fallback: try to find user by customer email
-             const customerId = invoice.customer as string;
-             const customer = await stripe.customers.retrieve(customerId);
-             
-             // Check if deleted
-             if ((customer as any).deleted) {
-               console.warn(`Customer ${customerId} is deleted, skipping renewal`);
-               break;
-             }
-             
-             const customerEmail = (customer as Stripe.Customer).email;
-             
-             if (customerEmail) {
-                const { data: user } = await supabaseAdmin.from('profiles').select('id, plan').eq('email', customerEmail).single();
-                if (user) {
-                   console.log(`Found user ${user.id} by email ${customerEmail} for renewal`);
-                   // We don't know the plan from subscription if metadata is missing, so we use current plan from DB?
-                   // Or try to infer from invoice lines? Too complex.
-                   // Just log warning.
-                   console.warn(`Metadata missing on subscription ${invoice.subscription}. User found but skipping auto-credit update to avoid errors.`);
-                }
-             }
+            // Fallback: try to find user by customer email
+            const customerId = invoice.customer as string;
+            const customer = await stripe.customers.retrieve(customerId);
+
+            // Check if deleted
+            if ((customer as any).deleted) {
+              console.warn(`Customer ${customerId} is deleted, skipping renewal`);
+              break;
+            }
+
+            const customerEmail = (customer as Stripe.Customer).email;
+
+            if (customerEmail) {
+              const { data: user } = await supabaseAdmin.from('profiles').select('id, plan').eq('email', customerEmail).single();
+              if (user) {
+                console.log(`Found user ${user.id} by email ${customerEmail} for renewal`);
+                // We don't know the plan from subscription if metadata is missing, so we use current plan from DB?
+                // Or try to infer from invoice lines? Too complex.
+                // Just log warning.
+                console.warn(`Metadata missing on subscription ${invoice.subscription}. User found but skipping auto-credit update to avoid errors.`);
+              }
+            }
           }
+        }
+        break;
+      }
+      case 'customer.subscription.updated': {
+        const sub = event.data.object as Stripe.Subscription;
+        const userId = sub.metadata?.userId;
+        const plan = sub.metadata?.plan;
+
+        // Only handle active/trialing/past_due subscriptions, if cancelled, deleted handles it.
+        if (userId && plan && sub.status !== 'canceled' && sub.status !== 'unpaid') {
+          console.log(`Processing subscription update for user ${userId}, plan ${plan}`);
+          await supabaseAdmin.from('profiles').update({
+            plan: plan,
+            credits_remaining: PLAN_CREDITS[plan] || 15,
+            credits_reset_at: new Date((sub as any).current_period_end * 1000).toISOString(),
+          }).eq('id', userId);
         }
         break;
       }

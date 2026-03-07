@@ -3,7 +3,7 @@ import { buildPrompt, GenerationMode, ArchitecturalStyle } from './promptBuilder
 
 describe('buildPrompt', () => {
     it('should include mandatory structural preservation rules in all modes', () => {
-        const modes = [GenerationMode.REDESIGN, GenerationMode.VIRTUAL_STAGING, GenerationMode.PAINT_ONLY];
+        const modes = [GenerationMode.VIRTUAL_STAGING, GenerationMode.PAINT_ONLY];
 
         modes.forEach(mode => {
             const prompt = buildPrompt({
@@ -31,18 +31,6 @@ describe('buildPrompt', () => {
         expect(prompt).toContain('Blue walls');
     });
 
-    it('should generate correct prompt for REDESIGN mode', () => {
-        const prompt = buildPrompt({
-            generationMode: GenerationMode.REDESIGN,
-            selectedStyle: ArchitecturalStyle.MODERN,
-            customPrompt: ''
-        });
-
-        expect(prompt).toContain('TASK: Interior Redesign (Renovation)');
-        expect(prompt).toContain('Completely redesign the interior style');
-        expect(prompt).toContain('You MAY update: wall colors');
-    });
-
     it('should generate correct prompt for VIRTUAL_STAGING mode', () => {
         const prompt = buildPrompt({
             generationMode: GenerationMode.VIRTUAL_STAGING,
@@ -54,6 +42,7 @@ describe('buildPrompt', () => {
         expect(prompt).toContain('The room is currently empty or sparse');
     });
 
+
     it('should sanitize custom prompt', () => {
         const prompt = buildPrompt({
             generationMode: GenerationMode.PAINT_ONLY,
@@ -62,5 +51,63 @@ describe('buildPrompt', () => {
         });
 
         expect(prompt).toContain('<user_instruction>Blue walls</user_instruction>');
+    });
+
+    it('should use dedicated iteration prompt when isIteration is true', () => {
+        const prompt = buildPrompt({
+            generationMode: GenerationMode.VIRTUAL_STAGING,
+            selectedStyle: ArchitecturalStyle.MODERN,
+            customPrompt: 'Change flooring to marble',
+            isIteration: true
+        });
+
+        // Should use iteration-specific prompt
+        expect(prompt).toContain('Incremental Edit on Previously Generated Image');
+        expect(prompt).toContain('CRITICAL ITERATION RULES');
+        expect(prompt).toContain('PRESERVE EVERYTHING');
+        expect(prompt).toContain('Change flooring to marble');
+
+        // Should NOT contain mode-specific instructions
+        expect(prompt).not.toContain('Virtual Staging (Furnish Empty Room)');
+        expect(prompt).not.toContain('fill it with realistic furniture');
+    });
+
+    it('should NOT use iteration prompt when isIteration is false or undefined', () => {
+        const promptExplicitFalse = buildPrompt({
+            generationMode: GenerationMode.VIRTUAL_STAGING,
+            selectedStyle: ArchitecturalStyle.MODERN,
+            customPrompt: '',
+            isIteration: false
+        });
+
+        const promptUndefined = buildPrompt({
+            generationMode: GenerationMode.VIRTUAL_STAGING,
+            selectedStyle: ArchitecturalStyle.MODERN,
+            customPrompt: ''
+        });
+
+        expect(promptExplicitFalse).not.toContain('Incremental Edit');
+        expect(promptExplicitFalse).toContain('Virtual Staging (Furnish Empty Room)');
+        expect(promptUndefined).not.toContain('Incremental Edit');
+        expect(promptUndefined).toContain('Virtual Staging (Furnish Empty Room)');
+    });
+
+    it('should use iteration prompt regardless of generation mode', () => {
+        const modes = [GenerationMode.VIRTUAL_STAGING, GenerationMode.PAINT_ONLY];
+
+        modes.forEach(mode => {
+            const prompt = buildPrompt({
+                generationMode: mode,
+                selectedStyle: ArchitecturalStyle.MODERN,
+                customPrompt: 'Test prompt',
+                isIteration: true
+            });
+
+            expect(prompt).toContain('Incremental Edit on Previously Generated Image');
+            expect(prompt).toContain('CRITICAL ITERATION RULES');
+            // Mode-specific task names should NOT appear
+            expect(prompt).not.toContain('Furnish Empty Room');
+            expect(prompt).not.toContain('Wall Painting Only');
+        });
     });
 });

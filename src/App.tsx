@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Login from './components/Login';
 import { useAuth } from './hooks/useAuth';
@@ -6,6 +6,8 @@ import { AuthenticatedApp } from './components/AuthenticatedApp';
 import { LoadingScreen } from './components/LoadingScreen';
 import { ProfileErrorScreen } from './components/ProfileErrorScreen';
 import { AuthProvider } from './contexts/AuthContext';
+
+const LandingPage = lazy(() => import('./pages/LandingPage'));
 
 const PrivateRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const {
@@ -22,7 +24,7 @@ const PrivateRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => 
   }
 
   if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/landing" replace />;
   }
 
   if (profileError) {
@@ -46,10 +48,16 @@ const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   }
 
   if (isAuthenticated) {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/app" replace />;
   }
 
   return <>{children}</>;
+};
+
+const RootRedirect: React.FC = () => {
+  const { isAuthenticated, isCheckingAuth } = useAuth();
+  if (isCheckingAuth) return <LoadingScreen />;
+  return <Navigate to={isAuthenticated ? '/app' : '/landing'} replace />;
 };
 
 const AppContent: React.FC = () => {
@@ -65,6 +73,14 @@ const AppContent: React.FC = () => {
   return (
     <Routes>
       <Route
+        path="/landing"
+        element={
+          <Suspense fallback={<LoadingScreen />}>
+            <LandingPage />
+          </Suspense>
+        }
+      />
+      <Route
         path="/login"
         element={
           <PublicRoute>
@@ -77,7 +93,7 @@ const AppContent: React.FC = () => {
         }
       />
       <Route
-        path="/*"
+        path="/app/*"
         element={
           <PrivateRoute>
             <AuthenticatedApp
@@ -88,6 +104,9 @@ const AppContent: React.FC = () => {
           </PrivateRoute>
         }
       />
+      {/* Redirect root to landing or app based on auth */}
+      <Route path="/" element={<RootRedirect />} />
+      <Route path="*" element={<Navigate to="/landing" replace />} />
     </Routes>
   );
 };

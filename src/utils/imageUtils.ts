@@ -1,4 +1,5 @@
 import imageCompression from 'browser-image-compression';
+import type { UploadedImage } from '../types';
 
 export const compressImage = async (file: File): Promise<{ base64: string, preview: string }> => {
   const options = {
@@ -12,7 +13,7 @@ export const compressImage = async (file: File): Promise<{ base64: string, previ
     const compressedFile = await imageCompression(file, options);
     const base64 = await blobToBase64(compressedFile);
     const preview = await imageCompression.getDataUrlFromFile(compressedFile);
-    
+
     return { base64, preview };
   } catch (error) {
     console.error("Compression failed:", error);
@@ -50,4 +51,21 @@ export const resolveImageBase64 = async (image: { base64?: string; previewUrl?: 
     return await blobToBase64(blob);
   }
   throw new Error('Imagem indisponível para geração');
+};
+
+/**
+ * Resolves the base64 for generation. When `iterateFromGenerated` is true
+ * and a generated image URL exists, fetches that URL instead of using the
+ * original uploaded image — enabling incremental edits.
+ */
+export const resolveIterationBase64 = async (image: UploadedImage): Promise<string> => {
+  if (image.iterateFromGenerated && image.generatedUrl) {
+    const response = await fetch(image.generatedUrl);
+    if (!response.ok) {
+      throw new Error('Falha ao carregar imagem gerada para iteração');
+    }
+    const blob = await response.blob();
+    return await blobToBase64(blob);
+  }
+  return resolveImageBase64(image);
 };

@@ -1,5 +1,4 @@
 export enum GenerationMode {
-    REDESIGN = 'Redesign',
     VIRTUAL_STAGING = 'Virtual Staging (Mobiliar)',
     PAINT_ONLY = 'Paint Only (Apenas Pintura)'
 }
@@ -30,6 +29,7 @@ export interface PromptOptions {
     generationMode: string;
     selectedStyle: string | null;
     customPrompt: string;
+    isIteration?: boolean;
 }
 
 function sanitizeInput(input: string): string {
@@ -47,6 +47,7 @@ export const buildPrompt = ({
     generationMode,
     selectedStyle,
     customPrompt,
+    isIteration,
 }: PromptOptions): string => {
     // Enhanced base analysis with stricter rules for structural preservation
     const structuralRules = `
@@ -68,6 +69,33 @@ export const buildPrompt = ({
     `;
 
     let finalPrompt = '';
+
+    // ── ITERATION MODE: dedicated prompt, no mode-specific instructions ──
+    if (isIteration) {
+        finalPrompt = `
+        Edit this image. TASK: Incremental Edit on Previously Generated Image.
+        This image has ALREADY been edited in a previous generation step. Treat the input image as the NEW BASELINE.
+        ${structuralRules}
+
+        CRITICAL ITERATION RULES:
+        1. PRESERVE EVERYTHING in this image exactly as it is — walls, paint colors, furniture, flooring, decor, lighting, and all prior modifications.
+        2. Make ONLY the specific changes described in the user requirements below. NOTHING ELSE.
+        3. Do NOT add, remove, or rearrange any furniture or decor UNLESS the user explicitly asks for it.
+        4. Do NOT change wall colors, flooring, or any surface UNLESS the user explicitly asks for it.
+        5. If the user asks to change the floor, change ONLY the floor. If the user asks to add a sofa, add ONLY a sofa.
+        6. The result must be photorealistic, high-resolution architectural visualization.
+        7. OUTPUT ONLY THE EDITED IMAGE, no text explanation.
+        `;
+
+        if (customPrompt) {
+            const sanitizedCustom = sanitizeInput(customPrompt);
+            finalPrompt += `\nUSER REQUESTED CHANGE (apply ONLY this, preserve everything else): <user_instruction>${sanitizedCustom}</user_instruction>`;
+        }
+
+        return finalPrompt.replace(/\s+/g, ' ').trim();
+    }
+
+    // ── FIRST GENERATION: use full mode-specific prompts ──
     // Use the style prompt map, fallback to modern if not found or if style is null
     const styleInstruction = (selectedStyle && STYLE_PROMPTS[selectedStyle])
         ? STYLE_PROMPTS[selectedStyle]
@@ -108,20 +136,18 @@ export const buildPrompt = ({
         - OUTPUT ONLY THE EDITED IMAGE, no text explanation.
         `;
     } else {
-        // Redesign: Change materials/style but keep structure
-        // Default to Redesign if mode is unknown
+        // Default fallback: Virtual Staging
         finalPrompt = `
-        Edit this image. TASK: Interior Redesign (Renovation).
+        Edit this image. TASK: Virtual Staging (Furnish Empty Room).
         The attached image is the ORIGINAL ROOM — treat it as the absolute source of truth for all structural elements.
         ${structuralRules}
         ${environmentalAnalysis}
         
         INSTRUCTIONS:
-        - Completely redesign the interior style of this room to a ${styleInstruction}.
-        - You MAY update: wall colors, flooring materials, ceiling finishes, light fixtures, and all furniture/decor.
-        - You MUST NOT update: the position of walls, windows, doors, or the structural shell of the room.
-        - Replace existing furniture with new pieces that match the target style.
-        - Ensure the new design fits the exact same spatial boundaries as the original.
+        - Detect the room type based on the structure and furnish it accordingly using a ${styleInstruction}.
+        - The room is currently empty or sparse; fill it with realistic furniture, rugs, curtains, and decor.
+        - DO NOT change the flooring material or wall paint unless explicitly asked.
+        - Ensure all added furniture casts realistic shadows and matches the lighting of the room.
         - The result must be photorealistic, high-resolution architectural visualization.
         - OUTPUT ONLY THE EDITED IMAGE, no text explanation.
         `;

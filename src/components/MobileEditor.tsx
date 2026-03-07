@@ -10,6 +10,7 @@ interface MobileEditorProps {
   isGenerating: boolean;
   onGenerate: () => void;
   onRegenerateSingle: (imageId: string) => void;
+  onIterateOnGenerated: (imageId: string) => void;
   generationMode: GenerationMode;
   setGenerationMode: (mode: GenerationMode) => void;
   selectedStyle: ArchitecturalStyle | null;
@@ -26,8 +27,8 @@ const MobileComparisonSlider: React.FC<{ originalUrl: string; generatedUrl: stri
   const handleSliderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSliderPosition(Number(e.target.value));
     if (navigator.vibrate) {
-       // Micro haptic feedback on significant points
-       if (Math.abs(Number(e.target.value) - 50) < 2) navigator.vibrate(5);
+      // Micro haptic feedback on significant points
+      if (Math.abs(Number(e.target.value) - 50) < 2) navigator.vibrate(5);
     }
   };
 
@@ -85,6 +86,7 @@ const MobileEditor: React.FC<MobileEditorProps> = ({
   isGenerating,
   onGenerate,
   onRegenerateSingle,
+  onIterateOnGenerated,
   generationMode,
   setGenerationMode,
   selectedStyle,
@@ -144,7 +146,7 @@ const MobileEditor: React.FC<MobileEditorProps> = ({
     : activeImage.previewUrl;
 
   return (
-    <motion.div 
+    <motion.div
       initial={{ x: '100%' }}
       animate={{ x: 0 }}
       exit={{ x: '100%' }}
@@ -186,7 +188,7 @@ const MobileEditor: React.FC<MobileEditorProps> = ({
             />
           ) : (
             <AnimatePresence mode='wait'>
-                <motion.img
+              <motion.img
                 key={currentImageUrl}
                 src={currentImageUrl}
                 alt="Preview"
@@ -195,7 +197,7 @@ const MobileEditor: React.FC<MobileEditorProps> = ({
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.3 }}
                 className="w-full h-full object-contain"
-                />
+              />
             </AnimatePresence>
           )}
 
@@ -243,7 +245,7 @@ const MobileEditor: React.FC<MobileEditorProps> = ({
                 let label = '🎨 Redesign';
                 if (mode === GenerationMode.VIRTUAL_STAGING) label = '🪑 Mobiliar';
                 if (mode === GenerationMode.PAINT_ONLY) label = '🖌️ Pintura';
-                
+
                 return (
                   <button
                     key={mode}
@@ -301,19 +303,39 @@ const MobileEditor: React.FC<MobileEditorProps> = ({
       </div>
 
       {/* Floating Action Bar — with safe area */}
-      <motion.div 
+      <motion.div
         initial={{ y: 100 }}
         animate={{ y: 0 }}
         transition={{ delay: 0.2, type: 'spring' }}
-        className="fixed bottom-0 left-0 right-0 p-4 bg-surface-dark/80 backdrop-blur-2xl border-t border-glass-border z-50" 
+        className="fixed bottom-0 left-0 right-0 p-4 bg-surface-dark/80 backdrop-blur-2xl border-t border-glass-border z-50"
         style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}
       >
         <div className="flex gap-2">
+          {/* Iterate button (shown when image already has a result) */}
+          {activeImage.generatedUrl && !isGenerating && (
+            <button
+              onClick={() => {
+                if (navigator.vibrate) navigator.vibrate(10);
+                onIterateOnGenerated(activeImage.id);
+              }}
+              className={`py-3.5 px-5 rounded-sm font-bold text-sm flex items-center justify-center gap-2 shadow-lg transition-all transform active:scale-[0.98] uppercase tracking-wide ${activeImage.iterateFromGenerated
+                ? 'bg-primary text-white border border-primary/50 ring-2 ring-primary/30'
+                : 'bg-gradient-to-r from-violet-600 to-purple-600 text-white border border-violet-500/30 shadow-violet-500/20'
+                }`}
+              aria-label="Continuar editando — a próxima geração usará este resultado como base"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="2" y="7" width="16" height="16" rx="2" ry="2" opacity="0.4" />
+                <rect x="6" y="3" width="16" height="16" rx="2" ry="2" />
+              </svg>
+              <span>{activeImage.iterateFromGenerated ? '✓ Editando resultado' : 'Continuar Editando'}</span>
+            </button>
+          )}
           {/* Regenerate button (shown when image already has a result) */}
           {activeImage.generatedUrl && !isGenerating && (
             <button
               onClick={() => {
-                if(navigator.vibrate) navigator.vibrate(10);
+                if (navigator.vibrate) navigator.vibrate(10);
                 onRegenerateSingle(activeImage.id);
               }}
               className="py-3.5 px-5 rounded-sm font-bold text-sm flex items-center justify-center gap-2 shadow-lg transition-all transform active:scale-[0.98] bg-surface-light text-text-muted border border-glass-border hover:bg-surface hover:text-white focus-visible:ring-2 focus-visible:ring-secondary uppercase tracking-wide"
@@ -325,7 +347,7 @@ const MobileEditor: React.FC<MobileEditorProps> = ({
           )}
           <button
             onClick={() => {
-              if(navigator.vibrate) navigator.vibrate(10);
+              if (navigator.vibrate) navigator.vibrate(10);
               onGenerate();
             }}
             disabled={isGenerating || (generationMode !== GenerationMode.PAINT_ONLY && !selectedStyle)}

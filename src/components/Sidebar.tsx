@@ -100,6 +100,13 @@ const ImageItem = memo(({
       </div>
     )}
 
+    {/* Iteration badge */}
+    {!img.isGenerating && img.iterateFromGenerated && (
+      <div className="absolute top-1.5 right-8 flex items-center gap-1 bg-violet-600/90 backdrop-blur text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-lg">
+        <span>✎ Editando</span>
+      </div>
+    )}
+
     {/* Selection Checkbox — always visible on touch devices */}
     <button
       onClick={(e) => {

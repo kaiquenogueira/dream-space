@@ -2,7 +2,8 @@ import { supabase } from '../lib/supabase';
 import { GenerationMode } from '../types';
 import type { Property, UploadedImage } from '../types';
 
-const STORAGE_KEY_PREFIX = 'dreamspace.projects.v1';
+const STORAGE_KEY_PREFIX = 'iolia.projects.v1';
+const LEGACY_STORAGE_KEY_PREFIX = 'dreamspace.projects.v1';
 const ORIGINALS_BUCKET = import.meta.env.VITE_SUPABASE_BUCKET_ORIGINALS || 'originals';
 const GENERATIONS_BUCKET = import.meta.env.VITE_SUPABASE_BUCKET_GENERATIONS || 'generations';
 
@@ -19,8 +20,8 @@ const createSignedUrl = async (bucket: string, path?: string | null) => {
 };
 
 const normalizeGenerationMode = (mode?: string | null) => {
-  if (mode === GenerationMode.REDESIGN) return GenerationMode.REDESIGN;
   if (mode === GenerationMode.VIRTUAL_STAGING) return GenerationMode.VIRTUAL_STAGING;
+  if (mode === GenerationMode.PAINT_ONLY) return GenerationMode.PAINT_ONLY;
   return undefined;
 };
 
@@ -104,8 +105,23 @@ const getStorageKey = (userId?: string | null) => (
   userId ? `${STORAGE_KEY_PREFIX}.${userId}` : STORAGE_KEY_PREFIX
 );
 
+const getLegacyStorageKey = (userId?: string | null) => (
+  userId ? `${LEGACY_STORAGE_KEY_PREFIX}.${userId}` : LEGACY_STORAGE_KEY_PREFIX
+);
+
 export const hydrateStoredProjects = (userId?: string | null): StoredProjects | null => {
-  const stored = localStorage.getItem(getStorageKey(userId));
+  let stored = localStorage.getItem(getStorageKey(userId));
+
+  // Migrate from legacy key if new key doesn't exist
+  if (!stored) {
+    const legacyStored = localStorage.getItem(getLegacyStorageKey(userId));
+    if (legacyStored) {
+      localStorage.setItem(getStorageKey(userId), legacyStored);
+      localStorage.removeItem(getLegacyStorageKey(userId));
+      stored = legacyStored;
+    }
+  }
+
   if (!stored) return null;
   try {
     const parsed = JSON.parse(stored);

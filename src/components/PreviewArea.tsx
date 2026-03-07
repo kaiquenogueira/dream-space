@@ -18,6 +18,7 @@ interface PreviewAreaProps {
   handleDownloadSingle: (url: string, name: string, extension?: string) => void;
   handleDownloadAll: () => void;
   onVideoGenerated: (url: string) => void;
+  onIterateOnGenerated: (imageId: string) => void;
   hasGeneratedImages: boolean;
   isDownloadingZip: boolean;
   onNext: () => void;
@@ -34,6 +35,7 @@ const PreviewArea: React.FC<PreviewAreaProps> = ({
   handleDownloadSingle,
   handleDownloadAll,
   onVideoGenerated,
+  onIterateOnGenerated,
   hasGeneratedImages,
   isDownloadingZip,
   onNext,
@@ -162,6 +164,24 @@ const PreviewArea: React.FC<PreviewAreaProps> = ({
               </button>
             ))}
           </div>
+
+          {/* Iterate Button */}
+          {activeImage.generatedUrl && (
+            <button
+              onClick={() => onIterateOnGenerated(activeImage.id)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-sm transition-all shadow-lg text-xs font-bold uppercase tracking-wide ${activeImage.iterateFromGenerated
+                ? 'bg-primary text-white ring-2 ring-primary/40'
+                : 'bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500 text-white shadow-violet-500/20 hover:-translate-y-0.5'
+                }`}
+              title="Continuar editando este resultado — a próxima geração usará esta imagem como base, preservando as alterações já feitas"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="2" y="7" width="16" height="16" rx="2" ry="2" opacity="0.4" />
+                <rect x="6" y="3" width="16" height="16" rx="2" ry="2" />
+              </svg>
+              <span className="hidden sm:inline">{activeImage.iterateFromGenerated ? '✓ Editando resultado' : 'Continuar Editando'}</span>
+            </button>
+          )}
 
           {/* Drone Tour Button */}
           {activeImage.generatedUrl && (

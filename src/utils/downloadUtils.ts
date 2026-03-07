@@ -64,7 +64,7 @@ export const downloadComparison = async (
     // Property Name
     ctx.fillStyle = DOWNLOAD_CONSTANTS.COLOR_TEXT;
     ctx.font = DOWNLOAD_CONSTANTS.FONT_TITLE;
-    const propName = activeProperty?.name || "Etherea Design";
+    const propName = activeProperty?.name || "IOLIA Design";
     ctx.fillText(propName, 30, height + 50);
 
     // Logo or Credit
@@ -80,7 +80,7 @@ export const downloadComparison = async (
       ctx.fillStyle = DOWNLOAD_CONSTANTS.COLOR_CREDIT_TEXT;
       ctx.font = DOWNLOAD_CONSTANTS.FONT_CREDIT;
       ctx.textAlign = "right";
-      ctx.fillText("Gerado com Etherea AI", width - 30, height + 45);
+      ctx.fillText("Gerado com IOLIA AI", width - 30, height + 45);
     }
 
     // Trigger download
@@ -149,7 +149,7 @@ const generateComparisonBlob = async (
   ctx.fillStyle = DOWNLOAD_CONSTANTS.COLOR_CREDIT_TEXT;
   ctx.font = DOWNLOAD_CONSTANTS.FONT_CREDIT;
   ctx.textAlign = "right";
-  ctx.fillText("Gerado com Etherea AI", width - 30, height + 45);
+  ctx.fillText("Gerado com IOLIA AI", width - 30, height + 45);
 
   return new Promise<Blob>((resolve, reject) => {
     canvas.toBlob(blob => {
@@ -246,7 +246,7 @@ export const downloadAllImages = async (images: UploadedImage[]): Promise<void> 
     }
 
     const content = await zip.generateAsync({ type: "blob" });
-    saveAs(content, "dreamspace-designs.zip");
+    saveAs(content, "iolia-designs.zip");
   } catch (err) {
     console.error("Failed to generate ZIP", err);
     throw new Error("Falha ao criar o arquivo ZIP.");

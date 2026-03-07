@@ -1,4 +1,4 @@
-# Stripe Integration Guide — DreamSpace SaaS
+# Stripe Integration Guide — IOLIA SaaS
 
 > **Status**: Documentado e pronto para implementação futura.
 > Implementar quando houver ~10-20 usuários ativos pedindo planos pagos.
