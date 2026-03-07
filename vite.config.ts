@@ -92,18 +92,7 @@ export default defineConfig(({ mode }) => {
     },
     build: {
       rollupOptions: {
-        output: {
-          manualChunks(id) {
-            if (id.includes('node_modules')) {
-              if (id.includes('react')) return 'react';
-              if (id.includes('@supabase')) return 'supabase';
-              if (id.includes('@google')) return 'google';
-              if (id.includes('jszip') || id.includes('file-saver')) return 'downloads';
-              if (id.includes('tailwindcss') || id.includes('postcss') || id.includes('autoprefixer')) return 'styles';
-              return 'vendor';
-            }
-          }
-        }
+        output: {}
       }
     }
   };
