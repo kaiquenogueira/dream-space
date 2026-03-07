@@ -1,7 +1,7 @@
 import { GoogleGenAI } from "@google/genai";
-import { supabaseAdmin } from './lib/supabaseAdmin.js';
-import { checkRateLimit } from './lib/rateLimit.js';
-import type { VercelRequest, VercelResponse, GenerateDroneTourRequest } from './types.js';
+import { supabaseAdmin } from './_lib/supabaseAdmin.js';
+import { checkRateLimit } from './_lib/rateLimit.js';
+import type { VercelRequest, VercelResponse, GenerateDroneTourRequest } from './_lib/types.js';
 
 const getClientIp = (req: VercelRequest) => {
     const forwardedFor = req.headers['x-forwarded-for'];

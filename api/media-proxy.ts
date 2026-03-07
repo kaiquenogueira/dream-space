@@ -1,5 +1,5 @@
-import { supabaseAdmin } from './lib/supabaseAdmin.js';
-import type { VercelRequest, VercelResponse } from './types.js';
+import { supabaseAdmin } from './_lib/supabaseAdmin.js';
+import type { VercelRequest, VercelResponse } from './_lib/types.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
     // --- Auth Check via Supabase ---

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildPrompt, GenerationMode, ArchitecturalStyle } from './promptBuilder';
+import { buildPrompt, GenerationMode, ArchitecturalStyle } from '../../api/_lib/promptBuilder';
 
 describe('buildPrompt', () => {
     it('should include mandatory structural preservation rules in all modes', () => {

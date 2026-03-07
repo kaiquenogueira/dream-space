@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import handler from './generate';
-import { supabaseAdmin } from './lib/supabaseAdmin';
-import { checkRateLimit } from './lib/rateLimit';
+import handler from '../../api/generate';
+import { supabaseAdmin } from '../../api/_lib/supabaseAdmin';
+import { checkRateLimit } from '../../api/_lib/rateLimit';
 
 // Mock das dependências
 vi.mock('./lib/supabaseAdmin', () => ({

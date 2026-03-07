@@ -1,7 +1,7 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import checkOperationHandler from './check-operation';
-import { supabaseAdmin } from './lib/supabaseAdmin';
+import checkOperationHandler from '../../api/check-operation';
+import { supabaseAdmin } from '../../api/_lib/supabaseAdmin';
 
 // Mock Supabase
 vi.mock('./lib/supabaseAdmin', () => {

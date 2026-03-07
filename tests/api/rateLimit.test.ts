@@ -1,6 +1,6 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { checkRateLimit, ratelimit } from './rateLimit';
+import { checkRateLimit, ratelimit } from '../../api/_lib/rateLimit';
 
 // Mock Upstash Redis and Ratelimit
 vi.mock('@upstash/redis', () => {

@@ -1,9 +1,9 @@
 import { GoogleGenAI } from "@google/genai";
 import { z } from "zod";
-import { supabaseAdmin } from './lib/supabaseAdmin.js';
-import { buildPrompt, GenerationMode, ArchitecturalStyle } from './lib/promptBuilder.js';
-import { checkRateLimit } from './lib/rateLimit.js';
-import type { VercelRequest, VercelResponse } from './types.js';
+import { supabaseAdmin } from './_lib/supabaseAdmin.js';
+import { buildPrompt, GenerationMode, ArchitecturalStyle } from './_lib/promptBuilder.js';
+import { checkRateLimit } from './_lib/rateLimit.js';
+import type { VercelRequest, VercelResponse } from './_lib/types.js';
 
 const ORIGINALS_BUCKET = process.env.SUPABASE_BUCKET_ORIGINALS || process.env.VITE_SUPABASE_BUCKET_ORIGINALS || 'originals';
 const GENERATIONS_BUCKET = process.env.SUPABASE_BUCKET_GENERATIONS || process.env.VITE_SUPABASE_BUCKET_GENERATIONS || 'generations';

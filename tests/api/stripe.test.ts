@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, beforeAll } from 'vitest';
-import { supabaseAdmin } from '../lib/supabaseAdmin.js'; // Use .js if that's how it's imported in source
+import { supabaseAdmin } from '../../api/_lib/supabaseAdmin.js'; // Use .js if that's how it's imported in source
 
 // Mock env vars immediately
 process.env.STRIPE_SECRET_KEY = 'test_key';

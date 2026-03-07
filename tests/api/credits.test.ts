@@ -1,7 +1,7 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import creditsHandler from './credits';
-import { supabaseAdmin } from '../lib/supabaseAdmin';
+import creditsHandler from '../../api/admin/credits';
+import { supabaseAdmin } from '../../api/_lib/supabaseAdmin';
 
 // Mock supabaseAdmin
 vi.mock('../lib/supabaseAdmin', () => {

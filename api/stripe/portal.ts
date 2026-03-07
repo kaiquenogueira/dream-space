@@ -1,6 +1,6 @@
 import Stripe from 'stripe';
-import { supabaseAdmin } from '../lib/supabaseAdmin.js';
-import type { VercelRequest, VercelResponse } from '../types.js';
+import { supabaseAdmin } from '../_lib/supabaseAdmin.js';
+import type { VercelRequest, VercelResponse } from '../_lib/types.js';
 
 if (!process.env.STRIPE_SECRET_KEY) {
   throw new Error('Missing STRIPE_SECRET_KEY environment variable');
