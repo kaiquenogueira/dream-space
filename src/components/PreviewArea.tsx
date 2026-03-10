@@ -23,6 +23,7 @@ interface PreviewAreaProps {
   isDownloadingZip: boolean;
   onNext: () => void;
   onPrev: () => void;
+  onSharePresentation: () => void;
 }
 
 const PreviewArea: React.FC<PreviewAreaProps> = ({
@@ -39,7 +40,8 @@ const PreviewArea: React.FC<PreviewAreaProps> = ({
   hasGeneratedImages,
   isDownloadingZip,
   onNext,
-  onPrev
+  onPrev,
+  onSharePresentation
 }) => {
   const [zoom, setZoom] = useState(1);
   const [isGeneratingTour, setIsGeneratingTour] = useState(false);
@@ -124,7 +126,7 @@ const PreviewArea: React.FC<PreviewAreaProps> = ({
           </div>
         </div>
 
-        <div className="flex items-center gap-2.5">
+        <div className="flex flex-wrap items-center justify-center gap-2.5 w-full sm:w-auto">
           {/* Navigation */}
           {totalImages > 1 && (
             <div className="flex items-center gap-1 bg-surface-dark/50 p-1 rounded-xl border border-glass-border">
@@ -179,7 +181,7 @@ const PreviewArea: React.FC<PreviewAreaProps> = ({
                 <rect x="2" y="7" width="16" height="16" rx="2" ry="2" opacity="0.4" />
                 <rect x="6" y="3" width="16" height="16" rx="2" ry="2" />
               </svg>
-              <span className="hidden sm:inline">{activeImage.iterateFromGenerated ? '✓ Editando resultado' : 'Continuar Editando'}</span>
+              <span>{activeImage.iterateFromGenerated ? '✓ Editando resultado' : 'Continuar Editando'}</span>
             </button>
           )}
 
@@ -202,7 +204,25 @@ const PreviewArea: React.FC<PreviewAreaProps> = ({
               ) : (
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
               )}
-              <span className="hidden sm:inline">{isGeneratingTour ? 'Criando...' : (activeImage.videoUrl ? 'Ver Drone Tour' : 'Drone Tour')}</span>
+              <span>{isGeneratingTour ? 'Criando...' : (activeImage.videoUrl ? 'Ver Drone Tour' : 'Drone Tour')}</span>
+            </button>
+          )}
+
+          {/* Share Presentation Button */}
+          {hasGeneratedImages && (
+            <button
+              onClick={onSharePresentation}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white rounded-xl transition-all shadow-lg shadow-emerald-500/20 transform hover:-translate-y-0.5 active:translate-y-0 text-xs font-bold"
+              title="Criar PDF com sua marca"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <line x1="16" y1="13" x2="8" y2="13"></line>
+                <line x1="16" y1="17" x2="8" y2="17"></line>
+                <polyline points="10 9 9 9 8 9"></polyline>
+              </svg>
+              <span>Gerar PDF</span> ✨
             </button>
           )}
 
@@ -265,7 +285,7 @@ const PreviewArea: React.FC<PreviewAreaProps> = ({
               {/* Original View */}
               {effectiveViewMode === 'original' && (
                 <div className="w-full h-full relative animate-fade-in">
-                  <img src={activeImage.previewUrl} alt="Original" className="w-full h-full object-contain" />
+                  <img src={activeImage.previewUrl || undefined} alt="Original" className="w-full h-full object-contain" />
                   {zoom === 1 && (
                     <div className="absolute bottom-4 left-4 bg-black/60 backdrop-blur-md text-white text-xs font-bold px-3 py-1.5 rounded-lg border border-white/10 shadow-lg z-20">Foto Original</div>
                   )}
@@ -275,7 +295,7 @@ const PreviewArea: React.FC<PreviewAreaProps> = ({
               {/* Generated View */}
               {effectiveViewMode === 'generated' && activeImage.generatedUrl && (
                 <div className="w-full h-full relative animate-fade-in">
-                  <img src={activeImage.generatedUrl} alt="Generated" className="w-full h-full object-contain" />
+                  <img src={activeImage.generatedUrl || undefined} alt="Generated" className="w-full h-full object-contain" />
                   {zoom === 1 && (
                     <div className="absolute bottom-4 left-4 bg-primary-dark/80 backdrop-blur-md text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-lg border border-primary/20 z-20">Design com IA</div>
                   )}

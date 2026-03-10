@@ -12,7 +12,7 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 async function listUsers() {
   console.log("Listing users...");
-  
+
   const { data: { users }, error } = await supabase.auth.admin.listUsers();
 
   if (error) {
@@ -21,7 +21,7 @@ async function listUsers() {
   }
 
   const targetEmail = 'kaiquenogueir@gmail.com';
-  const foundUser = users.find(u => u.email === targetEmail);
+  const foundUser = (users as any[]).find(u => u.email === targetEmail);
 
   if (foundUser) {
     console.log("User found:", {
@@ -31,18 +31,18 @@ async function listUsers() {
       last_sign_in_at: foundUser.last_sign_in_at,
       role: foundUser.role
     });
-    
+
     // Also check if profile exists for this user
     const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', foundUser.id)
-        .single();
-        
+      .from('profiles')
+      .select('*')
+      .eq('id', foundUser.id)
+      .single();
+
     if (profileError) {
-        console.error("Profile check failed:", profileError);
+      console.error("Profile check failed:", profileError);
     } else {
-        console.log("Profile found:", profile);
+      console.log("Profile found:", profile);
     }
 
   } else {

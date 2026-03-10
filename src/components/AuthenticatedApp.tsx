@@ -1,7 +1,8 @@
 import React, { Suspense, lazy, useState, useEffect } from 'react';
-import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
+import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import Header from './Header';
 import PropertyCreation from './PropertyCreation';
+import SharePresentationModal from './SharePresentationModal';
 import { RefreshIcon } from './Icons';
 import { ArchitecturalStyle, GenerationMode, UploadedImage } from '../types';
 import { compressImage } from '../utils/imageUtils';
@@ -155,23 +156,30 @@ const GenerationToolbar: React.FC<GenerationToolbarProps> = ({
       </div>
       <button
         onClick={() => setShowControls(!showControls)}
-        className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all border ${selectedStyle
-          ? 'bg-primary/10 border-primary/25 text-primary hover:bg-primary/15'
-          : 'bg-surface/60 border-glass-border text-text-muted hover:text-text-main hover:border-text-muted'
+        aria-expanded={showControls}
+        aria-controls="generation-controls-panel"
+        className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all duration-300 border focus-visible:ring-2 focus-visible:ring-secondary/50 focus:outline-none ${selectedStyle && generationMode !== GenerationMode.PAINT_ONLY
+          ? 'bg-primary/10 border-primary/25 text-primary hover:bg-primary/15 shadow-[0_0_10px_rgba(211,156,118,0.1)]'
+          : 'bg-surface/60 border-glass-border text-text-muted hover:text-white hover:bg-surface/80 hover:border-white/20 hover:shadow-lg'
           }`}
       >
         {selectedStyle && generationMode !== GenerationMode.PAINT_ONLY ? (
           <>
-            <span>✓ {selectedStyle}</span>
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d={showControls ? "M18 15l-6-6-6 6" : "M6 9l6 6 6-6"} />
+            <span className="flex items-center gap-1.5 font-bold tracking-wide">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-secondary">
+                <path d="M20 6L9 17l-5-5" />
+              </svg>
+              {selectedStyle}
+            </span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={`transition-transform duration-300 ${showControls ? "rotate-180" : "rotate-0 text-text-muted/70"}`}>
+              <path d="M6 9l6 6 6-6" />
             </svg>
           </>
         ) : (
           <>
-            {generationMode === GenerationMode.PAINT_ONLY ? 'Cor / Textura' : 'Selecionar Estilo'}
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d={showControls ? "M18 15l-6-6-6 6" : "M6 9l6 6 6-6"} />
+            <span className="tracking-wide">{generationMode === GenerationMode.PAINT_ONLY ? 'Cor / Textura' : 'Selecionar Estilo'}</span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={`transition-transform duration-300 ${showControls ? "rotate-180 text-white" : "rotate-0 text-text-muted/70"}`}>
+              <path d="M6 9l6 6 6-6" />
             </svg>
           </>
         )}
@@ -246,7 +254,7 @@ const DesktopLayout: React.FC<DesktopLayoutProps> = ({
     <section className="flex-1 min-w-0 flex flex-col overflow-hidden">
       <GenerationToolbar {...generationToolbarProps} />
       {showControls && (
-        <div className="flex-shrink-0 border-b border-glass-border px-5 py-2 bg-surface/30 animate-slide-down overflow-y-auto max-h-[220px] custom-scrollbar">
+        <div id="generation-controls-panel" role="region" aria-label="Controles de Geração" className="flex-shrink-0 border-b border-glass-border px-5 py-4 bg-surface/30 animate-slide-down overflow-y-auto max-h-[220px] custom-scrollbar shadow-inner">
           <Suspense fallback={<div className="p-4 text-text-muted">Carregando estúdio...</div>}>
             <DesignStudio {...designStudioProps} />
           </Suspense>
@@ -338,6 +346,7 @@ export const AuthenticatedApp: React.FC<AuthenticatedAppProps> = ({ profile, ref
   const [isDownloadingZip, setIsDownloadingZip] = useState(false);
   const [viewMode, setViewMode] = useState<'original' | 'generated' | 'split'>('split');
   const [showControls, setShowControls] = useState(true);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
 
   // Detect desktop view
   const isDesktop = useMedia('(min-width: 1024px)');
@@ -368,12 +377,12 @@ export const AuthenticatedApp: React.FC<AuthenticatedAppProps> = ({ profile, ref
 
   const onImagesSelected = (newImages: UploadedImage[]) => {
     handleImagesSelected(newImages);
-    if (!isDesktop) navigate('/editor');
+    if (!isDesktop) navigate('/app/editor');
   };
 
   const handleMobileImageSelect = (id: string) => {
     setSelectedImageId(id);
-    navigate('/editor');
+    navigate('/app/editor');
   };
 
   const handleNextImage = () => {
@@ -527,13 +536,25 @@ export const AuthenticatedApp: React.FC<AuthenticatedAppProps> = ({ profile, ref
     hasGeneratedImages: images.some(img => !!img.generatedUrl),
     isDownloadingZip,
     onNext: handleNextImage,
-    onPrev: handlePrevImage
+    onPrev: handlePrevImage,
+    onSharePresentation: () => setIsShareModalOpen(true)
   };
 
   const mobileEditorProps: React.ComponentProps<typeof MobileEditor> = {
     activeImage,
+    imageIndex: activeImageIndex,
+    totalImages: images.length,
+    hasGeneratedImages: images.some(img => !!img.generatedUrl),
+    isDownloadingZip,
+    onDownloadSingle: downloadSingle,
+    onDownloadComparison: handleDownloadComparisonWrapper,
+    onDownloadAll: handleDownloadAllWrapper,
+    onDownloadVideo: handleVideoGeneratedWrapper,
+    onSharePresentation: () => setIsShareModalOpen(true),
     onRegenerateSingle: handleRegenerateSingleWrapper,
-    onBack: () => navigate('/'),
+    onBack: () => navigate('/app'),
+    onNext: handleNextImage,
+    onPrev: handlePrevImage,
     isGenerating,
     onGenerate: handleGenerateWrapper,
     onIterateOnGenerated: handleIterateOnGenerated,
@@ -581,15 +602,18 @@ export const AuthenticatedApp: React.FC<AuthenticatedAppProps> = ({ profile, ref
 
             {/* Desktop Routes */}
             {isDesktop && (
-              <Route path="/" element={
-                <DesktopLayout
-                  sidebarProps={desktopSidebarProps}
-                  generationToolbarProps={generationToolbarProps}
-                  designStudioProps={designStudioProps}
-                  previewAreaProps={previewAreaProps}
-                  showControls={showControls}
-                />
-              } />
+              <>
+                <Route path="/" element={
+                  <DesktopLayout
+                    sidebarProps={desktopSidebarProps}
+                    generationToolbarProps={generationToolbarProps}
+                    designStudioProps={designStudioProps}
+                    previewAreaProps={previewAreaProps}
+                    showControls={showControls}
+                  />
+                } />
+                <Route path="/editor" element={<Navigate to="/" replace />} />
+              </>
             )}
 
             {/* Common Routes */}
@@ -609,6 +633,14 @@ export const AuthenticatedApp: React.FC<AuthenticatedAppProps> = ({ profile, ref
           </Routes>
         </div>
       </AnimatePresence>
+
+      <SharePresentationModal
+        isOpen={isShareModalOpen}
+        onClose={() => setIsShareModalOpen(false)}
+        images={images}
+        profile={profile}
+        propertyTitle={activeProperty?.name}
+      />
     </div>
   );
 };

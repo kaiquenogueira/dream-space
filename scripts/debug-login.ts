@@ -12,10 +12,17 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 async function debugLogin() {
   console.log("Attempting login...");
-  
+
+  const password = process.env.VITE_SUPABASE_PASSWORD;
+
+  if (!password) {
+    console.error("Missing test password in env");
+    return;
+  }
+
   const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
     email: 'kaiquenogueir@gmail.com',
-    password: 'uksa6n9d@'
+    password: password
   });
 
   if (authError) {
@@ -24,10 +31,10 @@ async function debugLogin() {
   }
 
   console.log("Login successful! User ID:", authData.user.id);
-  
+
   console.log("Fetching profile...");
   const start = Date.now();
-  
+
   const { data: profile, error: profileError } = await supabase
     .from('profiles')
     .select('*')

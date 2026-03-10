@@ -46,7 +46,7 @@ vi.mock('stripe', () => {
 });
 
 // Mock Supabase Admin
-vi.mock('../lib/supabaseAdmin.js', () => {
+vi.mock('../../api/_lib/supabaseAdmin.js', () => {
   const mockBuilder = {
     update: vi.fn().mockReturnThis(),
     eq: vi.fn().mockReturnThis(),
@@ -94,9 +94,9 @@ describe('Stripe Integration', () => {
 
   beforeAll(async () => {
     // Dynamic import to ensure env vars are set
-    checkoutHandler = (await import('./checkout.js')).default;
-    webhookHandler = (await import('./webhook.js')).default;
-    portalHandler = (await import('./portal.js')).default;
+    checkoutHandler = (await import('../../api/stripe/checkout.js')).default;
+    webhookHandler = (await import('../../api/stripe/webhook.js')).default;
+    portalHandler = (await import('../../api/stripe/portal.js')).default;
   });
 
   beforeEach(() => {

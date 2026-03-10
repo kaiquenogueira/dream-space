@@ -178,3 +178,9 @@ export const ChevronRightIcon: React.FC<IconProps> = ({ className, 'aria-hidden'
     <path d="m9 18 6-6-6-6" />
   </svg>
 );
+
+export const CheckIcon: React.FC<IconProps> = ({ className, 'aria-hidden': ariaHidden = "true", role = "img" }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden={ariaHidden} role={role}>
+    <polyline points="20 6 9 17 4 12" />
+  </svg>
+);

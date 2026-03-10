@@ -30,12 +30,12 @@ const DownloadMenu: React.FC<DownloadMenuProps> = ({
       <button
         onClick={() => setShowDownloadMenu(!showDownloadMenu)}
         onBlur={() => setTimeout(() => setShowDownloadMenu(false), 200)}
-        className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-teal-600 to-purple-600 hover:from-teal-500 hover:to-purple-500 text-white rounded-xl transition-all shadow-lg shadow-teal-900/20 hover:shadow-teal-900/35 transform hover:-translate-y-0.5 active:translate-y-0 text-xs font-bold relative overflow-hidden group"
+        className="flex items-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-teal-600 to-purple-600 hover:from-teal-500 hover:to-purple-500 text-white rounded-xl transition-all shadow-lg shadow-teal-900/20 hover:shadow-teal-900/35 transform hover:-translate-y-0.5 active:translate-y-0 text-sm font-bold relative overflow-hidden group"
         title="Baixar"
         aria-label="Opções de download"
       >
         <DownloadIcon className="w-3.5 h-3.5" />
-        <span className="hidden sm:inline">Baixar</span>
+        <span>Baixar</span>
         <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
           <path d="M6 9l6 6 6-6" />
         </svg>
@@ -50,9 +50,9 @@ const DownloadMenu: React.FC<DownloadMenuProps> = ({
               onDownloadSingle(activeImage.previewUrl, `original-${imageIndex + 1}`);
               setShowDownloadMenu(false);
             }}
-            className="w-full text-left px-4 py-2.5 text-sm text-zinc-200 hover:bg-zinc-800/60 hover:text-white transition-colors flex items-center gap-3"
+            className="w-full text-left px-4 py-3.5 text-sm text-zinc-200 hover:bg-zinc-800/60 hover:text-white transition-colors flex items-center gap-3"
           >
-            <ImageIcon className="w-4 h-4 text-blue-400" />
+            <ImageIcon className="w-5 h-5 text-blue-400" />
             <div>
               <span className="block font-medium text-xs">Foto Original</span>
               <span className="block text-xs text-zinc-500">Baixar foto sem alterações</span>
@@ -67,9 +67,9 @@ const DownloadMenu: React.FC<DownloadMenuProps> = ({
                   onDownloadSingle(activeImage.generatedUrl!, `design-${imageIndex + 1}`);
                   setShowDownloadMenu(false);
                 }}
-                className="w-full text-left px-4 py-2.5 text-sm text-zinc-200 hover:bg-zinc-800/60 hover:text-white transition-colors flex items-center gap-3"
+                className="w-full text-left px-4 py-3.5 text-sm text-zinc-200 hover:bg-zinc-800/60 hover:text-white transition-colors flex items-center gap-3"
               >
-                <ImageIcon className="w-4 h-4 text-emerald-400" />
+                <ImageIcon className="w-5 h-5 text-emerald-400" />
                 <div>
                   <span className="block font-medium text-xs">Novo Design</span>
                   <span className="block text-xs text-zinc-500">Baixar design de IA</span>
@@ -84,9 +84,9 @@ const DownloadMenu: React.FC<DownloadMenuProps> = ({
                   onDownloadComparison(activeImage.previewUrl, activeImage.generatedUrl!);
                   setShowDownloadMenu(false);
                 }}
-                className="w-full text-left px-4 py-2.5 text-sm text-zinc-200 hover:bg-zinc-800/60 hover:text-white transition-colors flex items-center gap-3"
+                className="w-full text-left px-4 py-3.5 text-sm text-zinc-200 hover:bg-zinc-800/60 hover:text-white transition-colors flex items-center gap-3"
               >
-                <ColumnsIcon className="w-4 h-4 text-teal-400" />
+                <ColumnsIcon className="w-5 h-5 text-teal-400" />
                 <div>
                   <span className="block font-medium text-xs">Antes e Depois</span>
                   <span className="block text-xs text-zinc-500">Comparação lado a lado</span>

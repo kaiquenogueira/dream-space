@@ -4,7 +4,7 @@ import checkOperationHandler from '../../api/check-operation';
 import { supabaseAdmin } from '../../api/_lib/supabaseAdmin';
 
 // Mock Supabase
-vi.mock('./lib/supabaseAdmin', () => {
+vi.mock('../../api/_lib/supabaseAdmin', () => {
   return {
     supabaseAdmin: {
       auth: {
@@ -36,13 +36,13 @@ const mockOperationsGet = vi.fn();
 vi.mock('@google/genai', () => {
   return {
     GoogleGenAI: class GoogleGenAI {
-      constructor() {}
+      constructor() { }
       operations = {
         get: mockOperationsGet,
       };
     },
     GenerateVideosOperation: class GenerateVideosOperation {
-        name: string = '';
+      name: string = '';
     }
   };
 });
@@ -141,24 +141,24 @@ describe('Check Operation Handler', () => {
     const eqMock3 = { eq: vi.fn().mockReturnValue(limitMock) };
     const eqMock2 = { eq: vi.fn().mockReturnValue(eqMock3) };
     const eqMock1 = { eq: vi.fn().mockReturnValue(eqMock2) };
-    
+
     // Mock update
     const updateEqMock = vi.fn().mockResolvedValue({ error: null });
     const updateMock = { eq: updateEqMock };
 
     (supabaseAdmin!.from as any).mockReturnValue({
-        select: vi.fn().mockReturnValue(eqMock1),
-        update: vi.fn().mockReturnValue(updateMock)
+      select: vi.fn().mockReturnValue(eqMock1),
+      update: vi.fn().mockReturnValue(updateMock)
     });
 
     // Mock Google GenAI operation result
     const mockOperationResult = {
-        done: true,
-        response: {
-            generatedVideos: [
-                { video: { uri: 'gs://video.mp4' } }
-            ]
-        }
+      done: true,
+      response: {
+        generatedVideos: [
+          { video: { uri: 'gs://video.mp4' } }
+        ]
+      }
     };
     mockOperationsGet.mockResolvedValue(mockOperationResult);
 
@@ -168,8 +168,8 @@ describe('Check Operation Handler', () => {
     expect(updateEqMock).toHaveBeenCalled();
     expect(res.status).not.toHaveBeenCalledWith(403);
     expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
-        done: true,
-        publicVideoUrl: expect.stringContaining('/api/media-proxy')
+      done: true,
+      publicVideoUrl: expect.stringContaining('/api/media-proxy')
     }));
   });
 });

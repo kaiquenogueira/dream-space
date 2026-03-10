@@ -36,7 +36,8 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ onImagesSelected, current
           file: file,
           previewUrl: preview,
           base64: base64,
-          selected: true
+          selected: true,
+          isGenerating: false
         });
       } catch (e) {
         console.error("Error processing file", e);

@@ -3,10 +3,24 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import App from '../App';
 
-const useAuthMock = vi.fn();
-const useCreditsMock = vi.fn();
-const useProjectMock = vi.fn();
-const useImageGenerationMock = vi.fn();
+const { useAuthMock, useCreditsMock, useProjectMock, useImageGenerationMock } = vi.hoisted(() => ({
+  useAuthMock: vi.fn(),
+  useCreditsMock: vi.fn(),
+  useProjectMock: vi.fn(),
+  useImageGenerationMock: vi.fn(),
+}));
+
+// Mock IntersectionObserver for JSDOM
+class IntersectionObserverMock {
+  observe = vi.fn();
+  unobserve = vi.fn();
+  disconnect = vi.fn();
+}
+Object.defineProperty(window, 'IntersectionObserver', {
+  writable: true,
+  configurable: true,
+  value: IntersectionObserverMock
+});
 
 vi.mock('../hooks/useAuth', () => ({
   useAuth: () => useAuthMock(),
@@ -97,21 +111,24 @@ describe('App', () => {
     expect(screen.getByText('Carregando...')).toBeInTheDocument();
   });
 
-  it('mostra login quando não autenticado', () => {
+  it('mostra login quando não autenticado', async () => {
+    window.history.pushState({}, '', '/login');
     useAuthMock.mockReturnValue({ ...baseAuth, isAuthenticated: false });
     render(<App />);
-    expect(screen.getByText('LoginView')).toBeInTheDocument();
+    expect(await screen.findByText('LoginView')).toBeInTheDocument();
   });
 
-  it('mostra erro de perfil quando falha no carregamento', () => {
+  it('mostra erro de perfil quando falha no carregamento', async () => {
+    window.history.pushState({}, '', '/app');
     useAuthMock.mockReturnValue({ ...baseAuth, profileError: 'Erro de perfil' });
     render(<App />);
-    expect(screen.getByText('Falha ao carregar perfil')).toBeInTheDocument();
+    expect(await screen.findByText('Falha ao carregar perfil')).toBeInTheDocument();
     expect(screen.getByText('Erro de perfil')).toBeInTheDocument();
   });
 
-  it('renderiza a aplicação autenticada quando logado', () => {
+  it('renderiza a aplicação autenticada quando logado', async () => {
+    window.history.pushState({}, '', '/app');
     render(<App />);
-    expect(screen.getByText('AuthenticatedApp')).toBeInTheDocument();
+    expect(await screen.findByText('AuthenticatedApp')).toBeInTheDocument();
   });
 });

@@ -12,10 +12,15 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 async function resetPassword() {
   const email = 'kaiquenogueir@gmail.com';
-  const newPassword = 'uksa6n9d@';
-  
+  const newPassword = process.env.VITE_SUPABASE_PASSWORD;
+
+  if (!newPassword) {
+    console.error("Missing test password in env");
+    return;
+  }
+
   console.log(`Resetting password for ${email}...`);
-  
+
   const { data: { user }, error } = await supabase.auth.admin.updateUserById(
     'ec2a6616-42ec-48bc-85ad-c560c2cb05d8', // ID found in previous step
     { password: newPassword }

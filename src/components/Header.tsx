@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { SparkleIcon, LogOutIcon } from './Icons';
 import { Property } from '../types';
-import type { UserProfile } from '../hooks/useAuth';
+import { useAuth, type UserProfile } from '../hooks/useAuth';
+import SettingsModal from './SettingsModal';
 
 interface HeaderProps {
   activeProperty: Property | undefined;
@@ -14,6 +15,9 @@ interface HeaderProps {
 }
 
 const Header: React.FC<HeaderProps> = ({ activeProperty, setActivePropertyId, handleLogout, profile, onAdminClick, isAdminView, onPricingClick }) => {
+  const { refreshProfile } = useAuth();
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+
   const creditPercent = profile
     ? (profile.credits_remaining / (profile.plan === 'free' ? 15 : profile.plan === 'starter' ? 100 : 400)) * 100
     : 0;
@@ -58,17 +62,17 @@ const Header: React.FC<HeaderProps> = ({ activeProperty, setActivePropertyId, ha
           {profile && (
             <button
               onClick={onPricingClick}
-              className="hidden md:flex items-center gap-2 bg-surface/60 px-3 py-1.5 rounded-xl border border-glass-border hover:border-primary/30 hover:bg-surface/80 transition-all cursor-pointer group"
+              className="flex items-center gap-1.5 sm:gap-2 bg-surface/60 px-2 py-1 sm:px-3 sm:py-1.5 rounded-xl border border-glass-border hover:border-primary/30 hover:bg-surface/80 transition-all cursor-pointer group"
               title="Ver planos e preços"
             >
               <div className="flex flex-col items-end">
-                <span className="text-xs font-semibold text-text-main">
-                  {profile.credits_remaining} créditos
+                <span className="text-[11px] sm:text-xs font-semibold text-text-main leading-none">
+                  {profile.credits_remaining} <span className="hidden sm:inline">créditos</span>
                 </span>
-                <span className="text-[10px] text-text-muted capitalize">plano {profile.plan}</span>
+                <span className="text-[9px] sm:text-[10px] text-text-muted capitalize mt-0.5">plano {profile.plan}</span>
               </div>
-              <div className="w-8 h-8 relative">
-                <svg className="w-8 h-8 -rotate-90" viewBox="0 0 36 36">
+              <div className="w-6 h-6 sm:w-8 sm:h-8 relative">
+                <svg className="w-6 h-6 sm:w-8 sm:h-8 -rotate-90" viewBox="0 0 36 36">
                   <path
                     d="M18 2.0845a15.9155 15.9155 0 0 1 0 31.831a15.9155 15.9155 0 0 1 0-31.831"
                     fill="none"
@@ -84,10 +88,10 @@ const Header: React.FC<HeaderProps> = ({ activeProperty, setActivePropertyId, ha
                     strokeLinecap="round"
                   />
                 </svg>
-                <SparkleIcon className="w-3.5 h-3.5 text-primary/70 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+                <SparkleIcon className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-primary/70 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
               </div>
               {profile.plan === 'free' && (
-                <span className="text-[10px] font-semibold text-secondary group-hover:text-secondary-light transition-colors uppercase tracking-wider">
+                <span className="hidden sm:inline text-[10px] font-semibold text-secondary group-hover:text-secondary-light transition-colors uppercase tracking-wider">
                   Upgrade
                 </span>
               )}
@@ -98,13 +102,23 @@ const Header: React.FC<HeaderProps> = ({ activeProperty, setActivePropertyId, ha
           {profile && (
             <div className="hidden lg:flex items-center gap-2 text-xs text-text-muted">
               {profile.avatar_url ? (
-                <img src={profile.avatar_url} alt="" className="w-6 h-6 rounded-full" />
+                <img src={profile.avatar_url} alt="" className="w-6 h-6 rounded-full border border-glass-border" />
               ) : (
-                <div className="w-6 h-6 rounded-full bg-surface flex items-center justify-center text-text-muted text-[10px] font-bold uppercase">
+                <div className="w-6 h-6 rounded-full bg-surface flex items-center justify-center text-text-muted text-[10px] font-bold uppercase border border-glass-border">
                   {(profile.full_name || profile.email)?.[0] || '?'}
                 </div>
               )}
               <span className="max-w-[120px] truncate">{profile.full_name || profile.email}</span>
+              <button
+                onClick={() => setIsSettingsOpen(true)}
+                title="Configurações da Imobiliária"
+                className="ml-1 p-1.5 rounded-lg text-text-muted hover:text-white bg-surface hover:bg-surface-light border border-glass-border transition-all focus:outline-none focus:ring-1 focus:ring-secondary/50 group"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="group-hover:rotate-45 transition-transform duration-300">
+                  <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
+              </button>
             </div>
           )}
 
@@ -133,6 +147,13 @@ const Header: React.FC<HeaderProps> = ({ activeProperty, setActivePropertyId, ha
           </button>
         </div>
       </div>
+
+      <SettingsModal
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+        profile={profile}
+        onProfileUpdate={refreshProfile}
+      />
     </header>
   );
 };

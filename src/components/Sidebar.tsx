@@ -1,31 +1,10 @@
-import React, { memo, useRef, useState, useEffect } from 'react';
+import React, { memo, useRef, useState, useEffect, useCallback } from 'react';
 import ImageUploader from './ImageUploader';
-import { RefreshIcon, XIcon } from './Icons';
+import { RefreshIcon, XIcon, CheckIcon } from './Icons';
 import { UploadedImage, Property } from '../types';
-import { FixedSizeGrid as Grid } from 'react-window';
+import { FixedSizeGrid as Grid, GridChildComponentProps } from 'react-window';
 
-// Hook to track container size
-const useContainerSize = (ref: React.RefObject<HTMLDivElement>) => {
-  const [size, setSize] = useState({ width: 0, height: 0 });
-
-  useEffect(() => {
-    if (!ref.current) return;
-
-    const observer = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        setSize({
-          width: entry.contentRect.width,
-          height: entry.contentRect.height
-        });
-      }
-    });
-
-    observer.observe(ref.current);
-    return () => observer.disconnect();
-  }, [ref]);
-
-  return size;
-};
+import { useContainerSize } from '../hooks/useContainerSize';
 
 interface SidebarProps {
   images: UploadedImage[];
@@ -72,12 +51,10 @@ const ImageItem = memo(({
       }
      `}
   >
-    <img src={img.previewUrl} alt="Ambiente" className="w-full h-full object-cover" loading="lazy" />
+    <img src={img.previewUrl || undefined} alt="Ambiente" className="w-full h-full object-cover" loading="lazy" />
 
-    {/* Hover gradient overlay */}
     <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
-    {/* Generating */}
     {img.isGenerating && (
       <div className="absolute inset-0 bg-surface-dark/70 backdrop-blur-sm flex flex-col items-center justify-center gap-1.5">
         <RefreshIcon className="animate-spin text-secondary w-5 h-5" />
@@ -85,7 +62,6 @@ const ImageItem = memo(({
       </div>
     )}
 
-    {/* Error */}
     {img.error && (
       <div className="absolute inset-0 bg-red-950/80 backdrop-blur-sm flex flex-col items-center justify-center gap-2 px-2 text-center">
         <span className="text-xs text-white font-bold bg-red-500 px-2.5 py-0.5 rounded-full">Erro</span>
@@ -93,27 +69,24 @@ const ImageItem = memo(({
       </div>
     )}
 
-    {/* Done badge */}
     {!img.isGenerating && img.generatedUrl && (
       <div className="absolute top-1.5 left-1.5 flex items-center gap-1 bg-primary/90 backdrop-blur text-white text-xs font-bold px-2 py-0.5 rounded-full shadow-lg">
         <span>✓ Concluído</span>
       </div>
     )}
 
-    {/* Iteration badge */}
     {!img.isGenerating && img.iterateFromGenerated && (
       <div className="absolute top-1.5 right-8 flex items-center gap-1 bg-violet-600/90 backdrop-blur text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-lg">
         <span>✎ Editando</span>
       </div>
     )}
 
-    {/* Selection Checkbox — always visible on touch devices */}
     <button
       onClick={(e) => {
         e.stopPropagation();
         onToggleSelection(img.id);
       }}
-      className={`absolute bottom-1.5 left-1.5 w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all duration-200 shadow-md z-10 ${img.selected
+      className={`absolute bottom-2 left-2 w-11 h-11 sm:w-8 sm:h-8 rounded-full border-2 flex items-center justify-center transition-all duration-200 shadow-md z-10 ${img.selected
         ? 'bg-primary border-primary scale-100 opacity-100'
         : 'bg-black/50 border-white/50 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 hover:border-white/70'
         }`}
@@ -121,13 +94,10 @@ const ImageItem = memo(({
       aria-label={img.selected ? "Desmarcar imagem" : "Selecionar imagem para geração"}
     >
       {img.selected && (
-        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round">
-          <polyline points="20 6 9 17 4 12" />
-        </svg>
+        <CheckIcon className="w-4 h-4 sm:w-3 sm:h-3 text-white" />
       )}
     </button>
 
-    {/* Regenerate button (for already generated images) — always visible on touch */}
     {!img.isGenerating && img.generatedUrl && (
       <button
         onClick={(e) => {
@@ -135,23 +105,22 @@ const ImageItem = memo(({
           onRegenerate(img.id);
         }}
         disabled={isGeneratingAll}
-        className={`absolute bottom-1.5 right-1.5 w-7 h-7 bg-surface/90 backdrop-blur-md rounded-full flex items-center justify-center text-text-muted hover:text-secondary hover:bg-white transition-all shadow-lg border border-white/10 group/regen z-10 ${isGeneratingAll ? 'opacity-50 cursor-not-allowed' : 'opacity-100 sm:opacity-0 sm:group-hover:opacity-100'}`}
+        className={`absolute bottom-2 right-2 w-11 h-11 sm:w-8 sm:h-8 bg-surface/90 backdrop-blur-md rounded-full flex items-center justify-center text-text-muted hover:text-secondary hover:bg-white transition-all shadow-lg border border-white/10 group/regen z-10 ${isGeneratingAll ? 'opacity-50 cursor-not-allowed' : 'opacity-100 sm:opacity-0 sm:group-hover:opacity-100'}`}
         title="Regerar design para esta foto"
       >
-        <RefreshIcon className={`w-3.5 h-3.5 ${isGeneratingAll ? '' : 'group-hover/regen:rotate-180 transition-transform duration-500'}`} />
+        <RefreshIcon className={`w-5 h-5 sm:w-4 sm:h-4 ${isGeneratingAll ? '' : 'group-hover/regen:rotate-180 transition-transform duration-500'}`} />
       </button>
     )}
 
-    {/* Delete Button — always visible on touch devices */}
     <button
       onClick={(e) => {
         e.stopPropagation();
         onRemove(img.id, e);
       }}
-      className="absolute top-1.5 right-1.5 w-7 h-7 bg-red-500/80 backdrop-blur-sm text-white rounded-full flex items-center justify-center opacity-100 sm:opacity-0 sm:group-hover:opacity-100 hover:bg-red-500 transition-all shadow-lg z-10"
+      className="absolute top-2 right-2 w-11 h-11 sm:w-8 sm:h-8 bg-black/60 sm:bg-red-500/80 backdrop-blur-md text-white rounded-full flex items-center justify-center opacity-100 sm:opacity-0 sm:group-hover:opacity-100 hover:bg-red-500 transition-all shadow-lg z-10 border border-white/20 sm:border-transparent"
       aria-label="Remover imagem"
     >
-      <XIcon className="w-3 h-3" />
+      <XIcon className="w-5 h-5 sm:w-4 sm:h-4" />
     </button>
   </div>
 ));
@@ -173,31 +142,29 @@ const Sidebar: React.FC<SidebarProps> = ({
   isGenerating,
   compact = false
 }) => {
+  const selectableImages = images.filter(img => !img.error);
   const selectedCount = images.filter(img => img.selected).length;
-  const allSelected = images.length > 0 && selectedCount === images.length;
+  const allSelected = selectableImages.length > 0 && selectedCount === selectableImages.length;
   const containerRef = useRef<HTMLDivElement>(null);
   const { width, height } = useContainerSize(containerRef);
 
-  // Grid constants
   const columnCount = 2;
   const rowCount = Math.ceil((images.length + 1) / columnCount);
   const gutter = 12;
 
-  // Calculate item dimensions
   const gridWidth = width || 320;
   const itemWidth = Math.floor(gridWidth / columnCount);
   const itemHeight = Math.floor(itemWidth * (9 / 16)) + gutter;
 
-  const Cell = ({ columnIndex, rowIndex, style }: any) => {
+  const Cell = useCallback(({ columnIndex, rowIndex, style }: GridChildComponentProps) => {
     const index = rowIndex * columnCount + columnIndex;
 
-    // Adjust style for gutter
     const cellStyle = {
       ...style,
-      left: style.left + gutter / 2,
-      top: style.top + gutter / 2,
-      width: style.width - gutter,
-      height: style.height - gutter,
+      left: Number(style.left) + gutter / 2,
+      top: Number(style.top) + gutter / 2,
+      width: Number(style.width) - gutter,
+      height: Number(style.height) - gutter,
     };
 
     if (index === 0) {
@@ -228,11 +195,14 @@ const Sidebar: React.FC<SidebarProps> = ({
         />
       </div>
     );
-  };
+  }, [
+    columnCount, gutter, images, handleImagesSelected, maxImages,
+    selectedImageId, setSelectedImageId, toggleImageSelection,
+    handleRegenerateSingle, removeImage, isGenerating
+  ]);
 
   return (
     <div className="flex flex-col gap-5 h-full overflow-hidden">
-      {/* Branding Section — hidden in compact (mobile) mode */}
       {!compact && (
         <div className="shrink-0 bg-surface/40 backdrop-blur-md p-5 rounded-2xl border border-white/5 shadow-2xl relative overflow-hidden">
           <h3 className="text-[10px] font-bold text-text-muted/70 uppercase tracking-widest mb-4">Identidade Visual do Projeto</h3>
@@ -269,7 +239,6 @@ const Sidebar: React.FC<SidebarProps> = ({
         </div>
       )}
 
-      {/* Upload & Gallery Section */}
       <div className="flex-1 flex flex-col bg-surface/40 backdrop-blur-md p-5 rounded-2xl border border-white/5 shadow-2xl relative overflow-hidden min-h-0">
         <div className="shrink-0 flex justify-between items-end mb-4">
           <div>
@@ -281,7 +250,6 @@ const Sidebar: React.FC<SidebarProps> = ({
           </span>
         </div>
 
-        {/* Selection Controls */}
         {images.length > 0 && (
           <div className="shrink-0 flex items-center justify-between mb-4 px-1">
             <button
@@ -293,9 +261,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                 : 'bg-primary-dark/50 border-white/20 hover:border-text-muted'
                 }`}>
                 {allSelected && (
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#14161A" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="20 6 9 17 4 12" />
-                  </svg>
+                  <CheckIcon className="w-2.5 h-2.5 text-[#14161A]" />
                 )}
               </div>
               {allSelected ? 'Desmarcar Tudo' : 'Selecionar Tudo'}
@@ -308,9 +274,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           </div>
         )}
 
-        {/* Gallery Grid */}
         {compact ? (
-          /* Mobile: Simple CSS grid — no virtualization needed for max 10 images */
           <div className="flex-1 min-h-0 overflow-y-auto -mx-1.5 custom-scrollbar">
             <div className="grid grid-cols-2 gap-3 px-1.5 pb-4">
               <div className="aspect-video">
@@ -336,7 +300,6 @@ const Sidebar: React.FC<SidebarProps> = ({
             </div>
           </div>
         ) : (
-          /* Desktop: Virtualized grid for large collections */
           <div className="flex-1 min-h-0 -mx-1.5" ref={containerRef}>
             {width > 0 && height > 0 && (
               <Grid

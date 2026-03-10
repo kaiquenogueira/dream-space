@@ -30,7 +30,7 @@ const StyleSelector: React.FC<StyleSelectorProps> = ({ selectedStyle, onSelectSt
             onClick={() => onSelectStyle(style)}
             className={`
               relative overflow-hidden rounded-xl border-2 text-left transition-all duration-300 group
-              flex-shrink-0 w-32 h-24 md:w-auto md:h-[88px] snap-start
+              flex-shrink-0 w-28 h-20 md:w-auto md:h-[88px] snap-start
               flex flex-col justify-end p-2.5
               ${isSelected
                 ? 'border-emerald-500 ring-glow-emerald scale-[1.03]'

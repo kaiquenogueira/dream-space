@@ -12,6 +12,10 @@ export interface UserProfile {
   credits_reset_at: string;
   plan: string;
   is_admin: boolean;
+  agency_name?: string | null;
+  agency_logo?: string | null;
+  contact_phone?: string | null;
+  contact_email?: string | null;
 }
 
 interface AuthContextType {
@@ -38,7 +42,7 @@ export const AuthProvider: React.FC<PropsWithChildren> = ({ children }) => {
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [isProfileLoading, setIsProfileLoading] = useState(false);
   const [profileError, setProfileError] = useState<string | null>(null);
-  
+
   // Cache promise to avoid parallel fetches
   const fetchProfilePromiseRef = useRef<Promise<UserProfile | null> | null>(null);
   const profileRef = useRef<UserProfile | null>(null);
@@ -58,9 +62,9 @@ export const AuthProvider: React.FC<PropsWithChildren> = ({ children }) => {
       try {
         setIsProfileLoading(true);
         setProfileError(null);
-        
-        // Timeout de 10s (mais tolerante)
-        const timeoutPromise = new Promise((_, reject) => 
+
+        // Timeout de 30s (mais tolerante para conexões lentas ou ambientes mockados)
+        const timeoutPromise = new Promise((_, reject) =>
           setTimeout(() => reject(new Error('Tempo limite excedido ao carregar perfil')), 10000)
         );
 
@@ -75,41 +79,41 @@ export const AuthProvider: React.FC<PropsWithChildren> = ({ children }) => {
         const { data, error } = result;
 
         if (error) {
-            // Handle missing profile (PGRST116) - Attempt to create if we have the user object
-            if (error.code === 'PGRST116' && userObject) {
-                console.warn('[Auth] Profile missing, attempting to create...');
-                try {
-                    const { data: newProfile, error: createError } = await supabase
-                        .from('profiles')
-                        .insert({
-                            id: userId,
-                            email: userObject.email,
-                            full_name: userObject.user_metadata?.full_name || userObject.user_metadata?.name || '',
-                            avatar_url: userObject.user_metadata?.avatar_url || userObject.user_metadata?.picture || '',
-                        })
-                        .select()
-                        .single();
-                    
-                    if (createError) throw createError;
-                    
-                    const userProfile = newProfile as UserProfile;
-                    setProfile(userProfile);
-                    return userProfile;
-                } catch (createErr) {
-                    console.error('[Auth] Failed to auto-create profile:', createErr);
-                    throw error; // Throw original error if creation fails
-                }
-            }
+          // Handle missing profile (PGRST116) - Attempt to create if we have the user object
+          if (error.code === 'PGRST116' && userObject) {
+            console.warn('[Auth] Profile missing, attempting to create...');
+            try {
+              const { data: newProfile, error: createError } = await supabase
+                .from('profiles')
+                .insert({
+                  id: userId,
+                  email: userObject.email,
+                  full_name: userObject.user_metadata?.full_name || userObject.user_metadata?.name || '',
+                  avatar_url: userObject.user_metadata?.avatar_url || userObject.user_metadata?.picture || '',
+                })
+                .select()
+                .single();
 
-            // Retry logic
-            if (attempt < 2 && (error.message.includes('fetch') || error.message.includes('timeout'))) {
-                console.warn(`[Auth] Retrying profile fetch (attempt ${attempt + 1})...`);
-                await new Promise(r => setTimeout(r, 1000)); 
-                return load(attempt + 1);
+              if (createError) throw createError;
+
+              const userProfile = newProfile as UserProfile;
+              setProfile(userProfile);
+              return userProfile;
+            } catch (createErr) {
+              console.error('[Auth] Failed to auto-create profile:', createErr);
+              throw error; // Throw original error if creation fails
             }
-            throw error;
+          }
+
+          // Retry logic
+          if (attempt < 2 && (error.message.includes('fetch') || error.message.includes('timeout'))) {
+            console.warn(`[Auth] Retrying profile fetch (attempt ${attempt + 1})...`);
+            await new Promise(r => setTimeout(r, 1000));
+            return load(attempt + 1);
+          }
+          throw error;
         }
-        
+
         if (!data) throw new Error('Perfil não encontrado');
 
         const userProfile = data as UserProfile;
@@ -126,7 +130,7 @@ export const AuthProvider: React.FC<PropsWithChildren> = ({ children }) => {
         } else if (!isTimeout) {
           console.warn('[Auth] Background profile refresh failed:', message);
         }
-        
+
         return null;
       } finally {
         setIsProfileLoading(false);
@@ -145,7 +149,7 @@ export const AuthProvider: React.FC<PropsWithChildren> = ({ children }) => {
     const initSession = async () => {
       try {
         const { data: { session: initialSession } } = await supabase.auth.getSession();
-        
+
         if (!mounted) return;
 
         if (initialSession) {
@@ -189,7 +193,7 @@ export const AuthProvider: React.FC<PropsWithChildren> = ({ children }) => {
         setProfile(null);
         setProfileError(null);
       }
-      
+
       setIsCheckingAuth(false);
     });
 

@@ -16,12 +16,12 @@ const ComparisonSlider: React.FC<ComparisonSliderProps> = ({ originalUrl, genera
   return (
     <div className="relative w-full h-full bg-surface-dark overflow-hidden select-none group">
       {/* Generated (full, behind) */}
-      <img src={generatedUrl} alt="Generated" className="absolute inset-0 w-full h-full object-contain pointer-events-none" />
+      <img src={generatedUrl || undefined} alt="Generated" className="absolute inset-0 w-full h-full object-contain pointer-events-none" />
 
       {/* Original (clipped via clip-path — no distortion) */}
       <div className="absolute inset-0 pointer-events-none" style={{ clipPath: `inset(0 ${100 - sliderPosition}% 0 0)` }}>
         <img
-          src={originalUrl}
+          src={originalUrl || undefined}
           alt="Original"
           className="w-full h-full object-contain"
         />

@@ -21,17 +21,17 @@ const queryClient = new QueryClient({
   },
 });
 
-const TestComponent = ({ 
-  initialImages, 
-  credits, 
-  hasCredits 
-}: { 
-  initialImages: UploadedImage[], 
-  credits: number, 
-  hasCredits: boolean 
+const TestComponent = ({
+  initialImages,
+  credits,
+  hasCredits
+}: {
+  initialImages: UploadedImage[],
+  credits: number,
+  hasCredits: boolean
 }) => {
   const [images, setImages] = useState<UploadedImage[]>(initialImages);
-  
+
   const { isGenerating, noCreditsError, handleGenerate } = useImageGeneration({
     images,
     setImages,
@@ -40,7 +40,7 @@ const TestComponent = ({
     refreshProfile: vi.fn(),
     activePropertyId: 'p1',
     selectedStyle: ArchitecturalStyle.MODERN,
-    generationMode: GenerationMode.REDESIGN,
+    generationMode: GenerationMode.VIRTUAL_STAGING,
     customPrompt: 'test prompt'
   });
 
@@ -48,7 +48,7 @@ const TestComponent = ({
     <div>
       <div data-testid="status">{isGenerating ? 'generating' : 'idle'}</div>
       <div data-testid="error">{noCreditsError ? 'error' : 'ok'}</div>
-      <button onClick={handleGenerate}>Generate</button>
+      <button onClick={() => handleGenerate()}>Generate</button>
     </div>
   );
 };
@@ -80,9 +80,9 @@ describe('useImageGeneration', () => {
         <TestComponent initialImages={[mockImage]} credits={0} hasCredits={false} />
       </Wrapper>
     );
-    
+
     fireEvent.click(screen.getByText('Generate'));
-    
+
     expect(screen.getByTestId('error')).toHaveTextContent('error');
     expect(geminiService.generateRoomDesign).not.toHaveBeenCalled();
   });
@@ -97,9 +97,9 @@ describe('useImageGeneration', () => {
         <TestComponent initialImages={images} credits={1} hasCredits={true} />
       </Wrapper>
     );
-    
+
     fireEvent.click(screen.getByText('Generate'));
-    
+
     expect(screen.getByTestId('error')).toHaveTextContent('error');
     expect(geminiService.generateRoomDesign).not.toHaveBeenCalled();
   });
@@ -116,16 +116,17 @@ describe('useImageGeneration', () => {
         <TestComponent initialImages={[mockImage]} credits={10} hasCredits={true} />
       </Wrapper>
     );
-    
+
     fireEvent.click(screen.getByText('Generate'));
-    
+
     await waitFor(() => {
       expect(geminiService.generateRoomDesign).toHaveBeenCalledWith(
         'base64data',
         'test prompt',
         'p1',
         ArchitecturalStyle.MODERN,
-        GenerationMode.REDESIGN
+        GenerationMode.VIRTUAL_STAGING,
+        false
       );
     });
   });

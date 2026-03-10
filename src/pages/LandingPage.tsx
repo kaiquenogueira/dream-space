@@ -185,8 +185,22 @@ const LandingPage: React.FC = () => {
         { q: 'O que acontece quando meus créditos acabam?', a: 'Você pode fazer upgrade a qualquer momento para um plano com mais créditos. Seus créditos são renovados mensalmente conforme seu plano ativo.' },
     ];
 
+    const faqSchema = {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        "mainEntity": FAQS.map(faq => ({
+            "@type": "Question",
+            "name": faq.q,
+            "acceptedAnswer": {
+                "@type": "Answer",
+                "text": faq.a
+            }
+        }))
+    };
+
     return (
         <div className="min-h-screen bg-primary-dark text-text-main font-sans overflow-x-hidden">
+            <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
 
             {/* ═══════════ NAVBAR ═══════════ */}
             <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${scrolled ? 'bg-primary-dark/95 backdrop-blur-xl border-b border-glass-border shadow-2xl' : 'bg-transparent'}`}>
@@ -206,13 +220,13 @@ const LandingPage: React.FC = () => {
                     <div className="flex items-center gap-3">
                         <button
                             onClick={() => navigate(isAuthenticated ? '/app' : '/login')}
-                            className="text-sm text-text-muted hover:text-text-main transition-colors hidden sm:block"
+                            className="bg-surface/5 text-sm text-text-muted hover:text-text-main transition-colors hidden sm:block p-3 rounded-lg"
                         >
                             {isAuthenticated ? 'Ir para o App' : 'Entrar'}
                         </button>
                         <button
                             onClick={() => navigate(isAuthenticated ? '/app' : '/login')}
-                            className="btn-primary text-xs py-2 px-4"
+                            className="btn-primary text-xs py-3 px-5 sm:py-2 flex items-center justify-center min-h-[44px]"
                         >
                             {isAuthenticated ? 'Novo Projeto' : 'Começar Grátis'}
                         </button>
@@ -606,7 +620,7 @@ const LandingPage: React.FC = () => {
                         </p>
                         <button
                             onClick={() => navigate(isAuthenticated ? '/app' : '/login')}
-                            className="btn-primary text-sm py-4 px-10 shadow-xl shadow-secondary/30"
+                            className="btn-primary text-sm sm:text-base py-4 px-10 min-h-[56px] shadow-xl shadow-secondary/30 w-full sm:w-auto flex items-center justify-center"
                         >
                             {isAuthenticated ? 'Ir para o App' : 'Criar Conta Grátis'}
                         </button>

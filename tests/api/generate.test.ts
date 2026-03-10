@@ -1,14 +1,24 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import handler from '../../api/generate';
-import { supabaseAdmin } from '../../api/_lib/supabaseAdmin';
-import { checkRateLimit } from '../../api/_lib/rateLimit';
+import { supabaseAdmin } from '../../api/_lib/supabaseAdmin.js';
+import { checkRateLimit } from '../../api/_lib/rateLimit.js';
+
+vi.mock('../../api/_lib/middleware/auth.js', () => ({
+  withAuth: vi.fn((routeHandler) => {
+    return async (req: any, res: any) => {
+      const authHeader = req.headers?.authorization;
+      if (!authHeader || authHeader === 'Bearer ') {
+        return res.status(401).json({ error: 'Não autorizado' });
+      }
+      req.auth = { userId: 'user-1' };
+      return routeHandler(req, res);
+    };
+  })
+}));
 
 // Mock das dependências
-vi.mock('./lib/supabaseAdmin', () => ({
+vi.mock('../../api/_lib/supabaseAdmin.js', () => ({
   supabaseAdmin: {
-    auth: {
-      getUser: vi.fn(),
-    },
     from: vi.fn(),
     rpc: vi.fn(),
     storage: {
@@ -22,11 +32,11 @@ vi.mock('./lib/supabaseAdmin', () => ({
   },
 }));
 
-vi.mock('./lib/rateLimit', () => ({
+vi.mock('../../api/_lib/rateLimit.js', () => ({
   checkRateLimit: vi.fn(),
 }));
 
-vi.mock('./lib/promptBuilder', () => ({
+vi.mock('../../api/_lib/promptBuilder.js', () => ({
   buildPrompt: vi.fn().mockReturnValue('mocked prompt'),
   GenerationMode: { VIRTUAL_STAGING: 'Virtual Staging (Mobiliar)' },
   ArchitecturalStyle: { MODERN: 'Modern' }
@@ -83,7 +93,6 @@ describe('API Generate Handler', () => {
     };
 
     // Default mocks
-    (supabaseAdmin.auth.getUser as any).mockResolvedValue({ data: { user: { id: 'user-1' } }, error: null });
     (supabaseAdmin.from as any).mockReturnValue({
       select: vi.fn().mockReturnValue({
         eq: vi.fn().mockReturnValue({
@@ -163,7 +172,7 @@ describe('API Generate Handler', () => {
 
     expect(res.status).toHaveBeenCalledWith(403);
     expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
-      error: 'Sem créditos restantes'
+      error: 'Créditos insuficientes'
     }));
   });
 });

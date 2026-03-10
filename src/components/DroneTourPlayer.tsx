@@ -229,7 +229,7 @@ const DroneTourPlayer: React.FC<DroneTourPlayerProps> = ({ imageUrl, videoOperat
                 )}
 
                 {!videoUrl && !isVideoProcessing && !error && (
-                    <img src={imageUrl} className="w-full h-full object-contain opacity-50" alt="Original" />
+                    <img src={imageUrl || undefined} className="w-full h-full object-contain opacity-50" alt="Original" />
                 )}
             </div>
         </div>

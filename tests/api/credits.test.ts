@@ -4,7 +4,7 @@ import creditsHandler from '../../api/admin/credits';
 import { supabaseAdmin } from '../../api/_lib/supabaseAdmin';
 
 // Mock supabaseAdmin
-vi.mock('../lib/supabaseAdmin', () => {
+vi.mock('../../api/_lib/supabaseAdmin', () => {
   return {
     supabaseAdmin: {
       auth: {
@@ -80,12 +80,12 @@ describe('Admin Credits Handler', () => {
 
     // Mock profile check (not admin)
     const selectMock = vi.fn().mockReturnValue({
-        eq: vi.fn().mockReturnValue({
-            single: vi.fn().mockResolvedValue({
-                data: { is_admin: false },
-                error: null,
-            }),
+      eq: vi.fn().mockReturnValue({
+        single: vi.fn().mockResolvedValue({
+          data: { is_admin: false },
+          error: null,
         }),
+      }),
     });
     (supabaseAdmin!.from as any).mockReturnValue({ select: selectMock });
 
@@ -103,12 +103,12 @@ describe('Admin Credits Handler', () => {
 
     // Mock profile check (is admin)
     const selectMock = vi.fn().mockReturnValue({
-        eq: vi.fn().mockReturnValue({
-            single: vi.fn().mockResolvedValue({
-                data: { is_admin: true },
-                error: null,
-            }),
+      eq: vi.fn().mockReturnValue({
+        single: vi.fn().mockResolvedValue({
+          data: { is_admin: true },
+          error: null,
         }),
+      }),
     });
     (supabaseAdmin!.from as any).mockReturnValue({ select: selectMock });
 
@@ -126,28 +126,28 @@ describe('Admin Credits Handler', () => {
 
     // Mock profile check (is admin) and target user fetch
     const singleMock = vi.fn()
-        .mockResolvedValueOnce({ // Admin check
-            data: { is_admin: true },
-            error: null,
-        })
-        .mockResolvedValueOnce({ // Target user fetch
-            data: { credits_remaining: 50, email: 'target@example.com' },
-            error: null,
-        });
+      .mockResolvedValueOnce({ // Admin check
+        data: { is_admin: true },
+        error: null,
+      })
+      .mockResolvedValueOnce({ // Target user fetch
+        data: { credits_remaining: 50, email: 'target@example.com' },
+        error: null,
+      });
 
     const selectMock = vi.fn().mockReturnValue({
-        eq: vi.fn().mockReturnValue({
-            single: singleMock,
-        }),
+      eq: vi.fn().mockReturnValue({
+        single: singleMock,
+      }),
     });
 
     const updateMock = vi.fn().mockReturnValue({
-        eq: vi.fn().mockResolvedValue({ error: null }),
+      eq: vi.fn().mockResolvedValue({ error: null }),
     });
 
     (supabaseAdmin!.from as any).mockReturnValue({
-        select: selectMock,
-        update: updateMock,
+      select: selectMock,
+      update: updateMock,
     });
 
     await creditsHandler(req, res);
