@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { UploadIcon, ImageIcon, PlusIcon, CameraIcon } from './Icons';
+import { UploadIcon, ImageIcon, CameraIcon } from './Icons';
 import { UploadedImage } from '../types';
 import { compressImage } from '../utils/imageUtils';
 
@@ -85,10 +85,10 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ onImagesSelected, current
   return (
     <div
       className={`
-        relative border border-dashed rounded-xl h-full flex flex-col items-center justify-center transition-all duration-300 overflow-hidden cursor-pointer
+        relative border-2 border-dashed rounded-xl h-full flex flex-col items-center justify-center transition-all duration-300 overflow-hidden cursor-pointer
         ${isDragging
-          ? 'border-secondary bg-secondary/5 scale-[1.02]'
-          : 'border-white/10 hover:border-secondary/40 bg-primary-dark/60 hover:bg-primary/40 backdrop-blur-md active:bg-primary/50'
+          ? 'border-secondary bg-secondary/10 scale-[1.02]'
+          : 'border-white/15 hover:border-secondary/50 bg-primary-dark/60 hover:bg-primary/30 backdrop-blur-md'
         }
       `}
       onClick={() => { if (!isLimitReached) fileInputRef.current?.click(); }}
@@ -117,37 +117,49 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ onImagesSelected, current
       />
 
       {isDragging ? (
-        <div className="flex flex-col items-center justify-center w-full h-full p-2">
-          <div className="p-1.5 rounded-full mb-1 border border-secondary/20 bg-secondary/10 text-secondary scale-110 transition-all duration-300">
-            <PlusIcon className="w-5 h-5" />
+        <div className="flex flex-col items-center justify-center w-full h-full p-3 gap-2">
+          <div className="p-3 rounded-full border-2 border-secondary/40 bg-secondary/15 text-secondary animate-pulse">
+            <UploadIcon className="w-6 h-6" />
           </div>
-          <p className="font-bold text-[10px] uppercase tracking-widest text-secondary text-center px-2">Solte aqui</p>
+          <p className="font-bold text-sm text-secondary text-center">Solte aqui!</p>
         </div>
       ) : (
-        <div className="flex flex-col items-center justify-center w-full h-full p-1.5 min-h-[80px]">
-          <div className="flex items-center gap-2 xl:gap-3">
+        <div className="flex flex-col items-center justify-center w-full h-full p-3 gap-2 min-h-[90px]">
+          {/* Main drop icon */}
+          <div className="p-2.5 rounded-full bg-white/5 border border-white/10 text-text-muted/60">
+            <UploadIcon className="w-5 h-5" />
+          </div>
+
+          {/* Drop text */}
+          <div className="text-center">
+            <p className="text-[11px] font-bold text-text-muted/80 leading-tight">Arraste fotos aqui</p>
+          </div>
+
+          {/* Divider */}
+          <div className="flex items-center gap-2 w-full px-2">
+            <div className="flex-1 h-px bg-white/8" />
+            <span className="text-[9px] text-text-muted/40 uppercase tracking-widest font-bold">ou</span>
+            <div className="flex-1 h-px bg-white/8" />
+          </div>
+
+          {/* Action buttons */}
+          <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); if (!isLimitReached) fileInputRef.current?.click(); }}
-              className="flex flex-col items-center gap-1 group outline-none justify-center"
+              className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white/5 border border-white/10 text-text-muted/70 hover:text-secondary hover:border-secondary/30 hover:bg-secondary/10 transition-all duration-200 group outline-none focus-visible:ring-1 focus-visible:ring-secondary"
             >
-              <div className="w-10 h-10 sm:w-9 sm:h-9 2xl:w-10 2xl:h-10 rounded-full bg-white/5 text-text-muted border border-white/5 group-hover:text-secondary group-hover:bg-secondary/10 group-hover:border-secondary/20 group-active:bg-secondary/20 group-active:text-secondary transition-all duration-300 group-focus-visible:ring-1 group-focus-visible:ring-secondary shadow-inner hover:shadow-[0_0_15px_rgba(211,156,118,0.15)] flex items-center justify-center">
-                <UploadIcon className="w-4 h-4" />
-              </div>
-              <span className="font-bold text-[9px] uppercase tracking-widest text-text-muted/70 group-hover:text-text-main group-active:text-text-main transition-colors">Enviar</span>
+              <UploadIcon className="w-3 h-3" />
+              <span className="text-[9px] font-bold uppercase tracking-wider">Enviar</span>
             </button>
-
-            <div className="w-[1px] h-6 bg-white/10"></div>
 
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); if (!isLimitReached) cameraInputRef.current?.click(); }}
-              className="flex flex-col items-center gap-1 group outline-none justify-center"
+              className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white/5 border border-white/10 text-text-muted/70 hover:text-secondary hover:border-secondary/30 hover:bg-secondary/10 transition-all duration-200 group outline-none focus-visible:ring-1 focus-visible:ring-secondary"
             >
-              <div className="w-10 h-10 sm:w-9 sm:h-9 2xl:w-10 2xl:h-10 rounded-full bg-white/5 text-text-muted border border-white/5 group-hover:text-secondary group-hover:bg-secondary/10 group-hover:border-secondary/20 group-active:bg-secondary/20 group-active:text-secondary transition-all duration-300 group-focus-visible:ring-1 group-focus-visible:ring-secondary shadow-inner hover:shadow-[0_0_15px_rgba(211,156,118,0.15)] flex items-center justify-center">
-                <CameraIcon className="w-4 h-4" />
-              </div>
-              <span className="font-bold text-[9px] uppercase tracking-widest text-text-muted/70 group-hover:text-text-main group-active:text-text-main transition-colors">Tirar</span>
+              <CameraIcon className="w-3 h-3" />
+              <span className="text-[9px] font-bold uppercase tracking-wider">Câmera</span>
             </button>
           </div>
         </div>

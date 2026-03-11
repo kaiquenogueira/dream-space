@@ -19,7 +19,7 @@ const STYLE_META: Record<string, { emoji: string; color: string; description: st
 
 const StyleSelector: React.FC<StyleSelectorProps> = ({ selectedStyle, onSelectStyle }) => {
   return (
-    <div className="flex overflow-x-auto pb-3 gap-2.5 snap-x md:grid md:grid-cols-4 md:overflow-visible md:pb-0 scrollbar-hide">
+    <div className="grid grid-cols-4 gap-1.5">
       {Object.values(ArchitecturalStyle).map((style) => {
         const meta = STYLE_META[style] || { emoji: '✨', color: 'from-zinc-700 to-zinc-800', description: 'Estilo de design' };
         const isSelected = selectedStyle === style;
@@ -29,9 +29,9 @@ const StyleSelector: React.FC<StyleSelectorProps> = ({ selectedStyle, onSelectSt
             key={style}
             onClick={() => onSelectStyle(style)}
             className={`
-              relative overflow-hidden rounded-xl border-2 text-left transition-all duration-300 group
-              flex-shrink-0 w-28 h-20 md:w-auto md:h-[88px] snap-start
-              flex flex-col justify-end p-2.5
+              relative overflow-hidden rounded-lg border-2 text-left transition-all duration-300 group
+              w-full h-[68px]
+              flex flex-col justify-end p-2
               ${isSelected
                 ? 'border-emerald-500 ring-glow-emerald scale-[1.03]'
                 : 'border-zinc-800/50 hover:border-zinc-600/60 bg-zinc-900/80 hover:scale-[1.02]'
@@ -44,19 +44,16 @@ const StyleSelector: React.FC<StyleSelectorProps> = ({ selectedStyle, onSelectSt
 
             {/* Content */}
             <div className="relative z-10 w-full">
-              <span className="text-lg leading-none mb-1 block">{meta.emoji}</span>
-              <span className={`block font-bold text-xs leading-tight ${isSelected ? 'text-white' : 'text-zinc-200'}`}>
+              <span className="text-base leading-none mb-0.5 block">{meta.emoji}</span>
+              <span className={`block font-bold text-[10px] leading-tight truncate ${isSelected ? 'text-white' : 'text-zinc-200'}`}>
                 {style}
-              </span>
-              <span className="block text-xs text-zinc-400 mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity leading-tight truncate">
-                {meta.description}
               </span>
             </div>
 
             {/* Selection Check */}
             {isSelected && (
-              <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center shadow-lg shadow-emerald-500/50 animate-scale-in">
-                <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <div className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center shadow-lg shadow-emerald-500/50 animate-scale-in">
+                <svg width="8" height="8" viewBox="0 0 12 12" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M2 6l3 3 5-5" />
                 </svg>
               </div>

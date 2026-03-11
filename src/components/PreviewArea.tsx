@@ -167,21 +167,31 @@ const PreviewArea: React.FC<PreviewAreaProps> = ({
             ))}
           </div>
 
-          {/* Iterate Button */}
+          {/* Refine Button */}
           {activeImage.generatedUrl && (
             <button
               onClick={() => onIterateOnGenerated(activeImage.id)}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-sm transition-all shadow-lg text-xs font-bold uppercase tracking-wide ${activeImage.iterateFromGenerated
-                ? 'bg-primary text-white ring-2 ring-primary/40'
-                : 'bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500 text-white shadow-violet-500/20 hover:-translate-y-0.5'
+                ? 'bg-primary text-white ring-2 ring-primary/40 shadow-primary/20'
+                : 'bg-surface/80 border border-glass-border text-text-muted hover:text-white hover:border-white/20 hover:bg-surface hover:shadow-lg hover:-translate-y-0.5'
                 }`}
-              title="Continuar editando este resultado — a próxima geração usará esta imagem como base, preservando as alterações já feitas"
+              title="Refinar resultado — a próxima geração usará esta imagem como base, preservando as alterações já feitas"
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="2" y="7" width="16" height="16" rx="2" ry="2" opacity="0.4" />
-                <rect x="6" y="3" width="16" height="16" rx="2" ry="2" />
-              </svg>
-              <span>{activeImage.iterateFromGenerated ? '✓ Editando resultado' : 'Continuar Editando'}</span>
+              {activeImage.iterateFromGenerated ? (
+                <>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M20 6L9 17l-5-5" />
+                  </svg>
+                  <span>Refinando</span>
+                </>
+              ) : (
+                <>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 20h9" /><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+                  </svg>
+                  <span>Refinar</span>
+                </>
+              )}
             </button>
           )}
 

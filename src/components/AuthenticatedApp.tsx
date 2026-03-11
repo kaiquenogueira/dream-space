@@ -115,6 +115,8 @@ type GenerationToolbarProps = {
   totalImages: number;
   isGenerating: boolean;
   onGenerate: () => void;
+  iterateFromGenerated?: boolean;
+  onClearIterate?: () => void;
 };
 
 const GenerationToolbar: React.FC<GenerationToolbarProps> = ({
@@ -131,6 +133,8 @@ const GenerationToolbar: React.FC<GenerationToolbarProps> = ({
   totalImages,
   isGenerating,
   onGenerate,
+  iterateFromGenerated,
+  onClearIterate,
 }) => (
   <div className="flex-shrink-0 border-b border-glass-border px-5 py-3 bg-surface-dark/40 backdrop-blur-sm">
     <div className="flex items-center gap-4 flex-wrap">
@@ -190,6 +194,27 @@ const GenerationToolbar: React.FC<GenerationToolbarProps> = ({
         </span>
       )}
       <div className="flex-1" />
+
+      {/* Iterate badge — shown when a generated image is selected as base */}
+      {iterateFromGenerated && onClearIterate && (
+        <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-secondary/10 border border-secondary/30 text-secondary text-xs font-bold animate-fade-in">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 20h9" /><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+          </svg>
+          <span>Refinando resultado</span>
+          <button
+            onClick={onClearIterate}
+            className="ml-1 text-secondary/60 hover:text-secondary transition-colors"
+            title="Cancelar refinamento"
+            aria-label="Cancelar refinamento"
+          >
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round">
+              <path d="M18 6L6 18M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+      )}
+
       <span className={`text-xs font-medium px-2 py-1 rounded-md ${hasCredits
         ? 'text-primary/70 bg-primary/5'
         : 'text-red-400/70 bg-red-500/5'
@@ -211,14 +236,23 @@ const GenerationToolbar: React.FC<GenerationToolbarProps> = ({
           {isGenerating ? (
             <>
               <RefreshIcon className="animate-spin w-4 h-4" />
-              Gerando...
+              {iterateFromGenerated ? 'Refinando...' : 'Gerando...'}
             </>
           ) : (
             <>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" />
-              </svg>
-              Gerar{selectedCount < totalImages ? ` (${selectedCount}/${totalImages})` : ''}
+              {iterateFromGenerated ? (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 20h9" /><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+                </svg>
+              ) : (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" />
+                </svg>
+              )}
+              {iterateFromGenerated
+                ? `Refinar${selectedCount < totalImages ? ` (${selectedCount}/${totalImages})` : ''}`
+                : `Gerar${selectedCount < totalImages ? ` (${selectedCount}/${totalImages})` : ''}`
+              }
             </>
           )}
         </span>
@@ -414,6 +448,10 @@ export const AuthenticatedApp: React.FC<AuthenticatedAppProps> = ({ profile, ref
     setCustomPrompt('');
   };
 
+  const handleClearIterate = () => {
+    setImages(prev => prev.map(img => ({ ...img, iterateFromGenerated: false })));
+  };
+
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0] && activePropertyId) {
       const file = e.target.files[0];
@@ -507,7 +545,9 @@ export const AuthenticatedApp: React.FC<AuthenticatedAppProps> = ({ profile, ref
     selectedCount,
     totalImages: images.length,
     isGenerating,
-    onGenerate: handleGenerateWrapper
+    onGenerate: handleGenerateWrapper,
+    iterateFromGenerated: !!activeImage?.iterateFromGenerated,
+    onClearIterate: handleClearIterate
   };
 
   const designStudioProps: React.ComponentProps<typeof DesignStudio> = {
