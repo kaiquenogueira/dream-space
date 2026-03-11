@@ -171,11 +171,11 @@ const PreviewArea: React.FC<PreviewAreaProps> = ({
           {activeImage.generatedUrl && (
             <button
               onClick={() => onIterateOnGenerated(activeImage.id)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-sm transition-all shadow-lg text-xs font-bold uppercase tracking-wide ${activeImage.iterateFromGenerated
-                ? 'bg-primary text-white ring-2 ring-primary/40 shadow-primary/20'
-                : 'bg-surface/80 border border-glass-border text-text-muted hover:text-white hover:border-white/20 hover:bg-surface hover:shadow-lg hover:-translate-y-0.5'
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-sm text-xs font-bold uppercase tracking-wide transition-all duration-200 border ${activeImage.iterateFromGenerated
+                ? 'bg-secondary/10 border-secondary/40 text-secondary'
+                : 'bg-surface/60 border-glass-border text-text-muted hover:text-white hover:border-secondary/40 hover:bg-surface/80'
                 }`}
-              title="Refinar resultado — a próxima geração usará esta imagem como base, preservando as alterações já feitas"
+              title="Refinar resultado — a próxima geração usará esta imagem como base"
             >
               {activeImage.iterateFromGenerated ? (
                 <>
@@ -206,15 +206,18 @@ const PreviewArea: React.FC<PreviewAreaProps> = ({
                 }
               }}
               disabled={isGeneratingTour}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-sm transition-all shadow-lg text-xs font-bold uppercase tracking-wide ${isGeneratingTour ? 'bg-surface text-text-muted cursor-not-allowed' : 'bg-gradient-to-r from-secondary to-secondary-dark hover:from-secondary-light hover:to-secondary text-black shadow-secondary/20 hover:-translate-y-0.5'}`}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-sm text-xs font-bold uppercase tracking-wide transition-all duration-200 border ${isGeneratingTour
+                ? 'bg-surface/40 border-glass-border text-text-muted/50 cursor-not-allowed'
+                : 'bg-surface/60 border-secondary/25 text-secondary/70 hover:text-secondary hover:border-secondary/50 hover:bg-surface/80'
+                }`}
               title="Cinematic Drone Tour (50 Créditos)"
             >
               {isGeneratingTour ? (
-                <div className="w-3.5 h-3.5 rounded-full border-2 border-text-muted/30 border-t-text-muted animate-spin" />
+                <div className="w-3 h-3 rounded-full border-2 border-text-muted/30 border-t-text-muted animate-spin" />
               ) : (
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
               )}
-              <span>{isGeneratingTour ? 'Criando...' : (activeImage.videoUrl ? 'Ver Drone Tour' : 'Drone Tour')}</span>
+              <span>{isGeneratingTour ? 'Criando...' : (activeImage.videoUrl ? 'Ver Tour' : 'Drone Tour')}</span>
             </button>
           )}
 
@@ -222,17 +225,16 @@ const PreviewArea: React.FC<PreviewAreaProps> = ({
           {hasGeneratedImages && (
             <button
               onClick={onSharePresentation}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white rounded-xl transition-all shadow-lg shadow-emerald-500/20 transform hover:-translate-y-0.5 active:translate-y-0 text-xs font-bold"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-surface/60 border border-glass-border text-text-muted hover:text-white hover:border-secondary/40 hover:bg-surface/80 rounded-sm transition-all duration-200 text-xs font-bold uppercase tracking-wide"
               title="Criar PDF com sua marca"
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
                 <polyline points="14 2 14 8 20 8"></polyline>
                 <line x1="16" y1="13" x2="8" y2="13"></line>
                 <line x1="16" y1="17" x2="8" y2="17"></line>
-                <polyline points="10 9 9 9 8 9"></polyline>
               </svg>
-              <span>Gerar PDF</span> ✨
+              <span>Gerar PDF</span>
             </button>
           )}
 

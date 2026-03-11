@@ -30,7 +30,7 @@ const DownloadMenu: React.FC<DownloadMenuProps> = ({
       <button
         onClick={() => setShowDownloadMenu(!showDownloadMenu)}
         onBlur={() => setTimeout(() => setShowDownloadMenu(false), 200)}
-        className="flex items-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-teal-600 to-purple-600 hover:from-teal-500 hover:to-purple-500 text-white rounded-xl transition-all shadow-lg shadow-teal-900/20 hover:shadow-teal-900/35 transform hover:-translate-y-0.5 active:translate-y-0 text-sm font-bold relative overflow-hidden group"
+        className="flex items-center gap-1.5 px-3 py-1.5 bg-surface/60 border border-glass-border text-text-muted hover:text-white hover:border-secondary/40 hover:bg-surface/80 rounded-sm transition-all duration-200 text-xs font-bold uppercase tracking-wide"
         title="Baixar"
         aria-label="Opções de download"
       >
