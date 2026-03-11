@@ -124,30 +124,30 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ onImagesSelected, current
           <p className="font-bold text-[10px] uppercase tracking-widest text-secondary text-center px-2">Solte aqui</p>
         </div>
       ) : (
-        <div className="flex flex-col items-center justify-center w-full h-full p-2">
-          <div className="flex items-center gap-4">
+        <div className="flex flex-col items-center justify-center w-full h-full p-1.5 min-h-[80px]">
+          <div className="flex items-center gap-2 xl:gap-3">
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); if (!isLimitReached) fileInputRef.current?.click(); }}
-              className="flex flex-col items-center gap-1.5 group outline-none min-w-[44px] min-h-[44px] justify-center"
+              className="flex flex-col items-center gap-1 group outline-none justify-center"
             >
-              <div className="p-3 rounded-full bg-white/5 text-text-muted border border-white/5 group-hover:text-secondary group-hover:bg-secondary/10 group-hover:border-secondary/20 group-active:bg-secondary/20 group-active:text-secondary transition-all duration-300 group-focus-visible:ring-1 group-focus-visible:ring-secondary shadow-inner hover:shadow-[0_0_15px_rgba(211,156,118,0.15)] flex items-center justify-center">
-                <UploadIcon className="w-5 h-5" />
+              <div className="w-10 h-10 sm:w-9 sm:h-9 2xl:w-10 2xl:h-10 rounded-full bg-white/5 text-text-muted border border-white/5 group-hover:text-secondary group-hover:bg-secondary/10 group-hover:border-secondary/20 group-active:bg-secondary/20 group-active:text-secondary transition-all duration-300 group-focus-visible:ring-1 group-focus-visible:ring-secondary shadow-inner hover:shadow-[0_0_15px_rgba(211,156,118,0.15)] flex items-center justify-center">
+                <UploadIcon className="w-4 h-4" />
               </div>
-              <span className="font-bold text-[10px] uppercase tracking-widest text-text-muted/70 group-hover:text-text-main group-active:text-text-main transition-colors">Enviar</span>
+              <span className="font-bold text-[9px] uppercase tracking-widest text-text-muted/70 group-hover:text-text-main group-active:text-text-main transition-colors">Enviar</span>
             </button>
 
-            <div className="w-[1px] h-8 bg-white/10"></div>
+            <div className="w-[1px] h-6 bg-white/10"></div>
 
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); if (!isLimitReached) cameraInputRef.current?.click(); }}
-              className="flex flex-col items-center gap-1.5 group outline-none min-w-[44px] min-h-[44px] justify-center"
+              className="flex flex-col items-center gap-1 group outline-none justify-center"
             >
-              <div className="p-3 rounded-full bg-white/5 text-text-muted border border-white/5 group-hover:text-secondary group-hover:bg-secondary/10 group-hover:border-secondary/20 group-active:bg-secondary/20 group-active:text-secondary transition-all duration-300 group-focus-visible:ring-1 group-focus-visible:ring-secondary shadow-inner hover:shadow-[0_0_15px_rgba(211,156,118,0.15)] flex items-center justify-center">
-                <CameraIcon className="w-5 h-5" />
+              <div className="w-10 h-10 sm:w-9 sm:h-9 2xl:w-10 2xl:h-10 rounded-full bg-white/5 text-text-muted border border-white/5 group-hover:text-secondary group-hover:bg-secondary/10 group-hover:border-secondary/20 group-active:bg-secondary/20 group-active:text-secondary transition-all duration-300 group-focus-visible:ring-1 group-focus-visible:ring-secondary shadow-inner hover:shadow-[0_0_15px_rgba(211,156,118,0.15)] flex items-center justify-center">
+                <CameraIcon className="w-4 h-4" />
               </div>
-              <span className="font-bold text-[10px] uppercase tracking-widest text-text-muted/70 group-hover:text-text-main group-active:text-text-main transition-colors">Tirar</span>
+              <span className="font-bold text-[9px] uppercase tracking-widest text-text-muted/70 group-hover:text-text-main group-active:text-text-main transition-colors">Tirar</span>
             </button>
           </div>
         </div>

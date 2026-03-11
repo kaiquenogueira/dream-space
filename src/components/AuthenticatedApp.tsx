@@ -573,8 +573,8 @@ export const AuthenticatedApp: React.FC<AuthenticatedAppProps> = ({ profile, ref
         setActivePropertyId={setActivePropertyId}
         handleLogout={signOut}
         profile={profile}
-        onAdminClick={() => navigate('/admin')}
-        isAdminView={location.pathname === '/admin'}
+        onAdminClick={() => navigate('/app/admin')}
+        isAdminView={location.pathname === '/app/admin'}
         onPricingClick={() => navigate('/app/pricing')}
       />
       {noCreditsError && (
@@ -620,7 +620,7 @@ export const AuthenticatedApp: React.FC<AuthenticatedAppProps> = ({ profile, ref
             {profile?.is_admin && (
               <Route path="/admin" element={
                 <Suspense fallback={<div className="flex-1 flex items-center justify-center text-text-muted">Carregando Admin...</div>}>
-                  <AdminDashboard onBack={() => navigate('/')} />
+                  <AdminDashboard onBack={() => navigate('/app')} />
                 </Suspense>
               } />
             )}

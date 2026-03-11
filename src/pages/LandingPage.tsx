@@ -120,8 +120,8 @@ const LandingPage: React.FC = () => {
                     <path d="M7 12h.01" />
                 </svg>
             ),
-            title: 'Staging Virtual',
-            desc: 'Mobilie ambientes vazios instantaneamente. Ideal para imóveis à venda — sem custo de móveis físicos, sem logística.',
+            title: 'Apresentações em PDF',
+            desc: 'Gere portfólios profissionais em PDF com sua marca e comparativos antes e depois para encantar seus clientes.',
         },
         {
             icon: (
@@ -620,7 +620,7 @@ const LandingPage: React.FC = () => {
                         </p>
                         <button
                             onClick={() => navigate(isAuthenticated ? '/app' : '/login')}
-                            className="btn-primary text-sm sm:text-base py-4 px-10 min-h-[56px] shadow-xl shadow-secondary/30 w-full sm:w-auto flex items-center justify-center"
+                            className="btn-primary text-sm sm:text-base py-4 px-10 min-h-[56px] shadow-xl shadow-secondary/30 w-full sm:w-auto flex items-center justify-center mx-auto"
                         >
                             {isAuthenticated ? 'Ir para o App' : 'Criar Conta Grátis'}
                         </button>

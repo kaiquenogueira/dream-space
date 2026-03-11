@@ -96,13 +96,56 @@ export const downloadComparison = async (
   }
 };
 
-export const downloadSingle = (url: string, name: string, extension: string = 'png'): void => {
-  const link = document.createElement('a');
-  link.download = `${name}-${Date.now()}.${extension}`;
-  link.href = url;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
+/** Fetches a URL/data-URI and returns a Blob. */
+const fetchAsBlob = async (url: string): Promise<{ blob: Blob; extension: string }> => {
+  if (url.startsWith('data:')) {
+    const arr = url.split(',');
+    const mimeMatch = arr[0].match(/:(.*?);/);
+    const mime = mimeMatch ? mimeMatch[1] : 'image/png';
+    const bstr = atob(arr[1]);
+    let n = bstr.length;
+    const u8arr = new Uint8Array(n);
+    while (n--) {
+      u8arr[n] = bstr.charCodeAt(n);
+    }
+    const extension = mime.split('/')[1] || 'png';
+    return { blob: new Blob([u8arr], { type: mime }), extension };
+  }
+
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch: ${response.statusText}`);
+  }
+  const blob = await response.blob();
+  const extension = blob.type?.split('/')[1] || 'png';
+  return { blob, extension };
+};
+
+export const downloadSingle = async (url: string, name: string, defaultExtension: string = 'png'): Promise<void> => {
+  try {
+    const { blob, extension } = await fetchAsBlob(url);
+    const blobUrl = URL.createObjectURL(blob);
+    
+    const link = document.createElement('a');
+    link.download = `${name}-${Date.now()}.${extension || defaultExtension}`;
+    link.href = blobUrl;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    // Clean up
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+  } catch (error) {
+    console.error("Failed to download image:", error);
+    // Fallback to direct link if fetch fails
+    const link = document.createElement('a');
+    link.download = `${name}-${Date.now()}.${defaultExtension}`;
+    link.href = url;
+    link.target = "_blank";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
 };
 
 /** Generates a before/after comparison canvas and returns it as a Blob. */
@@ -159,30 +202,7 @@ const generateComparisonBlob = async (
   });
 };
 
-/** Fetches a URL/data-URI and returns a Blob. */
-const fetchAsBlob = async (url: string): Promise<{ blob: Blob; extension: string }> => {
-  if (url.startsWith('data:')) {
-    const arr = url.split(',');
-    const mimeMatch = arr[0].match(/:(.*?);/);
-    const mime = mimeMatch ? mimeMatch[1] : 'image/png';
-    const bstr = atob(arr[1]);
-    let n = bstr.length;
-    const u8arr = new Uint8Array(n);
-    while (n--) {
-      u8arr[n] = bstr.charCodeAt(n);
-    }
-    const extension = mime.split('/')[1] || 'png';
-    return { blob: new Blob([u8arr], { type: mime }), extension };
-  }
-
-  const response = await fetch(url);
-  if (!response.ok) {
-    throw new Error(`Failed to fetch: ${response.statusText}`);
-  }
-  const blob = await response.blob();
-  const extension = blob.type?.split('/')[1] || 'png';
-  return { blob, extension };
-};
+// fetchAsBlob was moved above downloadSingle
 
 export const downloadAllImages = async (images: UploadedImage[]): Promise<void> => {
   const imagesWithContent = images.filter(img => img.previewUrl || img.generatedUrl || img.videoUrl);

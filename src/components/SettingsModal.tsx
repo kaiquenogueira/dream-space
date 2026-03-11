@@ -1,4 +1,5 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { supabase } from '../lib/supabase';
 import type { UserProfile } from '../hooks/useAuth';
 
@@ -18,6 +19,15 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, profile,
     const [error, setError] = useState<string | null>(null);
 
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    // Update state when profile changes (e.g. initial load)
+    useEffect(() => {
+        if (profile) {
+            setAgencyName(profile.agency_name || '');
+            setContactPhone(profile.contact_phone || '');
+            setContactEmail(profile.contact_email || '');
+        }
+    }, [profile]);
 
     if (!isOpen || !profile) return null;
 
@@ -89,7 +99,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, profile,
         }
     };
 
-    return (
+    const modalContent = (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in custom-scrollbar">
             <div
                 className="bg-surface-dark w-full max-w-lg rounded-2xl border border-glass-border shadow-2xl flex flex-col max-h-[90vh] overflow-hidden"
@@ -209,6 +219,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, profile,
             </div>
         </div>
     );
+
+    return createPortal(modalContent, document.body);
 };
 
 export default SettingsModal;
