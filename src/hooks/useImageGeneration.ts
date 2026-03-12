@@ -4,6 +4,13 @@ import { useMutation } from '@tanstack/react-query';
 import { UploadedImage, ArchitecturalStyle, GenerationMode } from '../types';
 import { generateRoomDesign, updateGeneratedImageMetadata } from '../services/geminiService';
 import { resolveIterationBase64 } from '../utils/imageUtils';
+import {
+  selectImagesForGeneration,
+  canStartGeneration,
+  applyGeneratingFlag,
+  applyGenerationSuccess,
+  applyGenerationError,
+} from '../utils/generationUtils';
 
 interface UseImageGenerationProps {
   images: UploadedImage[];
@@ -30,26 +37,16 @@ export const useImageGeneration = ({
 }: UseImageGenerationProps) => {
   const [noCreditsError, setNoCreditsError] = useState(false);
 
-  const setImagesGenerating = (imageIds: string[], isGeneratingValue: boolean) => {
-    setImages(current => current.map(image => (
-      imageIds.includes(image.id)
-        ? { ...image, isGenerating: isGeneratingValue, error: isGeneratingValue ? undefined : image.error }
-        : image
-    )));
+  const setImagesGenerating = (imageIds: string[], value: boolean) => {
+    setImages(current => applyGeneratingFlag(current, imageIds, value));
   };
 
   const setImageSuccess = (imageId: string, payload: { result: string; storage_path?: string; is_compressed?: boolean }) => {
-    setImages(current => current.map(image => (
-      image.id === imageId
-        ? { ...image, generatedUrl: payload.result, generatedPath: payload.storage_path, isCompressed: payload.is_compressed, isGenerating: false, selected: false, iterateFromGenerated: false }
-        : image
-    )));
+    setImages(current => applyGenerationSuccess(current, imageId, payload));
   };
 
   const setImageError = (imageId: string, errorMessage: string) => {
-    setImages(current => current.map(image => (
-      image.id === imageId ? { ...image, error: errorMessage, isGenerating: false } : image
-    )));
+    setImages(current => applyGenerationError(current, imageId, errorMessage));
   };
 
   const persistGenerationMetadata = async (imageId: string, payload: { storage_path?: string; is_compressed?: boolean }) => {
@@ -80,14 +77,10 @@ export const useImageGeneration = ({
       setImageSuccess(img.id, response);
       await persistGenerationMetadata(img.id, response);
       await refreshProfile();
-
-      if (response.is_compressed) {
-        console.info('Imagem salva em formato comprimido (plano gratuito). Resolução máxima disponível nos planos premium.');
-      }
     },
     onError: (err: Error, { img }) => {
       const errorMessage = err.message || 'Falha na geração';
-      console.error(`Error generating for image ${img.id}:`, err);
+      console.error(`[Generation] Error for image ${img.id}:`, err);
 
       if (errorMessage.includes('No credits remaining') || errorMessage.includes('credits')) {
         setNoCreditsError(true);
@@ -96,7 +89,6 @@ export const useImageGeneration = ({
       setImageError(img.id, errorMessage);
     },
     retry: (failureCount, error) => {
-      // Don't retry if it's a credit error or a client error (400-499)
       if (error.message.includes('credits') || error.message.includes('403') || failureCount >= 2) {
         return false;
       }
@@ -104,38 +96,29 @@ export const useImageGeneration = ({
     }
   });
 
-  const canGenerate = (selectedCount: number) => {
-    if (!hasCredits) return false;
-    if (selectedCount === 0) return false;
-    if (selectedCount > credits) return false;
-    return true;
-  };
-
   const handleGenerate = async (fallbackImageId?: string) => {
-    let selectedImages = images.filter(img => img.selected && !img.isGenerating);
+    const check = canStartGeneration(images, hasCredits, credits, fallbackImageId);
 
-    // If no images are selected, fall back to the active/viewed image
-    if (selectedImages.length === 0 && fallbackImageId) {
-      const fallbackImg = images.find(img => img.id === fallbackImageId && !img.isGenerating);
-      if (fallbackImg) {
-        selectedImages = [fallbackImg];
+    if (!check.ok) {
+      if (check.reason === 'no_credits' || check.reason === 'exceeds_credits') {
+        setNoCreditsError(true);
       }
-    }
-
-    if (selectedImages.length === 0) return;
-
-    if (!hasCredits || selectedImages.length > credits) {
-      setNoCreditsError(true);
       return;
     }
+
+    const selectedImages = selectImagesForGeneration(images, fallbackImageId);
+
+    console.log('[Generation] Starting for', selectedImages.map(i => ({
+      id: i.id,
+      iterate: i.iterateFromGenerated,
+      hasGenerated: !!i.generatedUrl,
+    })));
 
     setNoCreditsError(false);
     setImagesGenerating(selectedImages.map(img => img.id), true);
 
     const prompt = customPrompt.trim();
 
-    // Process images sequentially or in parallel? 
-    // For now parallel to speed up, but with a small delay to avoid hitting rate limits too hard
     selectedImages.forEach((img, index) => {
       setTimeout(() => {
         generationMutation.mutate({ img, prompt });

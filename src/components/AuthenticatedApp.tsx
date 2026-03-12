@@ -93,7 +93,7 @@ const FreePlanNotice: React.FC<{ onUpgradeClick: () => void }> = ({ onUpgradeCli
     </svg>
     <span className="text-xs text-zinc-500">
       Plano gratuito: as imagens são salvas em formato comprimido.{' '}
-      <button onClick={onUpgradeClick} className="text-primary/70 hover:text-primary underline transition-colors">
+      <button onClick={onUpgradeClick} className="text-secondary/80 hover:text-secondary underline transition-colors">
         Faça o upgrade
       </button>{' '}
       para armazenamento em resolução máxima.
@@ -381,6 +381,7 @@ export const AuthenticatedApp: React.FC<AuthenticatedAppProps> = ({ profile, ref
   const [viewMode, setViewMode] = useState<'original' | 'generated' | 'split'>('split');
   const [showControls, setShowControls] = useState(true);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const prevIsGenerating = React.useRef(false);
 
   // Detect desktop view
   const isDesktop = useMedia('(min-width: 1024px)');
@@ -430,6 +431,15 @@ export const AuthenticatedApp: React.FC<AuthenticatedAppProps> = ({ profile, ref
     const prevIndex = (activeImageIndex - 1 + images.length) % images.length;
     setSelectedImageId(images[prevIndex].id);
   };
+
+  // When generation finishes, always switch to the result view
+  React.useEffect(() => {
+    if (prevIsGenerating.current && !isGenerating) {
+      // Generation just finished — show the result
+      setViewMode(v => v === 'original' ? 'generated' : v);
+    }
+    prevIsGenerating.current = isGenerating;
+  }, [isGenerating]);
 
   const handleGenerateWrapper = async () => {
     await generateImages(activeImage?.id);

@@ -4,31 +4,44 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { useImageGeneration } from '../hooks/useImageGeneration';
 import { UploadedImage, GenerationMode, ArchitecturalStyle } from '../types';
 import * as geminiService from '../services/geminiService';
+import * as imageUtils from '../utils/imageUtils';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
-// Mock services
 vi.mock('../services/geminiService', () => ({
   generateRoomDesign: vi.fn(),
-  updateGeneratedImageMetadata: vi.fn(),
+  updateGeneratedImageMetadata: vi.fn().mockResolvedValue(undefined),
 }));
 
-// Create a client
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: false,
-    },
-  },
+vi.mock('../utils/imageUtils', async (importOriginal) => {
+  const original = await importOriginal<typeof imageUtils>();
+  return {
+    ...original,
+    resolveIterationBase64: vi.fn().mockResolvedValue('resolved-base64'),
+  };
+});
+
+const makeQueryClient = () => new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
+
+const img = (overrides: Partial<UploadedImage> = {}): UploadedImage => ({
+  id: 'img1',
+  file: null,
+  previewUrl: 'blob:original',
+  base64: 'base64data',
+  selected: true,
+  isGenerating: false,
+  ...overrides,
 });
 
 const TestComponent = ({
-  initialImages,
+  images: initialImages,
   credits,
-  hasCredits
+  hasCredits,
+  fallbackId,
 }: {
-  initialImages: UploadedImage[],
-  credits: number,
-  hasCredits: boolean
+  images: UploadedImage[];
+  credits: number;
+  hasCredits: boolean;
+  fallbackId?: string;
 }) => {
   const [images, setImages] = useState<UploadedImage[]>(initialImages);
 
@@ -37,97 +50,169 @@ const TestComponent = ({
     setImages,
     credits,
     hasCredits,
-    refreshProfile: vi.fn(),
-    activePropertyId: 'p1',
+    refreshProfile: vi.fn().mockResolvedValue(undefined),
+    activePropertyId: 'prop1',
     selectedStyle: ArchitecturalStyle.MODERN,
     generationMode: GenerationMode.VIRTUAL_STAGING,
-    customPrompt: 'test prompt'
+    customPrompt: 'test prompt',
   });
 
   return (
     <div>
       <div data-testid="status">{isGenerating ? 'generating' : 'idle'}</div>
       <div data-testid="error">{noCreditsError ? 'error' : 'ok'}</div>
-      <button onClick={() => handleGenerate()}>Generate</button>
+      <div data-testid="images">{JSON.stringify(images.map(i => ({ id: i.id, generatedUrl: i.generatedUrl, iterateFromGenerated: i.iterateFromGenerated })))}</div>
+      <button onClick={() => handleGenerate(fallbackId)}>Generate</button>
     </div>
   );
 };
 
-const Wrapper = ({ children }: { children: React.ReactNode }) => (
-  <QueryClientProvider client={queryClient}>
-    {children}
-  </QueryClientProvider>
-);
+const wrap = (ui: React.ReactElement, client = makeQueryClient()) =>
+  render(<QueryClientProvider client={client}>{ui}</QueryClientProvider>);
 
 describe('useImageGeneration', () => {
-  const mockImage: UploadedImage = {
-    id: 'img1',
-    file: null,
-    previewUrl: 'blob:url',
-    base64: 'base64data',
-    selected: true,
-    isGenerating: false
-  };
-
   beforeEach(() => {
     vi.clearAllMocks();
-    queryClient.clear();
   });
 
-  it('should not generate if no credits', async () => {
-    render(
-      <Wrapper>
-        <TestComponent initialImages={[mockImage]} credits={0} hasCredits={false} />
-      </Wrapper>
-    );
+  // ─── Credit Guards ─────────────────────────────────────────────────────────
 
+  it('blocks generation when hasCredits=false', async () => {
+    wrap(<TestComponent images={[img()]} credits={0} hasCredits={false} />);
     fireEvent.click(screen.getByText('Generate'));
-
     expect(screen.getByTestId('error')).toHaveTextContent('error');
     expect(geminiService.generateRoomDesign).not.toHaveBeenCalled();
   });
 
-  it('should not generate if selected images exceed credits', async () => {
-    const images = [
-      { ...mockImage, id: '1' },
-      { ...mockImage, id: '2' }
-    ];
-    render(
-      <Wrapper>
-        <TestComponent initialImages={images} credits={1} hasCredits={true} />
-      </Wrapper>
-    );
-
+  it('blocks generation when selected count exceeds credits', async () => {
+    const images = [img({ id: 'a' }), img({ id: 'b' })];
+    wrap(<TestComponent images={images} credits={1} hasCredits={true} />);
     fireEvent.click(screen.getByText('Generate'));
-
     expect(screen.getByTestId('error')).toHaveTextContent('error');
     expect(geminiService.generateRoomDesign).not.toHaveBeenCalled();
   });
 
-  it('should call generateRoomDesign when conditions are met', async () => {
+  // ─── Normal Generation ─────────────────────────────────────────────────────
+
+  it('calls generateRoomDesign with isIteration=false for normal flow', async () => {
     (geminiService.generateRoomDesign as any).mockResolvedValue({
-      result: 'http://new-image.url',
-      credits_remaining: 5,
-      is_compressed: false
+      result: 'http://new.url',
+      credits_remaining: 9,
+      is_compressed: false,
     });
 
-    render(
-      <Wrapper>
-        <TestComponent initialImages={[mockImage]} credits={10} hasCredits={true} />
-      </Wrapper>
-    );
-
+    wrap(<TestComponent images={[img()]} credits={10} hasCredits={true} />);
     fireEvent.click(screen.getByText('Generate'));
 
     await waitFor(() => {
       expect(geminiService.generateRoomDesign).toHaveBeenCalledWith(
-        'base64data',
+        'resolved-base64',
         'test prompt',
-        'p1',
+        'prop1',
         ArchitecturalStyle.MODERN,
         GenerationMode.VIRTUAL_STAGING,
-        false
+        false, // isIteration
       );
+    });
+  });
+
+  // ─── Iteration Flow ────────────────────────────────────────────────────────
+
+  it('uses iterateFromGenerated image when nothing is selected', async () => {
+    (geminiService.generateRoomDesign as any).mockResolvedValue({
+      result: 'http://refined.url',
+      credits_remaining: 5,
+      is_compressed: false,
+    });
+
+    const iterateImg = img({
+      id: 'iter1',
+      selected: false, // NOT selected
+      iterateFromGenerated: true,
+      generatedUrl: 'http://prev-gen.url',
+    });
+
+    wrap(<TestComponent images={[iterateImg]} credits={5} hasCredits={true} />);
+    fireEvent.click(screen.getByText('Generate'));
+
+    await waitFor(() => {
+      expect(geminiService.generateRoomDesign).toHaveBeenCalledWith(
+        'resolved-base64',
+        'test prompt',
+        'prop1',
+        ArchitecturalStyle.MODERN,
+        GenerationMode.VIRTUAL_STAGING,
+        true, // isIteration=true
+      );
+    });
+  });
+
+  it('resets iterateFromGenerated to false after successful iteration', async () => {
+    (geminiService.generateRoomDesign as any).mockResolvedValue({
+      result: 'http://refined.url',
+      credits_remaining: 5,
+      is_compressed: false,
+    });
+
+    const iterateImg = img({
+      id: 'iter1',
+      selected: true,
+      iterateFromGenerated: true,
+      generatedUrl: 'http://prev-gen.url',
+    });
+
+    wrap(<TestComponent images={[iterateImg]} credits={5} hasCredits={true} />);
+    fireEvent.click(screen.getByText('Generate'));
+
+    await waitFor(() => {
+      const images = JSON.parse(screen.getByTestId('images').textContent || '[]');
+      expect(images[0].generatedUrl).toBe('http://refined.url');
+      expect(images[0].iterateFromGenerated).toBe(false);
+    });
+  });
+
+  // ─── Fallback ─────────────────────────────────────────────────────────────
+
+  it('uses fallbackImageId when no selection and no iteration', async () => {
+    (geminiService.generateRoomDesign as any).mockResolvedValue({
+      result: 'http://fallback.url',
+      credits_remaining: 5,
+      is_compressed: false,
+    });
+
+    const images = [
+      img({ id: 'target', selected: false }),
+    ];
+
+    wrap(<TestComponent images={images} credits={5} hasCredits={true} fallbackId="target" />);
+    fireEvent.click(screen.getByText('Generate'));
+
+    await waitFor(() => {
+      expect(geminiService.generateRoomDesign).toHaveBeenCalled();
+    });
+  });
+
+  // ─── Error Handling ────────────────────────────────────────────────────────
+
+  it('sets error state on generation failure', async () => {
+    (geminiService.generateRoomDesign as any).mockRejectedValue(new Error('No credits remaining'));
+
+    wrap(<TestComponent images={[img()]} credits={5} hasCredits={true} />);
+    fireEvent.click(screen.getByText('Generate'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('error')).toHaveTextContent('error');
+    });
+  });
+
+  it('does not show no-credits error for non-credit errors', async () => {
+    (geminiService.generateRoomDesign as any).mockRejectedValue(new Error('Network failure'));
+
+    wrap(<TestComponent images={[img()]} credits={5} hasCredits={true} />);
+    fireEvent.click(screen.getByText('Generate'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('error')).toHaveTextContent('ok');
     });
   });
 });
