@@ -124,42 +124,40 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ onImagesSelected, current
           <p className="font-bold text-sm text-secondary text-center">Solte aqui!</p>
         </div>
       ) : (
-        <div className="flex flex-col items-center justify-center w-full h-full p-3 gap-2 min-h-[90px]">
+        <div className="flex flex-col items-center justify-center w-full h-full px-2 py-2 gap-1.5 min-h-[80px]">
           {/* Main drop icon */}
-          <div className="p-2.5 rounded-full bg-white/5 border border-white/10 text-text-muted/60">
-            <UploadIcon className="w-5 h-5" />
+          <div className="p-2 rounded-full bg-white/5 border border-white/10 text-text-muted/60">
+            <UploadIcon className="w-4 h-4" />
           </div>
 
           {/* Drop text */}
-          <div className="text-center">
-            <p className="text-[11px] font-bold text-text-muted/80 leading-tight">Arraste fotos aqui</p>
-          </div>
+          <p className="text-[10px] font-bold text-text-muted/80 leading-tight text-center">Arraste fotos aqui</p>
 
           {/* Divider */}
-          <div className="flex items-center gap-2 w-full px-2">
+          <div className="flex items-center gap-1.5 w-full px-1">
             <div className="flex-1 h-px bg-white/8" />
-            <span className="text-[9px] text-text-muted/40 uppercase tracking-widest font-bold">ou</span>
+            <span className="text-[8px] text-text-muted/40 uppercase tracking-widest font-bold">ou</span>
             <div className="flex-1 h-px bg-white/8" />
           </div>
 
           {/* Action buttons */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); if (!isLimitReached) fileInputRef.current?.click(); }}
-              className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white/5 border border-white/10 text-text-muted/70 hover:text-secondary hover:border-secondary/30 hover:bg-secondary/10 transition-all duration-200 group outline-none focus-visible:ring-1 focus-visible:ring-secondary"
+              className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-white/5 border border-white/10 text-text-muted/70 hover:text-secondary hover:border-secondary/30 hover:bg-secondary/10 transition-all duration-200 outline-none focus-visible:ring-1 focus-visible:ring-secondary"
             >
-              <UploadIcon className="w-3 h-3" />
-              <span className="text-[9px] font-bold uppercase tracking-wider">Enviar</span>
+              <UploadIcon className="w-2.5 h-2.5" />
+              <span className="text-[8px] font-bold uppercase tracking-wider">Enviar</span>
             </button>
 
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); if (!isLimitReached) cameraInputRef.current?.click(); }}
-              className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white/5 border border-white/10 text-text-muted/70 hover:text-secondary hover:border-secondary/30 hover:bg-secondary/10 transition-all duration-200 group outline-none focus-visible:ring-1 focus-visible:ring-secondary"
+              className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-white/5 border border-white/10 text-text-muted/70 hover:text-secondary hover:border-secondary/30 hover:bg-secondary/10 transition-all duration-200 outline-none focus-visible:ring-1 focus-visible:ring-secondary"
             >
-              <CameraIcon className="w-3 h-3" />
-              <span className="text-[9px] font-bold uppercase tracking-wider">Câmera</span>
+              <CameraIcon className="w-2.5 h-2.5" />
+              <span className="text-[8px] font-bold uppercase tracking-wider">Câmera</span>
             </button>
           </div>
         </div>

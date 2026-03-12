@@ -184,7 +184,7 @@ const MobileEditor: React.FC<MobileEditorProps> = ({
           {hasGeneratedImages && (
             <button
               onClick={onSharePresentation}
-              className="p-3 text-emerald-400 hover:text-emerald-300 rounded-lg hover:bg-surface/50 transition-all shrink-0"
+              className="p-3 text-text-muted hover:text-white rounded-lg hover:bg-surface/50 transition-all shrink-0"
               title="Gerar PDF"
               aria-label="Gerar PDF"
             >
@@ -193,7 +193,6 @@ const MobileEditor: React.FC<MobileEditorProps> = ({
                 <polyline points="14 2 14 8 20 8"></polyline>
                 <line x1="16" y1="13" x2="8" y2="13"></line>
                 <line x1="16" y1="17" x2="8" y2="17"></line>
-                <polyline points="10 9 9 9 8 9"></polyline>
               </svg>
             </button>
           )}
@@ -387,17 +386,27 @@ const MobileEditor: React.FC<MobileEditorProps> = ({
                 if (navigator.vibrate) navigator.vibrate(10);
                 onIterateOnGenerated(activeImage.id);
               }}
-              className={`w-full py-3.5 px-5 rounded-sm font-bold text-sm flex items-center justify-center gap-2 shadow-lg transition-all transform active:scale-[0.98] uppercase tracking-wide ${activeImage.iterateFromGenerated
-                ? 'bg-primary text-white border border-primary/50 ring-2 ring-primary/30'
-                : 'bg-gradient-to-r from-violet-600 to-purple-600 text-white border border-violet-500/30 shadow-violet-500/20'
+              className={`w-full py-3.5 px-5 rounded-sm font-bold text-sm flex items-center justify-center gap-2 transition-all transform active:scale-[0.98] uppercase tracking-wide border ${activeImage.iterateFromGenerated
+                ? 'bg-secondary/10 border-secondary/40 text-secondary'
+                : 'bg-surface/80 border-glass-border text-text-muted hover:text-white hover:border-secondary/40'
                 }`}
-              aria-label="Continuar editando — a próxima geração usará este resultado como base"
+              aria-label="Refinar resultado — a próxima geração usará este resultado como base"
             >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="2" y="7" width="16" height="16" rx="2" ry="2" opacity="0.4" />
-                <rect x="6" y="3" width="16" height="16" rx="2" ry="2" />
-              </svg>
-              <span>{activeImage.iterateFromGenerated ? '✓ Editando resultado' : 'Continuar Editando'}</span>
+              {activeImage.iterateFromGenerated ? (
+                <>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M20 6L9 17l-5-5" />
+                  </svg>
+                  <span>Refinando resultado</span>
+                </>
+              ) : (
+                <>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 20h9" /><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+                  </svg>
+                  <span>Refinar Resultado</span>
+                </>
+              )}
             </button>
           )}
 

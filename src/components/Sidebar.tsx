@@ -70,14 +70,14 @@ const ImageItem = memo(({
     )}
 
     {!img.isGenerating && img.generatedUrl && (
-      <div className="absolute top-1.5 left-1.5 flex items-center gap-1 bg-primary/90 backdrop-blur text-white text-xs font-bold px-2 py-0.5 rounded-full shadow-lg">
+      <div className="absolute top-1.5 left-1.5 flex items-center gap-0.5 bg-surface-dark/80 backdrop-blur text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full shadow-lg">
         <span>✓ Concluído</span>
       </div>
     )}
 
     {!img.isGenerating && img.iterateFromGenerated && (
-      <div className="absolute top-1.5 right-8 flex items-center gap-1 bg-violet-600/90 backdrop-blur text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-lg">
-        <span>✎ Editando</span>
+      <div className="absolute top-1.5 left-1.5 mt-5 flex items-center gap-1 bg-secondary/80 backdrop-blur text-black text-[9px] font-bold px-1.5 py-0.5 rounded-full shadow-lg">
+        <span>Refinando</span>
       </div>
     )}
 
@@ -86,15 +86,15 @@ const ImageItem = memo(({
         e.stopPropagation();
         onToggleSelection(img.id);
       }}
-      className={`absolute bottom-2 left-2 w-11 h-11 sm:w-8 sm:h-8 rounded-full border-2 flex items-center justify-center transition-all duration-200 shadow-md z-10 ${img.selected
-        ? 'bg-primary border-primary scale-100 opacity-100'
-        : 'bg-black/50 border-white/50 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 hover:border-white/70'
+      className={`absolute bottom-1.5 left-1.5 w-9 h-9 sm:w-7 sm:h-7 rounded-full border-2 flex items-center justify-center transition-all duration-200 shadow-md z-10 ${img.selected
+        ? 'bg-secondary border-secondary scale-100 opacity-100'
+        : 'bg-black/50 border-white/40 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 hover:border-white/70'
         }`}
       title={img.selected ? "Desmarcar" : "Selecionar para geração"}
       aria-label={img.selected ? "Desmarcar imagem" : "Selecionar imagem para geração"}
     >
       {img.selected && (
-        <CheckIcon className="w-4 h-4 sm:w-3 sm:h-3 text-white" />
+        <CheckIcon className="w-3.5 h-3.5 sm:w-3 sm:h-3 text-black" />
       )}
     </button>
 
@@ -105,10 +105,10 @@ const ImageItem = memo(({
           onRegenerate(img.id);
         }}
         disabled={isGeneratingAll}
-        className={`absolute bottom-2 right-2 w-11 h-11 sm:w-8 sm:h-8 bg-surface/90 backdrop-blur-md rounded-full flex items-center justify-center text-text-muted hover:text-secondary hover:bg-white transition-all shadow-lg border border-white/10 group/regen z-10 ${isGeneratingAll ? 'opacity-50 cursor-not-allowed' : 'opacity-100 sm:opacity-0 sm:group-hover:opacity-100'}`}
+        className={`absolute bottom-1.5 right-1.5 w-9 h-9 sm:w-7 sm:h-7 bg-surface/90 backdrop-blur-md rounded-full flex items-center justify-center text-text-muted hover:text-secondary hover:bg-white transition-all shadow-lg border border-white/10 group/regen z-10 ${isGeneratingAll ? 'opacity-50 cursor-not-allowed' : 'opacity-100 sm:opacity-0 sm:group-hover:opacity-100'}`}
         title="Regerar design para esta foto"
       >
-        <RefreshIcon className={`w-5 h-5 sm:w-4 sm:h-4 ${isGeneratingAll ? '' : 'group-hover/regen:rotate-180 transition-transform duration-500'}`} />
+        <RefreshIcon className={`w-4 h-4 sm:w-3.5 sm:h-3.5 ${isGeneratingAll ? '' : 'group-hover/regen:rotate-180 transition-transform duration-500'}`} />
       </button>
     )}
 
@@ -117,10 +117,10 @@ const ImageItem = memo(({
         e.stopPropagation();
         onRemove(img.id, e);
       }}
-      className="absolute top-2 right-2 w-11 h-11 sm:w-8 sm:h-8 bg-black/60 sm:bg-red-500/80 backdrop-blur-md text-white rounded-full flex items-center justify-center opacity-100 sm:opacity-0 sm:group-hover:opacity-100 hover:bg-red-500 transition-all shadow-lg z-10 border border-white/20 sm:border-transparent"
+      className="absolute top-1.5 right-1.5 w-9 h-9 sm:w-7 sm:h-7 bg-black/60 sm:bg-red-500/80 backdrop-blur-md text-white rounded-full flex items-center justify-center opacity-100 sm:opacity-0 sm:group-hover:opacity-100 hover:bg-red-500 transition-all shadow-lg z-10 border border-white/20 sm:border-transparent"
       aria-label="Remover imagem"
     >
-      <XIcon className="w-5 h-5 sm:w-4 sm:h-4" />
+      <XIcon className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
     </button>
   </div>
 ));
@@ -276,8 +276,8 @@ const Sidebar: React.FC<SidebarProps> = ({
 
         {compact ? (
           <div className="flex-1 min-h-0 overflow-y-auto -mx-1.5 custom-scrollbar">
-            <div className="grid grid-cols-2 gap-3 px-1.5 pb-4">
-              <div className="aspect-video">
+            <div className="grid grid-cols-2 gap-2.5 px-1.5 pb-4">
+              <div className="aspect-[4/3]">
                 <ImageUploader
                   onImagesSelected={handleImagesSelected}
                   currentCount={images.length}
@@ -285,7 +285,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                 />
               </div>
               {images.map(img => (
-                <div key={img.id} className="aspect-video">
+                <div key={img.id} className="aspect-[4/3]">
                   <ImageItem
                     img={img}
                     isSelected={selectedImageId === img.id}
