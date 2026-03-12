@@ -72,6 +72,13 @@ const handler = async (req: AuthenticatedRequest, res: VercelResponse) => {
       customPrompt: userInstruction,
       isIteration,
     });
+    console.log('[generate] Prompt built', {
+      userId,
+      generationMode,
+      isIteration,
+      promptLength: finalPrompt.length,
+      inputBytes: imageBase64.length,
+    });
 
     // --- 1. Fetch Profile ---
     const profile = await CreditService.getProfile(userId);
@@ -83,6 +90,10 @@ const handler = async (req: AuthenticatedRequest, res: VercelResponse) => {
 
     // --- 3. AI Generation ---
     const generatedBase64 = await GeminiService.generateImage(finalPrompt, imageBase64);
+    console.log('[generate] Gemini returned image bytes', {
+      userId,
+      outputBytes: generatedBase64.length,
+    });
 
     // --- 4. Storage & DB persistence ---
     const originalStoragePath = await StorageService.uploadOriginalAsync(userId, imageBase64);
@@ -92,6 +103,12 @@ const handler = async (req: AuthenticatedRequest, res: VercelResponse) => {
       generatedBase64,
       isPremium
     );
+    console.log('[generate] Stored generated image', {
+      userId,
+      storagePath,
+      isCompressed,
+      hasSignedUrl: !!generatedImageUrl,
+    });
 
     await StorageService.saveGenerationMetadata({
       userId,
@@ -122,6 +139,11 @@ const handler = async (req: AuthenticatedRequest, res: VercelResponse) => {
     });
 
   } catch (error: any) {
+    console.error('[generate] Request failed', {
+      userId,
+      message: error?.message,
+      statusCode: error?.statusCode,
+    });
     if (creditsReserved && !(error instanceof AppError && error.statusCode === 403)) {
       await CreditService.refundCredits(userId, 1);
     }

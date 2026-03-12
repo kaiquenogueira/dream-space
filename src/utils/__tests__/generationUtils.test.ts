@@ -2,11 +2,13 @@ import { describe, it, expect } from 'vitest';
 import {
   selectImagesForGeneration,
   canStartGeneration,
+  activateIterationTarget,
+  resolveEffectiveGenerationMode,
   applyGeneratingFlag,
   applyGenerationSuccess,
   applyGenerationError,
 } from '../../utils/generationUtils';
-import { UploadedImage } from '../../types';
+import { GenerationMode, UploadedImage } from '../../types';
 
 // ─── Fixtures ────────────────────────────────────────────────────────────────
 
@@ -101,6 +103,51 @@ describe('canStartGeneration', () => {
   it('returns ok when using iterateFromGenerated image', () => {
     const images = [base({ iterateFromGenerated: true, generatedUrl: 'http://gen.url' })];
     expect(canStartGeneration(images, true, 1)).toEqual({ ok: true });
+  });
+});
+
+// ─── activateIterationTarget ────────────────────────────────────────────────
+
+describe('activateIterationTarget', () => {
+  it('marks only the target image for refinement and deselects the rest', () => {
+    const images = [
+      base({ id: 'a', selected: true }),
+      base({ id: 'b', selected: true, generatedUrl: 'http://gen.url' }),
+      base({ id: 'c', iterateFromGenerated: true, selected: true }),
+    ];
+
+    const result = activateIterationTarget(images, 'b');
+
+    expect(result[0].selected).toBe(false);
+    expect(result[0].iterateFromGenerated).toBe(false);
+    expect(result[1].selected).toBe(true);
+    expect(result[1].iterateFromGenerated).toBe(true);
+    expect(result[2].selected).toBe(false);
+    expect(result[2].iterateFromGenerated).toBe(false);
+  });
+});
+
+// ─── resolveEffectiveGenerationMode ─────────────────────────────────────────
+
+describe('resolveEffectiveGenerationMode', () => {
+  it('forces paint-only mode for paint-related refinement prompts', () => {
+    const result = resolveEffectiveGenerationMode(
+      GenerationMode.VIRTUAL_STAGING,
+      'Pintar a parede de azul claro fosco',
+      true,
+    );
+
+    expect(result).toBe(GenerationMode.PAINT_ONLY);
+  });
+
+  it('preserves current mode when prompt is unrelated to painting', () => {
+    const result = resolveEffectiveGenerationMode(
+      GenerationMode.VIRTUAL_STAGING,
+      'Adicionar uma poltrona e uma mesa lateral',
+      true,
+    );
+
+    expect(result).toBe(GenerationMode.VIRTUAL_STAGING);
   });
 });
 

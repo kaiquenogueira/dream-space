@@ -10,6 +10,7 @@ import {
   applyGeneratingFlag,
   applyGenerationSuccess,
   applyGenerationError,
+  resolveEffectiveGenerationMode,
 } from '../utils/generationUtils';
 
 interface UseImageGenerationProps {
@@ -49,12 +50,16 @@ export const useImageGeneration = ({
     setImages(current => applyGenerationError(current, imageId, errorMessage));
   };
 
-  const persistGenerationMetadata = async (imageId: string, payload: { storage_path?: string; is_compressed?: boolean }) => {
+  const persistGenerationMetadata = async (
+    imageId: string,
+    payload: { storage_path?: string; is_compressed?: boolean },
+    effectiveMode: GenerationMode,
+  ) => {
     if (!activePropertyId) return;
     await updateGeneratedImageMetadata({
       imageId,
       storagePath: payload.storage_path,
-      generationMode,
+      generationMode: effectiveMode,
       style: selectedStyle ?? null,
       isCompressed: payload.is_compressed,
     });
@@ -63,19 +68,33 @@ export const useImageGeneration = ({
   const generationMutation = useMutation({
     mutationFn: async ({ img, prompt }: { img: UploadedImage, prompt: string }) => {
       const isIteration = !!img.iterateFromGenerated;
+      const effectiveMode = resolveEffectiveGenerationMode(generationMode, prompt, isIteration);
       const base64 = await resolveIterationBase64(img);
-      return await generateRoomDesign(
+      const response = await generateRoomDesign(
         base64,
         prompt,
         activePropertyId || undefined,
         selectedStyle || undefined,
-        generationMode,
+        effectiveMode,
         isIteration,
       );
+      console.log('[Generation] API response received', {
+        imageId: img.id,
+        isIteration,
+        effectiveMode,
+        hasResult: !!response.result,
+        storagePath: response.storage_path,
+      });
+      return { ...response, effectiveMode };
     },
     onSuccess: async (response, { img }) => {
+      console.log('[Generation] Applying result to state', {
+        imageId: img.id,
+        resultUrl: response.result,
+        storagePath: response.storage_path,
+      });
       setImageSuccess(img.id, response);
-      await persistGenerationMetadata(img.id, response);
+      await persistGenerationMetadata(img.id, response, response.effectiveMode);
       await refreshProfile();
     },
     onError: (err: Error, { img }) => {

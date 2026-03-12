@@ -13,7 +13,7 @@ describe('buildPrompt', () => {
             });
 
             expect(prompt).toContain('CRITICAL STRUCTURAL PRESERVATION RULES (MANDATORY AND ABSOLUTE)');
-            expect(prompt).toContain('NOT allowed to hallucinate, add, or close ANY windows, doors, walls');
+            expect(prompt).toContain('NOT allowed to hallucinate, add, remove, close, or move ANY windows, doors, walls');
             expect(prompt).toContain('MUST remain EXACTLY the same');
         });
     });

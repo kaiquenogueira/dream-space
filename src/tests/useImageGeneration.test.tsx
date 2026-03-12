@@ -37,11 +37,15 @@ const TestComponent = ({
   credits,
   hasCredits,
   fallbackId,
+  generationMode = GenerationMode.VIRTUAL_STAGING,
+  customPrompt = 'test prompt',
 }: {
   images: UploadedImage[];
   credits: number;
   hasCredits: boolean;
   fallbackId?: string;
+  generationMode?: GenerationMode;
+  customPrompt?: string;
 }) => {
   const [images, setImages] = useState<UploadedImage[]>(initialImages);
 
@@ -53,8 +57,8 @@ const TestComponent = ({
     refreshProfile: vi.fn().mockResolvedValue(undefined),
     activePropertyId: 'prop1',
     selectedStyle: ArchitecturalStyle.MODERN,
-    generationMode: GenerationMode.VIRTUAL_STAGING,
-    customPrompt: 'test prompt',
+    generationMode,
+    customPrompt,
   });
 
   return (
@@ -143,6 +147,55 @@ describe('useImageGeneration', () => {
         ArchitecturalStyle.MODERN,
         GenerationMode.VIRTUAL_STAGING,
         true, // isIteration=true
+      );
+    });
+  });
+
+  it('forces paint-only mode when iteration prompt is clearly about wall color', async () => {
+    (geminiService.generateRoomDesign as any).mockResolvedValue({
+      result: 'http://refined-paint.url',
+      credits_remaining: 5,
+      is_compressed: false,
+      storage_path: 'generated/path.jpg',
+    });
+
+    const iterateImg = img({
+      id: 'iter-paint',
+      selected: false,
+      iterateFromGenerated: true,
+      generatedUrl: 'http://prev-gen.url',
+    });
+
+    wrap(
+      <TestComponent
+        images={[iterateImg]}
+        credits={5}
+        hasCredits={true}
+        generationMode={GenerationMode.VIRTUAL_STAGING}
+        customPrompt="Pintar a parede de azul claro fosco"
+      />
+    );
+
+    fireEvent.click(screen.getByText('Generate'));
+
+    await waitFor(() => {
+      expect(geminiService.generateRoomDesign).toHaveBeenCalledWith(
+        'resolved-base64',
+        'Pintar a parede de azul claro fosco',
+        'prop1',
+        ArchitecturalStyle.MODERN,
+        GenerationMode.PAINT_ONLY,
+        true,
+      );
+    });
+
+    await waitFor(() => {
+      expect(geminiService.updateGeneratedImageMetadata).toHaveBeenCalledWith(
+        expect.objectContaining({
+          imageId: 'iter-paint',
+          storagePath: 'generated/path.jpg',
+          generationMode: GenerationMode.PAINT_ONLY,
+        })
       );
     });
   });

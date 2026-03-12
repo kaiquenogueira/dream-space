@@ -149,7 +149,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   const { width, height } = useContainerSize(containerRef);
 
   const columnCount = 2;
-  const rowCount = Math.ceil((images.length + 1) / columnCount);
+  const rowCount = Math.ceil(images.length / columnCount);
   const gutter = 12;
 
   const gridWidth = width || 320;
@@ -167,19 +167,7 @@ const Sidebar: React.FC<SidebarProps> = ({
       height: Number(style.height) - gutter,
     };
 
-    if (index === 0) {
-      return (
-        <div style={cellStyle}>
-          <ImageUploader
-            onImagesSelected={handleImagesSelected}
-            currentCount={images.length}
-            maxImages={maxImages}
-          />
-        </div>
-      );
-    }
-
-    const img = images[index - 1];
+    const img = images[index];
     if (!img) return null;
 
     return (
@@ -196,7 +184,7 @@ const Sidebar: React.FC<SidebarProps> = ({
       </div>
     );
   }, [
-    columnCount, gutter, images, handleImagesSelected, maxImages,
+    columnCount, gutter, images,
     selectedImageId, setSelectedImageId, toggleImageSelection,
     handleRegenerateSingle, removeImage, isGenerating
   ]);
@@ -300,21 +288,30 @@ const Sidebar: React.FC<SidebarProps> = ({
             </div>
           </div>
         ) : (
-          <div className="flex-1 min-h-0 -mx-1.5" ref={containerRef}>
-            {width > 0 && height > 0 && (
-              <Grid
-                columnCount={columnCount}
-                columnWidth={itemWidth}
-                height={height}
-                rowCount={rowCount}
-                rowHeight={itemHeight}
-                width={width}
-                className="custom-scrollbar"
-              >
-                {Cell}
-              </Grid>
-            )}
-          </div>
+          <>
+            <div className="flex-1 min-h-0 -mx-1.5" ref={containerRef}>
+              {width > 0 && height > 0 && (
+                <Grid
+                  columnCount={columnCount}
+                  columnWidth={itemWidth}
+                  height={height}
+                  rowCount={rowCount}
+                  rowHeight={itemHeight}
+                  width={width}
+                  className="custom-scrollbar"
+                >
+                  {Cell}
+                </Grid>
+              )}
+            </div>
+            <div className="shrink-0 h-[120px] mt-4">
+              <ImageUploader
+                onImagesSelected={handleImagesSelected}
+                currentCount={images.length}
+                maxImages={maxImages}
+              />
+            </div>
+          </>
         )}
       </div>
     </div>

@@ -56,19 +56,16 @@ export class GeminiService {
 
             // @ts-expect-error - Response type handling for SDK variations
             const response = result.response || result;
-            let generatedBase64: string | null = null;
-
-            if (response.candidates && response.candidates.length > 0) {
-                const parts = response.candidates[0].content.parts;
-                const imagePart = parts.find((p: any) => p.inlineData && p.inlineData.mimeType?.startsWith('image/'));
-                if (imagePart && imagePart.inlineData) {
-                    generatedBase64 = imagePart.inlineData.data;
-                }
-            }
+            const generatedBase64 = this.extractGeneratedImageBase64(result, response);
 
             if (!generatedBase64) {
                 throw new AppError('Nenhuma imagem gerada pelo modelo.', 500);
             }
+
+            console.log('[GeminiService] Image generated successfully', {
+                promptLength: prompt.length,
+                outputBytes: generatedBase64.length,
+            });
 
             return generatedBase64;
         } catch (error: any) {
@@ -115,5 +112,35 @@ export class GeminiService {
             console.error("[GeminiService] Video generation failed:", error);
             throw new AppError(error.message || 'Falha ao iniciar geração de vídeo', 500);
         }
+    }
+
+    private static extractGeneratedImageBase64(result: any, response: any): string | null {
+        const generatedImages = result?.generatedImages || response?.generatedImages;
+        if (Array.isArray(generatedImages) && generatedImages.length > 0) {
+            const bytes = generatedImages[0]?.image?.imageBytes || generatedImages[0]?.imageBytes;
+            if (typeof bytes === 'string' && bytes.length > 0) {
+                return bytes;
+            }
+        }
+
+        const candidates = response?.candidates;
+        if (Array.isArray(candidates) && candidates.length > 0) {
+            for (const candidate of candidates) {
+                const parts = candidate?.content?.parts;
+                if (!Array.isArray(parts)) continue;
+
+                const imagePart = parts.find((p: any) => p?.inlineData?.mimeType?.startsWith('image/'));
+                if (imagePart?.inlineData?.data) {
+                    return imagePart.inlineData.data;
+                }
+            }
+        }
+
+        console.warn('[GeminiService] No image payload found in Gemini response', {
+            hasGeneratedImages: Array.isArray(generatedImages) && generatedImages.length > 0,
+            candidateCount: Array.isArray(candidates) ? candidates.length : 0,
+        });
+
+        return null;
     }
 }

@@ -1,4 +1,4 @@
-import { UploadedImage } from '../types';
+import { GenerationMode, UploadedImage } from '../types';
 
 /**
  * Selects which images should be processed in a generation run.
@@ -49,6 +49,38 @@ export function canStartGeneration(
   if (toGenerate.length > credits) return { ok: false, reason: 'exceeds_credits' };
 
   return { ok: true };
+}
+
+/**
+ * Activates incremental refinement for a single image.
+ *
+ * Refinement is always exclusive to one image because the generated result
+ * becomes the new baseline only for that target image.
+ */
+export function activateIterationTarget(images: UploadedImage[], imageId: string): UploadedImage[] {
+  return images.map(img => ({
+    ...img,
+    iterateFromGenerated: img.id === imageId,
+    selected: img.id === imageId,
+  }));
+}
+
+/**
+ * Detects paint-only refinement intent from the freeform prompt.
+ */
+export function resolveEffectiveGenerationMode(
+  generationMode: GenerationMode,
+  customPrompt: string,
+  isIteration: boolean,
+): GenerationMode {
+  if (generationMode === GenerationMode.PAINT_ONLY) return generationMode;
+  if (!isIteration) return generationMode;
+
+  const prompt = customPrompt.trim().toLowerCase();
+  if (!prompt) return generationMode;
+
+  const paintIntentPattern = /\b(parede|paredes|pint|pintar|pintura|cor|cores|tinta|textura|acabamento|fosco|acetinado|brilho|cinza|bege|azul|verde|branco|preto|terracota|off-white)\b/;
+  return paintIntentPattern.test(prompt) ? GenerationMode.PAINT_ONLY : generationMode;
 }
 
 /**

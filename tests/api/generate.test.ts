@@ -165,6 +165,63 @@ describe('API Generate Handler', () => {
     }));
   });
 
+  it('deve aceitar resposta do Gemini no formato generatedImages', async () => {
+    mockGenerateContent.mockResolvedValue({
+      generatedImages: [
+        {
+          image: {
+            imageBytes: 'generated-image-base64-alt'
+          }
+        }
+      ]
+    });
+
+    await handler(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(200);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+      result: 'http://signed-url',
+      credits_remaining: 9
+    }));
+  });
+
+  it('deve retornar 500 quando o Gemini não retornar imagem', async () => {
+    mockGenerateContent.mockResolvedValue({
+      response: {
+        candidates: [
+          {
+            content: {
+              parts: [{ text: 'only text' }]
+            }
+          }
+        ]
+      }
+    });
+
+    await handler(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(500);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+      error: 'Nenhuma imagem gerada pelo modelo.'
+    }));
+  });
+
+  it('deve retornar 500 quando falha o upload da imagem gerada', async () => {
+    (supabaseAdmin.storage.from as any).mockReturnValue({
+      upload: vi.fn().mockResolvedValue({ data: null, error: { message: 'upload failed' } }),
+      getPublicUrl: vi.fn().mockReturnValue({ data: { publicUrl: 'http://url' } }),
+      createSignedUrl: vi.fn().mockResolvedValue({ data: { signedUrl: 'http://signed-url' }, error: null }),
+      remove: vi.fn().mockResolvedValue({ error: null })
+    });
+
+    await handler(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(500);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+      error: 'Falha ao fazer upload da imagem gerada'
+    }));
+  });
+
   it('deve retornar 403 se sem créditos', async () => {
     (supabaseAdmin.rpc as any).mockRejectedValue({ message: 'insufficient_credits' });
 

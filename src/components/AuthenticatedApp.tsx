@@ -10,6 +10,7 @@ import { useCredits } from '../hooks/useCredits';
 import { useProject } from '../hooks/useProject';
 import { useImageGeneration } from '../hooks/useImageGeneration';
 import { downloadComparison, downloadSingle, downloadAllImages } from '../utils/downloadUtils';
+import { activateIterationTarget } from '../utils/generationUtils';
 import type { UserProfile } from '../hooks/useAuth';
 import { AnimatePresence } from 'framer-motion';
 
@@ -452,9 +453,7 @@ export const AuthenticatedApp: React.FC<AuthenticatedAppProps> = ({ profile, ref
   };
 
   const handleIterateOnGenerated = (imageId: string) => {
-    setImages(prev => prev.map(img =>
-      img.id === imageId ? { ...img, iterateFromGenerated: true, selected: true } : img
-    ));
+    setImages(prev => activateIterationTarget(prev, imageId));
     setCustomPrompt('');
   };
 
