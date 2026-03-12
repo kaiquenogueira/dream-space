@@ -317,6 +317,7 @@ const PreviewArea: React.FC<PreviewAreaProps> = ({
               {/* Split View with Interactive Slider */}
               {effectiveViewMode === 'split' && activeImage.generatedUrl && (
                 <ComparisonSlider
+                  key={activeImage.generatedUrl}
                   originalUrl={activeImage.previewUrl}
                   generatedUrl={activeImage.generatedUrl}
                 />

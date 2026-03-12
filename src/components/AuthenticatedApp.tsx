@@ -164,19 +164,21 @@ const GenerationToolbar: React.FC<GenerationToolbarProps> = ({
         aria-expanded={showControls}
         aria-controls="generation-controls-panel"
         className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all duration-300 border focus-visible:ring-2 focus-visible:ring-secondary/50 focus:outline-none ${selectedStyle && generationMode !== GenerationMode.PAINT_ONLY
-          ? 'bg-primary/10 border-primary/25 text-primary hover:bg-primary/15 shadow-[0_0_10px_rgba(211,156,118,0.1)]'
+          ? 'bg-surface-light border-secondary/40 text-text-main hover:border-secondary/60 shadow-[0_0_16px_rgba(211,156,118,0.18)]'
           : 'bg-surface/60 border-glass-border text-text-muted hover:text-white hover:bg-surface/80 hover:border-white/20 hover:shadow-lg'
           }`}
       >
         {selectedStyle && generationMode !== GenerationMode.PAINT_ONLY ? (
           <>
-            <span className="flex items-center gap-1.5 font-bold tracking-wide">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-secondary">
-                <path d="M20 6L9 17l-5-5" />
-              </svg>
-              {selectedStyle}
+            <span className="flex items-center gap-2 font-bold tracking-wide text-white">
+              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-secondary text-black shadow-sm">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M20 6L9 17l-5-5" />
+                </svg>
+              </span>
+              <span className="text-xs font-bold text-white">{selectedStyle}</span>
             </span>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={`transition-transform duration-300 ${showControls ? "rotate-180" : "rotate-0 text-text-muted/70"}`}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={`transition-transform duration-300 ${showControls ? "rotate-180 text-white" : "rotate-0 text-text-muted/80"}`}>
               <path d="M6 9l6 6 6-6" />
             </svg>
           </>
@@ -436,20 +438,19 @@ export const AuthenticatedApp: React.FC<AuthenticatedAppProps> = ({ profile, ref
   // When generation finishes, always switch to the result view
   React.useEffect(() => {
     if (prevIsGenerating.current && !isGenerating) {
-      // Generation just finished — show the result
-      setViewMode(v => v === 'original' ? 'generated' : v);
+      setViewMode('generated');
     }
     prevIsGenerating.current = isGenerating;
   }, [isGenerating]);
 
   const handleGenerateWrapper = async () => {
     await generateImages(activeImage?.id);
-    setViewMode('split');
+    setViewMode('generated');
   };
 
   const handleRegenerateSingleWrapper = async (imageId: string) => {
     await regenerateImage(imageId);
-    setViewMode('split');
+    setViewMode('generated');
   };
 
   const handleIterateOnGenerated = (imageId: string) => {

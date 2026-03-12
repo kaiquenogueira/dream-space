@@ -29,6 +29,8 @@ describe('buildPrompt', () => {
         expect(prompt).toContain('Your ONLY task is to change the wall paint color/texture');
         expect(prompt).toContain('DO NOT ADD, REMOVE, OR CHANGE ANY FURNITURE');
         expect(prompt).toContain('Blue walls');
+        expect(prompt).toContain('Apply the requested paint/color/texture change to ALL visible walls in the same room');
+        expect(prompt).toContain('Do NOT leave one wall unchanged unless the user EXPLICITLY asks for an accent wall');
     });
 
     it('should generate correct prompt for VIRTUAL_STAGING mode', () => {
@@ -39,7 +41,10 @@ describe('buildPrompt', () => {
         });
 
         expect(prompt).toContain('TASK: Virtual Staging (Furnish Empty Room)');
-        expect(prompt).toContain('The room is currently empty or sparse');
+        expect(prompt).toContain('If the room is empty or sparse, add a complete but restrained furniture composition');
+        expect(prompt).toContain('Maintain clear circulation paths between doors, openings, and the main functional areas of the room');
+        expect(prompt).toContain('If the room already contains furniture, preserve it and only complement missing pieces');
+        expect(prompt).toContain('Keep the result market-ready, balanced, premium, and believable for a real-estate listing');
     });
 
 
@@ -109,5 +114,44 @@ describe('buildPrompt', () => {
             expect(prompt).not.toContain('Furnish Empty Room');
             expect(prompt).not.toContain('Wall Painting Only');
         });
+    });
+
+    it('should instruct uniform repaint across all visible walls during paint iteration', () => {
+        const prompt = buildPrompt({
+            generationMode: GenerationMode.PAINT_ONLY,
+            selectedStyle: ArchitecturalStyle.MODERN,
+            customPrompt: 'Pintar todas as paredes de verde sálvia',
+            isIteration: true
+        });
+
+        expect(prompt).toContain('Repaint ALL visible walls in this room consistently');
+        expect(prompt).toContain('Keep the finish, tone, and texture UNIFORM and CONSISTENT across all matching wall surfaces');
+        expect(prompt).toContain('Do NOT leave one wall unchanged unless the user EXPLICITLY asks for an accent wall');
+        expect(prompt).not.toContain('PRESERVE EVERYTHING in this image exactly as it is — walls, paint colors');
+    });
+
+    it('should constrain accent wall requests to a single wall', () => {
+        const prompt = buildPrompt({
+            generationMode: GenerationMode.PAINT_ONLY,
+            selectedStyle: null,
+            customPrompt: 'Criar uma parede de destaque azul marinho atrás do sofá',
+            isIteration: true
+        });
+
+        expect(prompt).toContain('Paint ONLY the single accent/feature wall explicitly requested by the user');
+        expect(prompt).toContain('Keep all other visible walls unchanged');
+        expect(prompt).not.toContain('Apply the requested paint/color/texture change to ALL visible walls in the same room');
+    });
+
+    it('should constrain partial wall requests to the referenced surfaces only', () => {
+        const prompt = buildPrompt({
+            generationMode: GenerationMode.PAINT_ONLY,
+            selectedStyle: null,
+            customPrompt: 'Pintar somente a parede da TV em bege areia'
+        });
+
+        expect(prompt).toContain('Paint ONLY the wall surfaces explicitly referenced by the user');
+        expect(prompt).toContain('Keep every other visible wall unchanged');
+        expect(prompt).not.toContain('Apply the requested paint/color/texture change to ALL visible walls in the same room');
     });
 });

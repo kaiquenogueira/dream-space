@@ -104,7 +104,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
                         placeholder="Buscar por email ou nome..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full bg-surface border border-glass-border rounded-lg pl-10 pr-4 py-3 focus:ring-2 focus:ring-primary/50 outline-none"
+                        className="w-full bg-surface border border-glass-border rounded-lg pl-10 pr-4 py-3 focus:ring-2 focus:ring-secondary/50 outline-none"
                     />
                 </div>
 
@@ -163,7 +163,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
                                             <td className="p-4 text-right">
                                                 <button 
                                                     onClick={() => openEditModal(user)}
-                                                    className="text-primary hover:text-primary/80 text-xs font-medium px-3 py-1.5 border border-primary/30 rounded hover:bg-primary/10 transition-colors"
+                                                    className="btn-secondary text-[10px] sm:text-xs py-1.5 px-3 whitespace-nowrap"
                                                 >
                                                     Gerenciar Créditos
                                                 </button>
@@ -230,7 +230,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
                                     </button>
                                 </div>
                                 <div className="mt-2 text-xs text-center text-text-muted">
-                                    Novo saldo: <span className="text-primary font-bold">{editingUser.credits_remaining + creditsToChange}</span>
+                                    Novo saldo: <span className="text-secondary font-bold">{editingUser.credits_remaining + creditsToChange}</span>
                                 </div>
                             </div>
 
@@ -238,14 +238,14 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
                                 <button 
                                     type="button"
                                     onClick={() => setEditingUser(null)}
-                                    className="flex-1 px-4 py-2 border border-glass-border rounded hover:bg-white/5 transition-colors text-sm"
+                                    className="flex-1 btn-secondary text-sm"
                                     disabled={isSubmitting}
                                 >
                                     Cancelar
                                 </button>
                                 <button 
                                     type="submit"
-                                    className="flex-1 px-4 py-2 bg-primary text-white rounded hover:bg-primary/90 transition-colors text-sm font-medium disabled:opacity-50"
+                                    className="flex-1 btn-primary text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                                     disabled={isSubmitting}
                                 >
                                     {isSubmitting ? 'Salvando...' : 'Confirmar'}

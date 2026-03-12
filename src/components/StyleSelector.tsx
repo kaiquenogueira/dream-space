@@ -33,7 +33,7 @@ const StyleSelector: React.FC<StyleSelectorProps> = ({ selectedStyle, onSelectSt
               w-full h-[68px]
               flex flex-col justify-end p-2
               ${isSelected
-                ? 'border-emerald-500 ring-glow-emerald scale-[1.03]'
+                ? 'border-secondary ring-glow-emerald scale-[1.03] shadow-[0_0_18px_rgba(211,156,118,0.22)]'
                 : 'border-zinc-800/50 hover:border-zinc-600/60 bg-zinc-900/80 hover:scale-[1.02]'
               }
             `}
@@ -45,14 +45,17 @@ const StyleSelector: React.FC<StyleSelectorProps> = ({ selectedStyle, onSelectSt
             {/* Content */}
             <div className="relative z-10 w-full">
               <span className="text-base leading-none mb-0.5 block">{meta.emoji}</span>
-              <span className={`block font-bold text-[10px] leading-tight truncate ${isSelected ? 'text-white' : 'text-zinc-200'}`}>
+              <span className={`block font-bold text-[10px] leading-tight truncate ${isSelected ? 'text-white drop-shadow-[0_1px_4px_rgba(0,0,0,0.7)]' : 'text-zinc-200'}`}>
                 {style}
+              </span>
+              <span className={`block text-[9px] leading-tight mt-0.5 ${isSelected ? 'text-zinc-100/90' : 'text-zinc-400'}`}>
+                {meta.description}
               </span>
             </div>
 
             {/* Selection Check */}
             {isSelected && (
-              <div className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center shadow-lg shadow-emerald-500/50 animate-scale-in">
+              <div className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-secondary flex items-center justify-center shadow-lg shadow-secondary/40 animate-scale-in text-black">
                 <svg width="8" height="8" viewBox="0 0 12 12" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M2 6l3 3 5-5" />
                 </svg>

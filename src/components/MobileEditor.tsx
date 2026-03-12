@@ -339,7 +339,14 @@ const MobileEditor: React.FC<MobileEditorProps> = ({
               <div className="flex items-center justify-between mb-2">
                 <label className="text-[10px] font-bold text-text-muted uppercase tracking-widest block">Estilo</label>
                 {selectedStyle && (
-                  <span className="text-[10px] text-secondary font-bold bg-secondary/10 px-2 py-0.5 rounded-sm border border-secondary/20 uppercase tracking-wide">{selectedStyle}</span>
+                  <span className="inline-flex items-center gap-1.5 text-[10px] text-white font-bold bg-surface-light px-2.5 py-1 rounded-sm border border-secondary/30 uppercase tracking-wide shadow-sm">
+                    <span className="flex h-4 w-4 items-center justify-center rounded-full bg-secondary text-black">
+                      <svg width="8" height="8" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M2 6l2 2 6-6" />
+                      </svg>
+                    </span>
+                    {selectedStyle}
+                  </span>
                 )}
               </div>
               <StyleSelector selectedStyle={selectedStyle} onSelectStyle={setSelectedStyle} />
@@ -363,9 +370,19 @@ const MobileEditor: React.FC<MobileEditorProps> = ({
                 <textarea
                   value={customPrompt}
                   onChange={(e) => setCustomPrompt(e.target.value)}
-                  placeholder={generationMode === GenerationMode.PAINT_ONLY ? "Ex: Azul marinho fosco, Bege areia, Textura de cimento queimado..." : "ex. Adicionar sofá de couro, paredes azuis..."}
+                  placeholder={generationMode === GenerationMode.PAINT_ONLY ? "Ex: Pintar todas as paredes de verde sálvia fosco, criar uma parede de destaque azul marinho atrás do sofá..." : "Ex: Mobiliar como sala contemporânea com sofá claro, tapete grande e boa circulação..."}
                   className="input-field h-24 resize-none"
                 />
+                {generationMode === GenerationMode.PAINT_ONLY && (
+                  <p className="mt-2 text-[11px] text-text-muted/70 leading-relaxed">
+                    Exemplos: "todas as paredes", "parede de destaque", "somente a parede da TV".
+                  </p>
+                )}
+                {generationMode !== GenerationMode.PAINT_ONLY && (
+                  <p className="mt-2 text-[11px] text-text-muted/70 leading-relaxed">
+                    Exemplos: "staging leve", "preservar móveis existentes", "boa circulação", "quarto principal minimalista".
+                  </p>
+                )}
               </div>
             </div>
           </div>
