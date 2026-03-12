@@ -38,6 +38,23 @@ export const useImageGeneration = ({
 }: UseImageGenerationProps) => {
   const [noCreditsError, setNoCreditsError] = useState(false);
 
+  const isCreditError = (error: unknown) => {
+    if (typeof error === 'object' && error !== null && 'status' in error) {
+      return error.status === 403;
+    }
+
+    if (!(error instanceof Error)) {
+      return false;
+    }
+
+    const normalized = error.message.toLowerCase();
+    return normalized.includes('credit')
+      || normalized.includes('crédito')
+      || normalized.includes('créditos')
+      || normalized.includes('sem créditos')
+      || normalized.includes('insuficientes');
+  };
+
   const setImagesGenerating = (imageIds: string[], value: boolean) => {
     setImages(current => applyGeneratingFlag(current, imageIds, value));
   };
@@ -88,27 +105,35 @@ export const useImageGeneration = ({
       return { ...response, effectiveMode };
     },
     onSuccess: async (response, { img }) => {
-      console.log('[Generation] Applying result to state', {
-        imageId: img.id,
-        resultUrl: response.result,
-        storagePath: response.storage_path,
-      });
-      setImageSuccess(img.id, response);
-      await persistGenerationMetadata(img.id, response, response.effectiveMode);
-      await refreshProfile();
+      try {
+        await persistGenerationMetadata(img.id, response, response.effectiveMode);
+        console.log('[Generation] Applying result to state', {
+          imageId: img.id,
+          resultUrl: response.result,
+          storagePath: response.storage_path,
+        });
+        setImageSuccess(img.id, response);
+        await refreshProfile();
+      } catch (error) {
+        const errorMessage = error instanceof Error
+          ? error.message
+          : 'Falha ao salvar o resultado gerado';
+        console.error(`[Generation] Failed to persist metadata for image ${img.id}:`, error);
+        setImageError(img.id, errorMessage);
+      }
     },
     onError: (err: Error, { img }) => {
       const errorMessage = err.message || 'Falha na geração';
       console.error(`[Generation] Error for image ${img.id}:`, err);
 
-      if (errorMessage.includes('No credits remaining') || errorMessage.includes('credits')) {
+      if (isCreditError(err)) {
         setNoCreditsError(true);
       }
 
       setImageError(img.id, errorMessage);
     },
     retry: (failureCount, error) => {
-      if (error.message.includes('credits') || error.message.includes('403') || failureCount >= 2) {
+      if (isCreditError(error) || failureCount >= 2) {
         return false;
       }
       return true;

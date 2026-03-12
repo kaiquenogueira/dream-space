@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { generateRoomDesign, generateDroneTourScript, updateGeneratedImageMetadata } from './geminiService';
+import { ApiError, generateRoomDesign, generateDroneTourScript, updateGeneratedImageMetadata } from './geminiService';
 import { supabase } from '../lib/supabase';
+
+const eqMock = vi.fn().mockResolvedValue({ data: null, error: null });
 
 // Mock Supabase
 vi.mock('../lib/supabase', () => ({
@@ -10,7 +12,7 @@ vi.mock('../lib/supabase', () => ({
     },
     from: vi.fn(() => ({
       update: vi.fn(() => ({
-        eq: vi.fn().mockResolvedValue({ data: null, error: null }),
+        eq: (...args: unknown[]) => eqMock(...args),
       })),
     })),
   },
@@ -23,6 +25,7 @@ global.fetch = fetchMock;
 describe('geminiService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    eqMock.mockResolvedValue({ data: null, error: null });
     // Default mock implementation
     (supabase.auth.getSession as any).mockResolvedValue({ 
       data: { session: { access_token: 'default-token' } } 
@@ -94,7 +97,20 @@ describe('geminiService', () => {
         text: async () => JSON.stringify({ message: 'No credits remaining' }),
       });
 
-      await expect(generateRoomDesign('img', 'prompt')).rejects.toThrow('No credits remaining');
+      await expect(generateRoomDesign('img', 'prompt')).rejects.toMatchObject({
+        message: 'No credits remaining',
+        status: 403,
+      });
+    });
+
+    it('should map translated 403 errors to ApiError', async () => {
+      fetchMock.mockResolvedValue({
+        ok: false,
+        status: 403,
+        text: async () => JSON.stringify({ message: 'Créditos insuficientes' }),
+      });
+
+      await expect(generateRoomDesign('img', 'prompt')).rejects.toBeInstanceOf(ApiError);
     });
   });
 
@@ -165,6 +181,17 @@ describe('geminiService', () => {
       });
 
       expect(supabase.from).not.toHaveBeenCalled();
+    });
+
+    it('should throw when metadata persistence fails', async () => {
+      eqMock.mockResolvedValueOnce({ data: null, error: { message: 'rls denied' } });
+
+      await expect(updateGeneratedImageMetadata({
+        imageId: 'img-3',
+        storagePath: 'path-3',
+        generationMode: 'redesign',
+        style: null,
+      })).rejects.toThrow('rls denied');
     });
   });
 });

@@ -123,4 +123,45 @@ describe('useProject Hook', () => {
         expect(added).toBeDefined();
     });
   });
+
+  it('deve limitar o upload ao número máximo de imagens restantes', async () => {
+    (projectService.uploadOriginalImages as any).mockResolvedValue([]);
+
+    const propertyWithNineImages = [{
+      id: 'prop-1',
+      name: 'Property 1',
+      createdAt: Date.now(),
+      images: Array.from({ length: 9 }, (_, index) => ({
+        id: `img-${index + 1}`,
+        previewUrl: `url${index + 1}`,
+        selected: true,
+        isGenerating: false,
+      })),
+    }];
+    (projectService.loadRemoteProjects as any).mockResolvedValue(propertyWithNineImages);
+
+    const { result } = renderHook(() => useProject(mockUserId), { wrapper: createWrapper() });
+
+    await waitFor(() => expect(result.current.images).toHaveLength(9));
+
+    const incomingImages = [
+      { id: 'new-1', previewUrl: 'url10', selected: true, isGenerating: false },
+      { id: 'new-2', previewUrl: 'url11', selected: true, isGenerating: false },
+    ] as any;
+
+    await act(async () => {
+      await result.current.handleImagesSelected(incomingImages);
+    });
+
+    expect(projectService.uploadOriginalImages).toHaveBeenCalledWith({
+      userId: mockUserId,
+      activePropertyId: 'prop-1',
+      images: [incomingImages[0]],
+    });
+    await waitFor(() => {
+      expect(result.current.images).toHaveLength(10);
+    });
+    expect(result.current.images.some(img => img.id === 'new-1')).toBe(true);
+    expect(result.current.images.some(img => img.id === 'new-2')).toBe(false);
+  });
 });

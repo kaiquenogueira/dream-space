@@ -209,6 +209,8 @@ export const createPropertyRecord = async (userId: string | null | undefined, na
         logo: data.logo_url ?? undefined
       };
     }
+
+    throw new Error(error?.message || 'Falha ao criar propriedade');
   }
 
   return {

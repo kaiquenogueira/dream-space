@@ -104,8 +104,15 @@ export const useProject = (userId?: string | null) => {
   };
 
   const handleImagesSelected = async (newImages: UploadedImage[]) => {
+    const availableSlots = Math.max(0, MAX_IMAGES - images.length);
+    if (availableSlots === 0) {
+      return;
+    }
+
+    const acceptedImages = newImages.slice(0, availableSlots);
+
     // Ensure all new images have selected: true
-    const withSelection = newImages.map(img => ({ ...img, selected: true }));
+    const withSelection = acceptedImages.map(img => ({ ...img, selected: true }));
     
     // Optimistic Update
     setImages(prev => {
@@ -116,8 +123,8 @@ export const useProject = (userId?: string | null) => {
       return combined;
     });
 
-    if (!selectedImageId && newImages.length > 0) {
-      setSelectedImageId(newImages[0].id);
+    if (!selectedImageId && acceptedImages.length > 0) {
+      setSelectedImageId(acceptedImages[0].id);
     }
 
     // Actual Upload
@@ -125,7 +132,7 @@ export const useProject = (userId?: string | null) => {
       const uploadResults = await uploadOriginalImages({
         userId,
         activePropertyId,
-        images: newImages
+        images: acceptedImages
       });
 
       if (uploadResults.length === 0) return;

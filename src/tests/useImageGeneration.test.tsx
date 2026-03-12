@@ -7,10 +7,14 @@ import * as geminiService from '../services/geminiService';
 import * as imageUtils from '../utils/imageUtils';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
-vi.mock('../services/geminiService', () => ({
-  generateRoomDesign: vi.fn(),
-  updateGeneratedImageMetadata: vi.fn().mockResolvedValue(undefined),
-}));
+vi.mock('../services/geminiService', async (importOriginal) => {
+  const original = await importOriginal<typeof geminiService>();
+  return {
+    ...original,
+    generateRoomDesign: vi.fn(),
+    updateGeneratedImageMetadata: vi.fn().mockResolvedValue(undefined),
+  };
+});
 
 vi.mock('../utils/imageUtils', async (importOriginal) => {
   const original = await importOriginal<typeof imageUtils>();
@@ -258,6 +262,17 @@ describe('useImageGeneration', () => {
     });
   });
 
+  it('shows no-credits state for translated backend errors', async () => {
+    (geminiService.generateRoomDesign as any).mockRejectedValue(new geminiService.ApiError('Créditos insuficientes', 403));
+
+    wrap(<TestComponent images={[img()]} credits={5} hasCredits={true} />);
+    fireEvent.click(screen.getByText('Generate'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('error')).toHaveTextContent('error');
+    });
+  });
+
   it('does not show no-credits error for non-credit errors', async () => {
     (geminiService.generateRoomDesign as any).mockRejectedValue(new Error('Network failure'));
 
@@ -266,6 +281,24 @@ describe('useImageGeneration', () => {
 
     await waitFor(() => {
       expect(screen.getByTestId('error')).toHaveTextContent('ok');
+    });
+  });
+
+  it('marks the image with an error when metadata persistence fails', async () => {
+    (geminiService.generateRoomDesign as any).mockResolvedValue({
+      result: 'http://new.url',
+      credits_remaining: 9,
+      is_compressed: false,
+      storage_path: 'generated/path.jpg',
+    });
+    (geminiService.updateGeneratedImageMetadata as any).mockRejectedValueOnce(new Error('Falha ao persistir metadados'));
+
+    wrap(<TestComponent images={[img()]} credits={10} hasCredits={true} />);
+    fireEvent.click(screen.getByText('Generate'));
+
+    await waitFor(() => {
+      const images = JSON.parse(screen.getByTestId('images').textContent || '[]');
+      expect(images[0].generatedUrl).toBeUndefined();
     });
   });
 });

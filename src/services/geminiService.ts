@@ -1,5 +1,15 @@
 import { supabase } from '../lib/supabase';
 
+export class ApiError extends Error {
+  status: number;
+
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
+  }
+}
+
 const getApiUrl = (path: string) => {
   const base = import.meta.env.VITE_API_BASE_URL;
   if (!base) return path;
@@ -49,9 +59,15 @@ export const generateRoomDesign = async (
       }
 
       if (response.status === 403) {
-        throw new Error(errorData.message || 'Sem créditos restantes. Por favor, atualize seu plano.');
+        throw new ApiError(
+          errorData.message || 'Sem créditos restantes. Por favor, atualize seu plano.',
+          response.status,
+        );
       }
-      throw new Error(errorData.error || 'Falha ao gerar o design');
+      throw new ApiError(
+        errorData.message || errorData.error || 'Falha ao gerar o design',
+        response.status,
+      );
     }
 
     const data = await response.json();
@@ -123,7 +139,7 @@ export const updateGeneratedImageMetadata = async ({
   isCompressed?: boolean;
 }) => {
   if (!storagePath) return;
-  await supabase
+  const { error } = await supabase
     .from('property_images')
     .update({
       generated_image_path: storagePath,
@@ -132,4 +148,8 @@ export const updateGeneratedImageMetadata = async ({
       is_compressed: isCompressed ?? false
     })
     .eq('id', imageId);
+
+  if (error) {
+    throw new Error(error.message || 'Falha ao persistir metadados da imagem gerada');
+  }
 };

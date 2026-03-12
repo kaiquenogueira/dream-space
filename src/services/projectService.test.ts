@@ -1,24 +1,39 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { deleteImageAssets, hydrateStoredProjects, uploadOriginalImages } from './projectService';
+import { createPropertyRecord, deleteImageAssets, hydrateStoredProjects, uploadOriginalImages } from './projectService';
 import type { UploadedImage } from '../types';
 
 const uploadMock = vi.fn();
 const removeMock = vi.fn();
 const upsertMock = vi.fn();
 const deleteEqMock = vi.fn();
+const singleMock = vi.fn();
+const selectMock = vi.fn(() => ({
+  single: singleMock,
+}));
+const insertMock = vi.fn(() => ({
+  select: selectMock,
+}));
 
 vi.mock('../lib/supabase', () => ({
   supabase: {
-    from: vi.fn(() => ({
-      delete: vi.fn(() => ({
-        eq: (...args: unknown[]) => deleteEqMock(...args),
-      })),
-      upsert: (...args: unknown[]) => upsertMock(...args),
-    })),
+    from: vi.fn((table: string) => {
+      if (table === 'properties') {
+        return {
+          insert: insertMock,
+        };
+      }
+
+      return {
+        delete: vi.fn(() => ({
+          eq: deleteEqMock,
+        })),
+        upsert: upsertMock,
+      };
+    }),
     storage: {
       from: vi.fn(() => ({
-        upload: (...args: unknown[]) => uploadMock(...args),
-        remove: (...args: unknown[]) => removeMock(...args),
+        upload: uploadMock,
+        remove: removeMock,
         createSignedUrl: vi.fn(),
       })),
     },
@@ -29,6 +44,15 @@ describe('projectService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
+    singleMock.mockResolvedValue({
+      data: {
+        id: 'prop-1',
+        name: 'Casa',
+        logo_url: null,
+        created_at: '2026-03-12T00:00:00.000Z',
+      },
+      error: null,
+    });
   });
 
   it('remove imagens com URLs corrompidas do storage local', () => {
@@ -72,6 +96,28 @@ describe('projectService', () => {
     });
 
     expect(result[0].error).toMatch(/Bucket de storage não encontrado/);
+  });
+
+  it('cria propriedade remota para usuário autenticado', async () => {
+    const result = await createPropertyRecord('u1', 'Casa');
+
+    expect(insertMock).toHaveBeenCalledWith({ user_id: 'u1', name: 'Casa' });
+    expect(result).toEqual({
+      id: 'prop-1',
+      name: 'Casa',
+      images: [],
+      createdAt: new Date('2026-03-12T00:00:00.000Z').getTime(),
+      logo: undefined,
+    });
+  });
+
+  it('não cria fallback local quando a criação remota falha para usuário autenticado', async () => {
+    singleMock.mockResolvedValueOnce({
+      data: null,
+      error: { message: 'insert failed' },
+    });
+
+    await expect(createPropertyRecord('u1', 'Casa')).rejects.toThrow('insert failed');
   });
 
   it('remove imagem e assets quando solicitado', async () => {
