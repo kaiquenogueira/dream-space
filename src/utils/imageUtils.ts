@@ -1,5 +1,8 @@
 import imageCompression from 'browser-image-compression';
 import type { UploadedImage } from '../types';
+import { supabase } from '../lib/supabase';
+
+const GENERATIONS_BUCKET = import.meta.env.VITE_SUPABASE_BUCKET_GENERATIONS || 'generations';
 
 export const compressImage = async (file: File): Promise<{ base64: string, preview: string }> => {
   const options = {
@@ -59,13 +62,37 @@ export const resolveImageBase64 = async (image: { base64?: string; previewUrl?: 
  * original uploaded image — enabling incremental edits.
  */
 export const resolveIterationBase64 = async (image: UploadedImage): Promise<string> => {
-  if (image.iterateFromGenerated && image.generatedUrl) {
-    const response = await fetch(image.generatedUrl);
+  const fetchAsBase64 = async (url: string) => {
+    const response = await fetch(url);
     if (!response.ok) {
       throw new Error('Falha ao carregar imagem gerada para iteração');
     }
     const blob = await response.blob();
     return await blobToBase64(blob);
+  };
+
+  if (image.iterateFromGenerated) {
+    if (image.generatedUrl) {
+      try {
+        return await fetchAsBase64(image.generatedUrl);
+      } catch (error) {
+        if (!image.generatedPath) throw error;
+      }
+    }
+
+    if (image.generatedPath) {
+      const { data, error } = await supabase
+        .storage
+        .from(GENERATIONS_BUCKET)
+        .createSignedUrl(image.generatedPath, 60 * 60);
+
+      if (error || !data?.signedUrl) {
+        throw new Error('Falha ao gerar URL assinada para iteração');
+      }
+
+      return await fetchAsBase64(data.signedUrl);
+    }
   }
+
   return resolveImageBase64(image);
 };

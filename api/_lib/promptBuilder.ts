@@ -52,11 +52,11 @@ export const buildPrompt = ({
     // Enhanced base analysis with stricter rules for structural preservation
     const structuralRules = `
     CRITICAL STRUCTURAL PRESERVATION RULES (MANDATORY AND ABSOLUTE):
-    0. You are NOT allowed to hallucinate, add, or close ANY windows, doors, walls, or openings under any circumstance.
+    0. You are NOT allowed to hallucinate, add, remove, close, or move ANY windows, doors, walls, ceilings, floors, columns, beams, or openings under any circumstance.
     1. The geometry of the room, ceiling height, openings, and floor plan MUST remain EXACTLY the same as the original image.
     2. Maintain the exact perspective, camera angle, and field of view of the original image.
-    3. Any existing door must stay a door, any existing window must stay a window. Do not move their positions.
-    4. If the user asks for new furniture, place it without obstructing the original windows/doors structure.
+    3. Any existing door must stay a door, any existing window must stay a window. Do not alter their size, position, or count.
+    4. You must not add, remove, or reposition architectural elements. Furniture/decor may be added only without changing structure.
     `;
 
     const environmentalAnalysis = `
@@ -66,6 +66,7 @@ export const buildPrompt = ({
        - If it's a large open space with multiple entry points -> It is a Living/Dining area.
        - If it's an enclosed private room -> It is a Bedroom or Office.
     2. Preserve natural light sources and direction from the original windows.
+    3. Do not infer or add any architectural elements that are not visible in the original image.
     `;
 
     const styleInstruction = (selectedStyle && STYLE_PROMPTS[selectedStyle])
@@ -87,8 +88,9 @@ export const buildPrompt = ({
         3. Do NOT add, remove, or rearrange any furniture or decor UNLESS explicitly asked for.
         4. Do NOT change wall colors, flooring, or any surface UNLESS explicitly asked for.
         5. If the user asks to change the floor, change ONLY the floor. If the user asks to add a sofa, add ONLY a sofa.
-        6. The result must be photorealistic, high-resolution architectural visualization.
-        7. OUTPUT ONLY THE EDITED IMAGE, no text explanation.
+        6. NEVER add, remove, or move windows, doors, walls, or any openings.
+        7. The result must be photorealistic, high-resolution architectural visualization.
+        8. OUTPUT ONLY THE EDITED IMAGE, no text explanation.
         `;
 
         let iterationTask = '';
