@@ -51,12 +51,12 @@ export const buildPrompt = ({
 }: PromptOptions): string => {
     // Enhanced base analysis with stricter rules for structural preservation
     const structuralRules = `
-    CRITICAL STRUCTURAL PRESERVATION RULES (MANDATORY):
-    1. ABSOLUTELY FORBIDDEN to move, resize, remove, or alter any existing walls, windows, doors, ceilings, or structural openings.
-    2. The geometry of the room and general layout MUST remain exactly the same.
-    3. Maintain the exact perspective, camera angle, and field of view of the original image.
-    4. Keep the original ceiling height, beam structures, and floor plan layout intact.
-    5. Structural integrity is PARAMOUNT; do not hallucinate new exits or close existing ones.
+    CRITICAL STRUCTURAL PRESERVATION RULES (MANDATORY AND ABSOLUTE):
+    0. You are NOT allowed to hallucinate, add, or close ANY windows, doors, walls, or openings under any circumstance.
+    1. The geometry of the room, ceiling height, openings, and floor plan MUST remain EXACTLY the same as the original image.
+    2. Maintain the exact perspective, camera angle, and field of view of the original image.
+    3. Any existing door must stay a door, any existing window must stay a window. Do not move their positions.
+    4. If the user asks for new furniture, place it without obstructing the original windows/doors structure.
     `;
 
     const environmentalAnalysis = `
@@ -68,9 +68,13 @@ export const buildPrompt = ({
     2. Preserve natural light sources and direction from the original windows.
     `;
 
+    const styleInstruction = (selectedStyle && STYLE_PROMPTS[selectedStyle])
+        ? STYLE_PROMPTS[selectedStyle]
+        : 'modern and elegant design';
+
     let finalPrompt = '';
 
-    // ── ITERATION MODE: dedicated prompt, no mode-specific instructions ──
+    // ── ITERATION MODE: dedicated prompt ──
     if (isIteration) {
         finalPrompt = `
         Edit this image. TASK: Incremental Edit on Previously Generated Image.
@@ -79,28 +83,37 @@ export const buildPrompt = ({
 
         CRITICAL ITERATION RULES:
         1. PRESERVE EVERYTHING in this image exactly as it is — walls, paint colors, furniture, flooring, decor, lighting, and all prior modifications.
-        2. Make ONLY the specific changes described in the user requirements below. NOTHING ELSE.
-        3. Do NOT add, remove, or rearrange any furniture or decor UNLESS the user explicitly asks for it.
-        4. Do NOT change wall colors, flooring, or any surface UNLESS the user explicitly asks for it.
+        2. Make ONLY the specific changes described below. NOTHING ELSE.
+        3. Do NOT add, remove, or rearrange any furniture or decor UNLESS explicitly asked for.
+        4. Do NOT change wall colors, flooring, or any surface UNLESS explicitly asked for.
         5. If the user asks to change the floor, change ONLY the floor. If the user asks to add a sofa, add ONLY a sofa.
         6. The result must be photorealistic, high-resolution architectural visualization.
         7. OUTPUT ONLY THE EDITED IMAGE, no text explanation.
         `;
 
+        let iterationTask = '';
+        
+        if (generationMode === GenerationMode.PAINT_ONLY && selectedStyle) {
+            iterationTask += `Change the wall paint/texture to match the following style: ${styleInstruction}. Do NOT change furniture or flooring. `;
+        } else if (selectedStyle) {
+            iterationTask += `Update the overall style to match: ${styleInstruction}. `;
+        }
+
         if (customPrompt) {
             const sanitizedCustom = sanitizeInput(customPrompt);
-            finalPrompt += `\nUSER REQUESTED CHANGE (apply ONLY this, preserve everything else): <user_instruction>${sanitizedCustom}</user_instruction>`;
+            iterationTask += `User requested change: ${sanitizedCustom}`;
         }
+
+        if (!iterationTask.trim()) {
+            iterationTask = "Enhance the image quality photorealistically while preserving all contents.";
+        }
+
+        finalPrompt += `\nAPPLY THIS INCREMENTAL CHANGE (preserve everything else): <user_instruction>${iterationTask.trim()}</user_instruction>`;
 
         return finalPrompt.replace(/\s+/g, ' ').trim();
     }
 
     // ── FIRST GENERATION: use full mode-specific prompts ──
-    // Use the style prompt map, fallback to modern if not found or if style is null
-    const styleInstruction = (selectedStyle && STYLE_PROMPTS[selectedStyle])
-        ? STYLE_PROMPTS[selectedStyle]
-        : 'modern and elegant design';
-
     if (generationMode === GenerationMode.VIRTUAL_STAGING) {
         // Virtual Staging: Only add furniture/decor to empty spaces
         finalPrompt = `
@@ -127,7 +140,7 @@ export const buildPrompt = ({
         
         INSTRUCTIONS:
         - Your ONLY task is to change the wall paint color/texture.
-        - If a style is provided (${styleInstruction}), interpret it as a color palette/texture guide for the walls.
+        - Use the following style guidance as a color palette/texture guide for the walls: ${styleInstruction}.
         - DO NOT ADD, REMOVE, OR CHANGE ANY FURNITURE.
         - DO NOT CHANGE FLOORING OR CEILING (unless specifically asked in custom prompt).
         - Existing furniture must remain exactly where it is, with the same design.
@@ -156,7 +169,7 @@ export const buildPrompt = ({
     if (customPrompt) {
         const sanitizedCustom = sanitizeInput(customPrompt);
         // Using explicit delimiters for user content
-        finalPrompt += `\nADDITIONAL USER REQUIREMENTS (Prioritize this instruction while strictly adhering to structural rules): <user_instruction>${sanitizedCustom}</user_instruction>`;
+        finalPrompt += `\nADDITIONAL USER REQUIREMENTS (Prioritize this instruction while strictly adhering to ALL structural rules): <user_instruction>${sanitizedCustom}</user_instruction>`;
     }
 
     // Clean up extra whitespace and return

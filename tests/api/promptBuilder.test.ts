@@ -12,9 +12,9 @@ describe('buildPrompt', () => {
                 customPrompt: ''
             });
 
-            expect(prompt).toContain('CRITICAL STRUCTURAL PRESERVATION RULES (MANDATORY)');
-            expect(prompt).toContain('ABSOLUTELY FORBIDDEN to move, resize, remove, or alter any existing walls');
-            expect(prompt).toContain('Structural integrity is PARAMOUNT');
+            expect(prompt).toContain('CRITICAL STRUCTURAL PRESERVATION RULES (MANDATORY AND ABSOLUTE)');
+            expect(prompt).toContain('NOT allowed to hallucinate, add, or close ANY windows, doors, walls');
+            expect(prompt).toContain('MUST remain EXACTLY the same');
         });
     });
 
