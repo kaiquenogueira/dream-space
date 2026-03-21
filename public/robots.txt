@@ -4,4 +4,17 @@ Disallow: /api/
 Allow: /
 Allow: /landing
 
+# AI Crawler Access (GEO)
+User-agent: GPTBot
+Allow: /
+
+User-agent: Claude-Web
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
 Sitemap: https://iolia.com.br/sitemap.xml

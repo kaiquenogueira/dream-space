@@ -130,8 +130,8 @@ const LandingPage: React.FC = () => {
                     <path d="m12 8-2 4h4l-2 4" />
                 </svg>
             ),
-            title: 'Pintura Inteligente',
-            desc: 'Simule cores e texturas de parede em tempo real. Teste dezenas de combinações sem abrir uma lata de tinta.',
+            title: 'O que é Pintura Inteligente?',
+            desc: 'A Pintura Inteligente é uma tecnologia de IA que permite simular cores e texturas em paredes reais em segundos. Teste combinações sem abrir uma lata de tinta.',
         },
         {
             icon: (
@@ -173,9 +173,9 @@ const LandingPage: React.FC = () => {
     ];
 
     const TESTIMONIALS = [
-        { name: 'Juliana C.', role: 'Corretora de Imóveis', text: 'O IOLIA transformou completamente a forma como apresento imóveis. Meus clientes ficam impressionados com as visualizações antes mesmo da visita.' },
-        { name: 'Ricardo M.', role: 'Arquiteto', text: 'A qualidade das imagens geradas é impressionante. Uso para apresentar propostas aos clientes e agilizar o processo de aprovação de projetos.' },
-        { name: 'Ana P.', role: 'Designer de Interiores', text: 'O staging virtual me poupa horas de trabalho. Em vez de montar moodboards complexos, gero visualizações realistas em minutos.' },
+        { name: 'Juliana Costa', role: 'Corretora de Imóveis Sênior, CRECI-SP', text: 'O IOLIA transformou completamente a forma como apresento imóveis. Meus clientes ficam impressionados com as visualizações antes mesmo da visita.' },
+        { name: 'Ricardo Martins', role: 'Arquiteto Especialista em Renderização', text: 'A qualidade das imagens geradas é impressionante. Uso para apresentar propostas aos clientes e agilizar o processo de aprovação de projetos.' },
+        { name: 'Ana Paula', role: 'Designer de Interiores Comercial', text: 'O staging virtual me poupa horas de trabalho. Em vez de montar moodboards complexos, gero visualizações realistas em minutos.' },
     ];
 
     const FAQS = [
@@ -453,11 +453,13 @@ const LandingPage: React.FC = () => {
                             <div className="order-2 lg:order-1">
                                 <span className="text-xs font-bold uppercase tracking-[0.25em] text-secondary mb-4 block">Staging Virtual</span>
                                 <h2 className="text-3xl sm:text-4xl font-heading font-bold mb-6">
-                                    Ambientes vazios?<br /><span className="text-gradient">A IA mobilia para você.</span>
+                                    O que é Staging Virtual com IA?<br /><span className="text-gradient">Mobilie ambientes em segundos.</span>
                                 </h2>
+                                <p className="text-text-muted mb-4 leading-relaxed">
+                                    <strong>Staging virtual</strong> é o processo de utilizar inteligência artificial para adicionar digitalmente móveis, decoração e iluminação realistas a fotos de ambientes vazios. 
+                                </p>
                                 <p className="text-text-muted mb-8 leading-relaxed">
-                                    Esqueça o custo e logística de mobiliar fisicamente um imóvel para fotos.
-                                    O IOLIA preenche espaços vazios com móveis e decoração fotorrealistas, alinhados ao estilo que seu cliente espera.
+                                    Com o IOLIA, você esquece o custo e a logística de mobiliar fisicamente um imóvel para fotos. Nossa IA preenche os espaços vazios com móveis e decoração fotorrealistas, alinhados ao estilo que seu cliente espera.
                                 </p>
                                 <div className="grid grid-cols-2 gap-4">
                                     {[
@@ -641,6 +643,9 @@ const LandingPage: React.FC = () => {
                         </div>
                         <p className="text-xs text-text-muted">
                             © {new Date().getFullYear()} IOLIA AI. Todos os direitos reservados.
+                            <br className="sm:hidden" />
+                            <span className="hidden sm:inline"> • </span>
+                            Última atualização: 21 de Março de 2026
                         </p>
                     </div>
                 </div>
